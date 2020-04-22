@@ -89,8 +89,8 @@ class Generator(nn.Module):
         x = self.bn(x)
         x = x + shortcut
 
-        for i in range(self.upsample_factor / 2):
-            x = self.__getattr__('upsample' + str(i + 1))(x)
+        for i in range(self.upsample_factor // 2):
+            x = self.__getattr__('upsample_block_' + str(i + 1))(x)
 
         out = self.conv3(x)
 
@@ -155,6 +155,6 @@ class Discriminator(nn.Module):
         x = self.conv9(x)
 
         x = F.avg_pool2d(x, x.size()[2:])
-        x = F.sigmoid(x)
+        x = torch.sigmoid(x)
         out = torch.flatten(x, 1)
         return out
