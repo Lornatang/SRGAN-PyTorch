@@ -90,7 +90,7 @@ class Generator(nn.Module):
         x = x + shortcut
 
         for i in range(self.upsample_factor // 2):
-            x = self.__getattr__('upsample_block_' + str(i + 1))(x)
+            x = self.__getattr__("upsample_block_" + str(i + 1))(x)
 
         out = self.conv3(x)
 

@@ -11,8 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import torch.nn.functional as F
+import torch
 
 
 def swish(x):
-    return x * F.sigmoid(x)
+    return x * torch.sigmoid(x)
