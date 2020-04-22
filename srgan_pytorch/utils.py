@@ -11,8 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import torch.nn.functional as F
+import torch.nn as nn
 
 
-def swish(x):
-    return x * F.sigmoid(x)
+class FeatureExtractor(nn.Module):
+    def __init__(self, model, feature_layer=11):
+        super(FeatureExtractor, self).__init__()
+        self.features = nn.Sequential(*list(model.features.children())[:(feature_layer + 1)])
+
+    def forward(self, x):
+        return self.features(x)
