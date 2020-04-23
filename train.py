@@ -24,6 +24,7 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tqdm import tqdm
+
 from srgan_pytorch import Discriminator
 from srgan_pytorch import FeatureExtractor
 from srgan_pytorch import Generator
@@ -236,11 +237,11 @@ for epoch in range(0, args.epochs):
         # Update generator weights
         optimizer_G.step()
 
-        print(f"[{epoch}/{args.epochs - 1}][{i}/{len(dataloader) - 1}] "
-              f"Loss_D: {discriminator_loss.item():.4f} "
-              f"Loss_G_content: {generator_content_loss.item():.4f} "
-              f"Loss_G_adversarial: {generator_adversarial_loss.item():.4f} "
-              f"loss_G_total: {generator_total_loss.item():.4f}")
+        progress_bar.set_description(f"[{epoch}/{args.epochs}][{i}/{len(dataloader)}] "
+                                     f"Loss_D: {discriminator_loss.item():.4f} "
+                                     f"Loss_G_content: {generator_content_loss.item():.4f} "
+                                     f"Loss_G_adversarial: {generator_adversarial_loss.item():.4f} "
+                                     f"loss_G_total: {generator_total_loss.item():.4f}")
 
         if i % args.print_freq == 0:
             vutils.save_image(high_resolution_real_image,
