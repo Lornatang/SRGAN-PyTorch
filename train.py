@@ -115,8 +115,6 @@ if args.netG != "":
     generator.load_state_dict(torch.load(args.netG))
 if args.netD != "":
     discriminator.load_state_dict(torch.load(args.netD))
-print(generator)
-print(discriminator)
 
 # define loss function (adversarial_loss) and optimizer
 feature_extractor = FeatureExtractor(torchvision.models.vgg19(pretrained=True)).to(device)
@@ -180,6 +178,8 @@ for epoch in range(0, args.epochs):
     for i, data in progress_bar:
         high_resolution_real_image = data[0].to(device)
         batch_size = high_resolution_real_image.size(0)
+
+        low_resolution_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
 
         # Down sample images to low resolution
         for batch_index in range(batch_size):
