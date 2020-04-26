@@ -133,8 +133,6 @@ resize = transforms.Compose([transforms.ToPILImage(),
                              normalize,
                              ])
 
-real_label = torch.ones(args.batch_size, 1, device=device)
-
 # Pre-train generator using raw MSE loss
 print("Generator pre-training for 2 epoch.")
 for epoch in range(2):
@@ -189,6 +187,7 @@ for epoch in range(0, args.epochs):
         # Generate real and fake inputs
         high_resolution_fake_image = generator(low_resolution_image)
         real_image = torch.rand(batch_size, 1, device=device) * 0.5 + 0.7
+        real_label = torch.ones(batch_size, 1, device=device)
         fake_image = torch.rand(batch_size, 1, device=device) * 0.3
 
         ##############################################
