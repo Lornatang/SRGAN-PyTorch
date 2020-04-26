@@ -135,8 +135,6 @@ resize = transforms.Compose([transforms.ToPILImage(),
                              normalize,
                              ])
 
-low_resolution_image = torch.randn(args.batch_size, 3, args.image_size, args.image_size, device=device)
-
 real_label = torch.ones(args.batch_size, 1, device=device)
 
 # Pre-train generator using raw MSE loss
@@ -149,6 +147,8 @@ for epoch in range(2):
         # Generate data
         high_resolution_real_image = data[0].to(device)
         batch_size = high_resolution_real_image.size(0)
+
+        low_resolution_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
 
         # Down sample images to low resolution
         for batch_index in range(batch_size):
