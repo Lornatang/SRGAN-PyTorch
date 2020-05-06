@@ -51,14 +51,13 @@ parser.add_argument("--up-sampling", type=int, default=4,
 parser.add_argument("-p", "--print-freq", default=100, type=int,
                     metavar="N", help="Print frequency. (default:100)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
-parser.add_argument("--ngpu", type=int, default=1, help="Number of GPUs to use")
 parser.add_argument("--netG", default="", help="Path to netG (to continue training).")
 parser.add_argument("--netD", default="", help="Path to netD (to continue training).")
 parser.add_argument("--outf", default="./outputs",
-                    help="Folder to output images. (default:`./outputs`).")
+                    help="folder to output images. (default:`./outputs`).")
 parser.add_argument("--manualSeed", type=int,
                     help="Seed for initializing training. (default:none)")
-parser.add_argument("--gpu", default=None, type=int,
+parser.add_argument("--ngpu", default=1, type=int,
                     help="GPU id to use. (default:None)")
 parser.add_argument("--multiprocessing-distributed", action="store_true",
                     help="Use multi-processing distributed training to launch "
