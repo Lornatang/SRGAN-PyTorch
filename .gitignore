@@ -128,6 +128,6 @@ dmypy.json
 
 .DS_Store
 
-data
+data/X4
 outputs
-weights
+weights/*.pth
