@@ -202,7 +202,7 @@ for epoch in range(0, args.epochs):
         fake_output = discriminator(high_resolution_fake_image)
         discriminator_fake_loss = adversarial_loss(fake_output.detach(), fake_image)
         # Combined real image loss and fake image loss. At the same time calculate gradients.
-        discriminator_loss = discriminator_real_loss + discriminator_fake_loss
+        discriminator_loss = (discriminator_real_loss + discriminator_fake_loss) / 2
 
         # Calculate gradients for discriminator.
         discriminator_loss.backward()
