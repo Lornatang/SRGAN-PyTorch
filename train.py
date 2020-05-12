@@ -118,8 +118,7 @@ adversarial_loss = nn.BCELoss().to(device)
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr)
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
 resize = transforms.Compose([transforms.ToPILImage(),
                              transforms.Resize(args.image_size),
