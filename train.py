@@ -35,15 +35,15 @@ parser.add_argument("--dataroot", type=str, default="./data",
                     help="Path to datasets. (default:`./data`)")
 parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
                     help="Number of data loading workers. (default:8)")
-parser.add_argument("--epochs", default=100, type=int, metavar="N",
-                    help="Number of total epochs to run. (default:100)")
-parser.add_argument("--image-size", type=int, default=64,
-                    help="Size of the data crop (squared assumed). (default:64)")
-parser.add_argument("-b", "--batch-size", default=16, type=int,
+parser.add_argument("--epochs", default=2000, type=int, metavar="N",
+                    help="Number of total epochs to run. (default:2000)")
+parser.add_argument("--image-size", type=int, default=96,
+                    help="Size of the data crop (squared assumed). (default:96)")
+parser.add_argument("-b", "--batch-size", default=8, type=int,
                     metavar="N",
-                    help="mini-batch size (default: 16), this is the total "
+                    help="mini-batch size (default: 8), this is the total "
                          "batch size of all GPUs on the current node when "
-                         "using Data Parallel or Distributed Data Parallel")
+                         "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate. (default:0.0001)")
 parser.add_argument("--up-sampling", type=int, default=4,
@@ -59,11 +59,6 @@ parser.add_argument("--manualSeed", type=int,
                     help="Seed for initializing training. (default:none)")
 parser.add_argument("--ngpu", default=1, type=int,
                     help="GPU id to use. (default:None)")
-parser.add_argument("--multiprocessing-distributed", action="store_true",
-                    help="Use multi-processing distributed training to launch "
-                         "N processes per node, which has N GPUs. This is the "
-                         "fastest way to use PyTorch for either single node or "
-                         "multi node data parallel training")
 
 args = parser.parse_args()
 print(args)
@@ -91,7 +86,7 @@ if torch.cuda.is_available() and not args.cuda:
 
 dataset = datasets.ImageFolder(root=args.dataroot,
                                transform=transforms.Compose([
-                                   transforms.RandomCrop(args.image_size * args.up_sampling),
+                                   transforms.RandomResizedCrop(args.image_size * args.up_sampling),
                                    transforms.ToTensor()]))
 
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
@@ -133,8 +128,9 @@ resize = transforms.Compose([transforms.ToPILImage(),
                              ])
 
 # Pre-train generator using raw MSE loss
-print("Generator pre-training for 2 epoch.")
-for epoch in range(2):
+pre_epochs = round(100 // args.batch_size)
+print(f"Generator pre-training for {pre_epochs} epochs.")
+for epoch in range(pre_epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     for i, data in progress_bar:
         # Set generator gradients to zero
@@ -161,7 +157,7 @@ for epoch in range(2):
         # Update generator weights
         optimizer_G.step()
 
-        progress_bar.set_description(f"[{epoch}/2][{i}/{len(dataloader)}] "
+        progress_bar.set_description(f"[{epoch}/{pre_epochs}][{i}/{len(dataloader)}] "
                                      f"Generator_MSE_Loss: {generator_content_loss.item():.4f}")
 
     # Do checkpointing
