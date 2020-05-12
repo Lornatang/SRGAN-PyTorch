@@ -11,8 +11,8 @@ This repository contains an op-for-op PyTorch reimplementation of [Photo-Realist
     * [Download pretrained weights](#download-pretrained-weights)
     * [Download dataset](#download-dataset)
 4. [Test](#test)
-4. [Train](#train)
-    * [Example (horse2zebra)](#example-horse2zebra)
+4. [Train](#train-eg-div2k)
+    * [Example](#example-eg-div2k)
 5. [Contributing](#contributing) 
 6. [Credit](#credit)
 
