@@ -47,7 +47,7 @@ parser.add_argument("-b", "--batch-size", default=8, type=int,
 parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate. (default:0.0001)")
 parser.add_argument("--up-sampling", type=int, default=4,
-                    help="Low to high resolution scaling factor. (default:4) Option: [2, 4, 8].")
+                    help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("-p", "--print-freq", default=100, type=int,
                     metavar="N", help="Print frequency. (default:100)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
@@ -58,7 +58,7 @@ parser.add_argument("--outf", default="./outputs",
 parser.add_argument("--manualSeed", type=int,
                     help="Seed for initializing training. (default:none)")
 parser.add_argument("--ngpu", default=1, type=int,
-                    help="GPU id to use. (default:None)")
+                    help="GPU id to use. (default:1)")
 
 args = parser.parse_args()
 print(args)
