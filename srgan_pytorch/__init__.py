@@ -15,6 +15,7 @@ from .acitivity import swish
 from .model import Discriminator
 from .model import Generator
 from .utils import FeatureExtractor
+from .utils import evaluate_performance
 from .utils import weights_init
 
 __all__ = [
@@ -22,5 +23,6 @@ __all__ = [
     "Discriminator",
     "Generator",
     "FeatureExtractor",
+    "evaluate_performance",
     "weights_init",
 ]
