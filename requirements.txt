@@ -2,3 +2,5 @@ pillow
 six
 torch
 torchvision
+sewar
+opencv-python
