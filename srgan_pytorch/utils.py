@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import os
 
 import cv2
 import torch.nn as nn
@@ -28,25 +27,11 @@ class FeatureExtractor(nn.Module):
         return self.features(x)
 
 
-def evaluate_performance(input_folder, target_folder):
-    fake_images = os.listdir(input_folder)
-    fake_images.sort()
-    real_images = os.listdir(target_folder)
-    real_images.sort()
+def evaluate_performance(input_image, target_image):
+    fake_image = cv2.imread(input_image)
+    real_image = cv2.imread(target_image)
 
-    assert len(fake_images) == len(real_images), "Number of pictures does not match!"
-
-    mse_list = []
-    psnr_list = []
-
-    for index in range(len(fake_images)):
-        fake_image = cv2.imread(os.path.join(input_folder, fake_images[index]))
-        real_image = cv2.imread(os.path.join(target_folder, real_images[index]))
-
-        mse_list.append(mse(real_image, fake_image))
-        psnr_list.append(psnr(real_image, fake_image))
-
-    return sum(mse_list) / len(fake_images), sum(psnr_list) / len(fake_images)
+    return mse(real_image, fake_image), psnr(real_image, fake_image)
 
 
 # custom weights initialization called on netG and netD

@@ -28,6 +28,7 @@ from tqdm import tqdm
 from srgan_pytorch import Discriminator
 from srgan_pytorch import FeatureExtractor
 from srgan_pytorch import Generator
+from srgan_pytorch import evaluate_performance
 from srgan_pytorch import weights_init
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
@@ -237,6 +238,10 @@ for epoch in range(0, args.epochs):
             vutils.save_image(high_resolution_fake_image.detach(),
                               f"{args.outf}/fake_samples_epoch_{epoch}.png",
                               normalize=True)
+
+            mse_value, psnr_value = evaluate_performance(f"{args.outf}/real_samples.png",
+                                                         f"{args.outf}/fake_samples_epoch_{epoch}.png")
+            print(f"MSE: {mse_value}, PSNR: {psnr_value}")
 
     # do checkpointing
     if ngpu > 1:
