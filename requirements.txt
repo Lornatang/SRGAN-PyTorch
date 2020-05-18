@@ -1,6 +1,6 @@
-pillow
-six
-torch
-torchvision
-sewar
-opencv-python
+torch~=1.5.0
+torchvision~=0.6.0
+tqdm~=4.46.0
+matplotlib~=3.1.3
+opencv-python~=4.2.0.34
+sewar~=0.4.3
