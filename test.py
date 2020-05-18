@@ -74,9 +74,6 @@ device = torch.device("cuda:0" if args.cuda else "cpu")
 generator = Generator(n_residual_blocks=8, upsample_factor=args.up_sampling).to(device)
 discriminator = Discriminator().to(device)
 
-generator = torch.nn.DataParallel(generator).to(device)
-discriminator = torch.nn.DataParallel(discriminator).to(device)
-
 if args.netG != "":
     generator.load_state_dict(torch.load(args.netG))
 if args.netD != "":
