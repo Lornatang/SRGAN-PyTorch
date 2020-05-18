@@ -78,7 +78,7 @@ Using pre training model to generate pictures.
 $ python3 test.py --cuda
 ```
 
-Low resolution / Recovered High Resolution / High resolution
+Low resolution / Recovered High Resolution / Ground Truth
 
 <span align="center"><img src="assets/result.png" alt="">
 </span>
