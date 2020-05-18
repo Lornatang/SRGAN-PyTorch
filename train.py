@@ -159,9 +159,6 @@ for epoch in range(pre_epochs):
         progress_bar.set_description(f"[{epoch}/{pre_epochs}][{i}/{len(dataloader)}] "
                                      f"Generator_MSE_Loss: {generator_content_loss.item():.4f}")
 
-    # Do checkpointing
-    torch.save(generator.state_dict(), f"weights/generator_pretrained.pth")
-
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr * 0.1)
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lr * 0.1)
 
@@ -231,9 +228,7 @@ for epoch in range(0, args.epochs):
 
         progress_bar.set_description(f"[{epoch}/{args.epochs}][{i}/{len(dataloader)}] "
                                      f"Loss_D: {discriminator_loss.item():.4f} "
-                                     f"Loss_G_content: {generator_content_loss.item():.4f} "
-                                     f"Loss_G_adversarial: {generator_adversarial_loss.item():.4f} "
-                                     f"loss_G_total: {generator_total_loss.item():.4f}")
+                                     f"loss_G: {generator_total_loss.item():.4f}")
 
         if i % args.print_freq == 0:
             vutils.save_image(high_resolution_real_image,
