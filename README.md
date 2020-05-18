@@ -75,8 +75,13 @@ $ bash get_dataset.sh
 Using pre training model to generate pictures.
 
 ```bash
-$ python3 test.py --file ./data/test.png --cuda
+$ python3 test.py --cuda
 ```
+
+Low resolution / Recovered High Resolution / High resolution
+
+<span align="center"><img src="assets/result.png" alt="">
+</span>
 
 ### Train (e.g DIV2K)
 
@@ -99,12 +104,6 @@ If you want to load weights that you've trained before, run the following comman
 ```bash
 $ python3 train.py --ngpu 2 --netG weights/netG_epoch_*.pth --netD weights/netD_epoch_*.pth --cuda
 ```
-
-Low resolution / Recovered High Resolution / High resolution
-
-<span align="center"><img src="assets/result.png" alt="">
-</span>
-
 
 ### Contributing
 
