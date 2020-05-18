@@ -23,6 +23,7 @@ import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from srgan_pytorch import Discriminator
@@ -36,8 +37,8 @@ parser.add_argument("--dataroot", type=str, default="./data",
                     help="Path to datasets. (default:`./data`)")
 parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
                     help="Number of data loading workers. (default:8)")
-parser.add_argument("--epochs", default=2000, type=int, metavar="N",
-                    help="Number of total epochs to run. (default:2000)")
+parser.add_argument("--epochs", default=200, type=int, metavar="N",
+                    help="Number of total epochs to run. (default:200)")
 parser.add_argument("--image-size", type=int, default=96,
                     help="Size of the data crop (squared assumed). (default:96)")
 parser.add_argument("-b", "--batch-size", default=8, type=int,
@@ -49,7 +50,7 @@ parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate. (default:0.0001)")
 parser.add_argument("--up-sampling", type=int, default=4,
                     help="Low to high resolution scaling factor. (default:4).")
-parser.add_argument("-p", "--print-freq", default=100, type=int,
+parser.add_argument("-p", "--print-freq", default=50, type=int,
                     metavar="N", help="Print frequency. (default:100)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--netG", default="", help="Path to netG (to continue training).")
@@ -163,6 +164,12 @@ for epoch in range(pre_epochs):
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr * 0.1)
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lr * 0.1)
 
+g_losses = []
+d_losses = []
+
+mse_list = []
+psnr_list = []
+
 for epoch in range(0, args.epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     for i, data in progress_bar:
@@ -220,18 +227,22 @@ for epoch in range(0, args.epochs):
         # Calculate the difference between the generated image and the real image.
         generator_adversarial_loss = adversarial_loss(fake_output.detach(), real_label) * 0.001
         # Combined real image content loss and fake image content loss. At the same time calculate gradients.
-        generator_total_loss = generator_content_loss + generator_adversarial_loss
+        generator_loss = generator_content_loss + generator_adversarial_loss
 
         # Calculate gradients for generator
-        generator_total_loss.backward()
+        generator_loss.backward()
         # Update generator weights
         optimizer_G.step()
 
         progress_bar.set_description(f"[{epoch}/{args.epochs}][{i}/{len(dataloader)}] "
                                      f"Loss_D: {discriminator_loss.item():.4f} "
-                                     f"loss_G: {generator_total_loss.item():.4f}")
+                                     f"loss_G: {generator_loss.item():.4f}")
 
         if i % args.print_freq == 0:
+            # Save Losses for plotting later
+            d_losses.append(discriminator_loss.item())
+            g_losses.append(generator_loss.item())
+
             vutils.save_image(high_resolution_real_image,
                               f"{args.outf}/real_samples.png",
                               normalize=False)
@@ -239,9 +250,16 @@ for epoch in range(0, args.epochs):
                               f"{args.outf}/fake_samples_epoch_{epoch}.png",
                               normalize=True)
 
-            mse_value, psnr_value = evaluate_performance(f"{args.outf}/real_samples.png",
-                                                         f"{args.outf}/fake_samples_epoch_{epoch}.png")
-            print(f"MSE: {mse_value}, PSNR: {psnr_value}")
+    mse_value, psnr_value = evaluate_performance(f"{args.outf}/real_samples.png",
+                                                 f"{args.outf}/fake_samples_epoch_{epoch}.png")
+    print("\n")
+    print("================================== Summary ==================================")
+    print(f"Iter: {len(dataloader) * (epoch + 1)} MSE: {mse_value:.4f}, PSNR: {psnr_value:.4f}")
+    print("==================================== End ====================================")
+    print("\n")
+
+    mse_list.append(mse_value)
+    psnr_list.append(psnr_value)
 
     # do checkpointing
     if ngpu > 1:
@@ -250,3 +268,21 @@ for epoch in range(0, args.epochs):
     else:
         torch.save(generator.state_dict(), f"weights/netG_epoch_{epoch}.pth")
         torch.save(discriminator.state_dict(), f"weights/netD_epoch_{epoch}.pth")
+
+plt.figure(figsize=(200, 5))
+plt.title("Generator and Discriminator Loss During Training")
+plt.plot(g_losses, label="G_Loss")
+plt.plot(d_losses, label="D_Loss")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.legend()
+plt.savefig("model_loss_result.png")
+
+plt.figure(figsize=(20, 5))
+plt.title("Model performance")
+plt.plot(mse_list, label="MSE")
+plt.plot(psnr_list, label="PSNR")
+plt.xlabel("Epochs")
+plt.ylabel("Value")
+plt.legend()
+plt.savefig("model_performance_result.png")
