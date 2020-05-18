@@ -104,7 +104,7 @@ for i, data in progress_bar:
     # Generate real and fake inputs
     high_resolution_fake_image = generator(low_resolution_image)
 
-    vutils.save_image(high_resolution_real_image, f"{args.outf}/high_res_real_{i}.png", normalize=True)
+    vutils.save_image(high_resolution_real_image, f"{args.outf}/high_res_real_{i}.png", normalize=False)
     vutils.save_image(high_resolution_fake_image.detach(), f"{args.outf}/high_res_fake_{i}.png", normalize=True)
     vutils.save_image(low_resolution_image, f"{args.outf}/low_res_real_{i}.png", normalize=True)
 
