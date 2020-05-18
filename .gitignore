@@ -132,3 +132,4 @@ data/X4
 outputs
 results
 weights/*.pth
+weights/*.zip
