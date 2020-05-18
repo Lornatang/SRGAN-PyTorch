@@ -100,6 +100,12 @@ If you want to load weights that you've trained before, run the following comman
 $ python3 train.py --ngpu 2 --netG weights/netG_epoch_*.pth --netD weights/netD_epoch_*.pth --cuda
 ```
 
+Low resolution / Recovered High Resolution / High resolution
+
+<span align="center"><img src="assets/result.png" alt="">
+</span>
+
+
 ### Contributing
 
 If you find a bug, create a GitHub issue, or even better, submit a pull request. Similarly, if you have questions, simply post them as GitHub issues.   
