@@ -238,7 +238,7 @@ for epoch in range(0, args.epochs):
         if i % args.print_freq == 0:
             vutils.save_image(high_resolution_real_image,
                               f"{args.outf}/real_samples.png",
-                              normalize=True)
+                              normalize=False)
             vutils.save_image(high_resolution_fake_image.detach(),
                               f"{args.outf}/fake_samples_epoch_{epoch}.png",
                               normalize=True)
