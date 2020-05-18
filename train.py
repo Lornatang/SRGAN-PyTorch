@@ -95,7 +95,7 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
 device = torch.device("cuda:0" if args.cuda else "cpu")
 ngpu = int(args.ngpu)
 
-generator = Generator(args.batch_size, args.up_sampling).to(device)
+generator = Generator(n_residual_blocks=8, upsample_factor=args.up_sampling).to(device)
 discriminator = Discriminator().to(device)
 
 if args.cuda and ngpu > 1:
@@ -244,5 +244,9 @@ for epoch in range(0, args.epochs):
                               normalize=True)
 
     # do checkpointing
-    torch.save(generator.state_dict(), f"weights/netG_epoch_{epoch}.pth")
-    torch.save(discriminator.state_dict(), f"weights/netD_epoch_{epoch}.pth")
+    if ngpu > 1:
+        torch.save(generator.module.state_dict(), f"weights/netG_epoch_{epoch}.pth")
+        torch.save(discriminator.module.state_dict(), f"weights/netD_epoch_{epoch}.pth")
+    else:
+        torch.save(generator.state_dict(), f"weights/netG_epoch_{epoch}.pth")
+        torch.save(discriminator.state_dict(), f"weights/netD_epoch_{epoch}.pth")
