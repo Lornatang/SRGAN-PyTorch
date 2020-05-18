@@ -245,7 +245,7 @@ for epoch in range(0, args.epochs):
 
             vutils.save_image(high_resolution_real_image,
                               f"{args.outf}/real_samples.png",
-                              normalize=False)
+                              normalize=True)
             vutils.save_image(high_resolution_fake_image.detach(),
                               f"{args.outf}/fake_samples_epoch_{epoch}.png",
                               normalize=True)
@@ -269,7 +269,7 @@ for epoch in range(0, args.epochs):
         torch.save(generator.state_dict(), f"weights/netG_epoch_{epoch}.pth")
         torch.save(discriminator.state_dict(), f"weights/netD_epoch_{epoch}.pth")
 
-plt.figure(figsize=(200, 5))
+plt.figure(figsize=(50, 5))
 plt.title("Generator and Discriminator Loss During Training")
 plt.plot(g_losses, label="G_Loss")
 plt.plot(d_losses, label="D_Loss")
