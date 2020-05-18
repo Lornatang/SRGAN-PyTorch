@@ -14,6 +14,7 @@
 import argparse
 import os
 import random
+import shutil
 
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -170,6 +171,9 @@ d_losses = []
 mse_list = []
 psnr_list = []
 
+best_mse_value = 0.0
+best_psnr_value = 0.0
+
 for epoch in range(0, args.epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     for i, data in progress_bar:
@@ -268,6 +272,13 @@ for epoch in range(0, args.epochs):
     else:
         torch.save(generator.state_dict(), f"weights/netG_epoch_{epoch}.pth")
         torch.save(discriminator.state_dict(), f"weights/netD_epoch_{epoch}.pth")
+
+    # save best model
+    if best_mse_value < mse_value and best_psnr_value > psnr_value:
+        best_mse_value = mse_value
+        best_psnr_value = psnr_value
+        shutil.copyfile(f"weights/netG_epoch_{epoch}.pth", "weights/netG.pth")
+        shutil.copyfile(f"weights/netD_epoch_{epoch}.pth", "weights/netD.pth")
 
 plt.figure(figsize=(50, 5))
 plt.title("Generator and Discriminator Loss During Training")
