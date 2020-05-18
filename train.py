@@ -274,7 +274,7 @@ for epoch in range(0, args.epochs):
         torch.save(discriminator.state_dict(), f"weights/netD_epoch_{epoch}.pth")
 
     # save best model
-    if best_mse_value < mse_value and best_psnr_value > psnr_value:
+    if best_mse_value < mse_value and best_psnr_value < psnr_value:
         best_mse_value = mse_value
         best_psnr_value = psnr_value
         shutil.copyfile(f"weights/netG_epoch_{epoch}.pth", "weights/netG.pth")
