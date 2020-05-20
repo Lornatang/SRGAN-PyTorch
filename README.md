@@ -1,4 +1,4 @@
-# SRGAN_PyTorch
+# SRGAN-PyTorch
 
 ### Overview
 This repository contains an op-for-op PyTorch reimplementation of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802).
@@ -51,8 +51,8 @@ and if it's 0, it's not real.
 #### Clone and install requirements
 
 ```bash
-$ git clone https://github.com/Lornatang/SRGAN_PyTorch.git
-$ cd SRGAN_PyTorch/
+$ git clone https://github.com/Lornatang/SRGAN-PyTorch
+$ cd SRGAN-PyTorch/
 $ pip3 install -r requirements.txt
 ```
 
