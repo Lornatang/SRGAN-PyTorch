@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from .acitivity import swish
 from .model import Discriminator
 from .model import Generator
 from .utils import FeatureExtractor
@@ -19,7 +18,6 @@ from .utils import evaluate_performance
 from .utils import weights_init
 
 __all__ = [
-    "swish",
     "Discriminator",
     "Generator",
     "FeatureExtractor",

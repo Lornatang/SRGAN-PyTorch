@@ -20,7 +20,6 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
@@ -38,19 +37,19 @@ parser.add_argument("--dataroot", type=str, default="./data",
                     help="Path to datasets. (default:`./data`)")
 parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
                     help="Number of data loading workers. (default:8)")
-parser.add_argument("--epochs", default=200, type=int, metavar="N",
-                    help="Number of total epochs to run. (default:200)")
-parser.add_argument("-b", "--batch-size", default=8, type=int,
+parser.add_argument("--epochs", default=100, type=int, metavar="N",
+                    help="Number of total epochs to run. (default:100)")
+parser.add_argument("-b", "--batch-size", default=64, type=int,
                     metavar="N",
-                    help="mini-batch size (default: 8), this is the total "
+                    help="mini-batch size (default: 64), this is the total "
                          "batch size of all GPUs on the current node when "
                          "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate. (default:0.0001)")
-parser.add_argument("--image-size", type=int, default=96,
-                    help="Size of the data crop (squared assumed). (default:96)")
-parser.add_argument("--up-sampling", type=int, default=4,
-                    help="Low to high resolution scaling factor. (default:4).")
+parser.add_argument("--image-size", type=int, default=88,
+                    help="Size of the data crop (squared assumed). (default:88)")
+parser.add_argument("--upscale-factor", type=int, default=4,
+                    help="Super resolution upscale factor. (default:4).")
 parser.add_argument("-p", "--print-freq", default=100, type=int,
                     metavar="N", help="Print frequency. (default:100)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
@@ -98,8 +97,10 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
 device = torch.device("cuda:0" if args.cuda else "cpu")
 ngpu = int(args.ngpu)
 
-netG = Generator(n_residual_blocks=8, upsample_factor=args.up_sampling).to(device)
+netG = Generator(scale_factor=args.upscale_factor).to(device)
+print(f"# generator parameters: {sum(param.numel() for param in netG.parameters())}")
 netD = Discriminator().to(device)
+print(f"# discriminator parameters: {sum(param.numel() for param in netD.parameters())}")
 
 if args.cuda and ngpu > 1:
     netG = torch.nn.DataParallel(netG).to(device)
@@ -114,7 +115,7 @@ if args.netD != "":
     netD.load_state_dict(torch.load(args.netD))
 
 # define loss function (adversarial_loss) and optimizer
-feature_extractor = FeatureExtractor(torchvision.models.vgg19(pretrained=True)).to(device)
+feature_extractor = FeatureExtractor().to(device)
 content_loss = nn.MSELoss().to(device)
 adversarial_loss = nn.BCELoss().to(device)
 

@@ -16,12 +16,14 @@ import cv2
 import torch.nn as nn
 from sewar.full_ref import mse
 from sewar.full_ref import psnr
+from torchvision.models import vgg19
 
 
 class FeatureExtractor(nn.Module):
-    def __init__(self, model, feature_layer=11):
+    def __init__(self):
         super(FeatureExtractor, self).__init__()
-        self.features = nn.Sequential(*list(model.features.children())[:(feature_layer + 1)])
+        model = vgg19(pretrained=True)
+        self.features = nn.Sequential(*list(model.features)[:31]).eval()
 
     def forward(self, x):
         return self.features(x)

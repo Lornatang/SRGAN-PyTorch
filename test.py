@@ -22,23 +22,18 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tqdm import tqdm
 
-from srgan_pytorch import Discriminator
 from srgan_pytorch import Generator
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
 parser.add_argument("--dataroot", type=str, default="./data",
                     help="Path to dataset. (default:`./data`)")
-parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
-                    help="Number of data loading workers. (default:4)")
-parser.add_argument("--image-size", type=int, default=96,
-                    help="Size of the data crop (squared assumed). (default:96)")
-parser.add_argument("--up-sampling", type=int, default=4,
-                    help="Low to high resolution scaling factor. (default:4).")
+parser.add_argument("--image-size", type=int, default=88,
+                    help="Size of the data crop (squared assumed). (default:88)")
+parser.add_argument("--upscale-factor", type=int, default=4,
+                    help="Super resolution upscale factor. (default:4).")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
-parser.add_argument("--netG", default="./weights/netG.pth", help="Path to netG (default:`./weights/netG.pth`).")
-parser.add_argument("--netD", default="./weights/netD.pth", help="Path to netD (default:`./weights/netD.pth`).")
 parser.add_argument("--outf", default="./results",
-                    help="folder to output images. (default:`./outputs`).")
+                    help="folder to output images. (default:`./results`).")
 parser.add_argument("--manualSeed", type=int,
                     help="Seed for initializing training. (default:none)")
 
@@ -63,28 +58,24 @@ if torch.cuda.is_available() and not args.cuda:
 
 dataset = datasets.ImageFolder(root=args.dataroot,
                                transform=transforms.Compose([
-                                   transforms.RandomResizedCrop(args.image_size * args.up_sampling),
+                                   transforms.RandomResizedCrop(args.image_size * args.upscale_factor),
                                    transforms.ToTensor()]))
 
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                                         shuffle=False, pin_memory=True, num_workers=int(args.workers))
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, pin_memory=True)
 
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
-generator = Generator(n_residual_blocks=8, upsample_factor=args.up_sampling).to(device)
-discriminator = Discriminator().to(device)
+# create model
+model = Generator(scale_factor=args.upscale_factor).to(device)
 
-if args.netG != "":
-    generator.load_state_dict(torch.load(args.netG))
-if args.netD != "":
-    discriminator.load_state_dict(torch.load(args.netD))
+# Load state dicts
+model.load_state_dict(torch.load("weights/netG.pth"))
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+# Set model mode
+model.eval()
 
-resize = transforms.Compose([transforms.ToPILImage(),
-                             transforms.Resize(args.image_size),
+resize = transforms.Compose([transforms.Resize(args.image_size),
                              transforms.ToTensor(),
-                             normalize,
                              ])
 
 progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
@@ -92,14 +83,11 @@ for i, data in progress_bar:
     high_resolution_real_image = data[0].to(device)
     batch_size = high_resolution_real_image.size(0)
 
-    low_resolution_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
-
     # Down sample images to low resolution
-    for batch_index in range(batch_size):
-        low_resolution_image[batch_index] = resize(high_resolution_real_image[batch_index].cpu())
+    low_resolution_image = resize(high_resolution_real_image)
 
     # Generate real and fake inputs
-    high_resolution_fake_image = generator(low_resolution_image)
+    high_resolution_fake_image = model(low_resolution_image)
 
     vutils.save_image(high_resolution_real_image, f"{args.outf}/high_res_real_{i}.png", normalize=False)
     vutils.save_image(high_resolution_fake_image.detach(), f"{args.outf}/high_res_fake_{i}.png", normalize=True)
