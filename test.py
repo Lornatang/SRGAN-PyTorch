@@ -75,8 +75,7 @@ model.load_state_dict(torch.load("weights/netG.pth"))
 model.eval()
 
 resize = transforms.Compose([transforms.Resize(args.image_size),
-                             transforms.ToTensor(),
-                             ])
+                             transforms.ToTensor()])
 
 progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
 for i, data in progress_bar:
