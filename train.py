@@ -40,8 +40,6 @@ parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
                     help="Number of data loading workers. (default:8)")
 parser.add_argument("--epochs", default=200, type=int, metavar="N",
                     help="Number of total epochs to run. (default:200)")
-parser.add_argument("--image-size", type=int, default=96,
-                    help="Size of the data crop (squared assumed). (default:96)")
 parser.add_argument("-b", "--batch-size", default=8, type=int,
                     metavar="N",
                     help="mini-batch size (default: 8), this is the total "
@@ -49,9 +47,11 @@ parser.add_argument("-b", "--batch-size", default=8, type=int,
                          "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate. (default:0.0001)")
+parser.add_argument("--image-size", type=int, default=96,
+                    help="Size of the data crop (squared assumed). (default:96)")
 parser.add_argument("--up-sampling", type=int, default=4,
                     help="Low to high resolution scaling factor. (default:4).")
-parser.add_argument("-p", "--print-freq", default=50, type=int,
+parser.add_argument("-p", "--print-freq", default=100, type=int,
                     metavar="N", help="Print frequency. (default:100)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--netG", default="", help="Path to netG (to continue training).")
@@ -98,20 +98,20 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
 device = torch.device("cuda:0" if args.cuda else "cpu")
 ngpu = int(args.ngpu)
 
-generator = Generator(n_residual_blocks=8, upsample_factor=args.up_sampling).to(device)
-discriminator = Discriminator().to(device)
+netG = Generator(n_residual_blocks=8, upsample_factor=args.up_sampling).to(device)
+netD = Discriminator().to(device)
 
 if args.cuda and ngpu > 1:
-    generator = torch.nn.DataParallel(generator).to(device)
-    discriminator = torch.nn.DataParallel(discriminator).to(device)
+    netG = torch.nn.DataParallel(netG).to(device)
+    netD = torch.nn.DataParallel(netD).to(device)
 
-generator.apply(weights_init)
-discriminator.apply(weights_init)
+netG.apply(weights_init)
+netD.apply(weights_init)
 
 if args.netG != "":
-    generator.load_state_dict(torch.load(args.netG))
+    netG.load_state_dict(torch.load(args.netG))
 if args.netD != "":
-    discriminator.load_state_dict(torch.load(args.netD))
+    netD.load_state_dict(torch.load(args.netD))
 
 # define loss function (adversarial_loss) and optimizer
 feature_extractor = FeatureExtractor(torchvision.models.vgg19(pretrained=True)).to(device)
@@ -119,7 +119,7 @@ content_loss = nn.MSELoss().to(device)
 adversarial_loss = nn.BCELoss().to(device)
 
 # Optimizers
-optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr)
+optimizerG = torch.optim.Adam(netG.parameters(), lr=args.lr)
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
@@ -136,7 +136,7 @@ for epoch in range(pre_epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     for i, data in progress_bar:
         # Set generator gradients to zero
-        generator.zero_grad()
+        netG.zero_grad()
         # Generate data
         high_resolution_real_image = data[0].to(device)
         batch_size = high_resolution_real_image.size(0)
@@ -149,7 +149,7 @@ for epoch in range(pre_epochs):
             high_resolution_real_image[batch_index] = normalize(high_resolution_real_image[batch_index])
 
         # Generate real and fake inputs
-        high_resolution_fake_image = generator(low_resolution_image)
+        high_resolution_fake_image = netG(low_resolution_image)
 
         # Content loss
         generator_content_loss = content_loss(high_resolution_fake_image, high_resolution_real_image)
@@ -157,13 +157,13 @@ for epoch in range(pre_epochs):
         # Calculate gradients for generator
         generator_content_loss.backward()
         # Update generator weights
-        optimizer_G.step()
+        optimizerG.step()
 
         progress_bar.set_description(f"[{epoch}/{pre_epochs}][{i}/{len(dataloader)}] "
                                      f"Generator_MSE_Loss: {generator_content_loss.item():.4f}")
 
-optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr * 0.1)
-optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lr * 0.1)
+optimizerG = torch.optim.Adam(netG.parameters(), lr=args.lr * 0.1)
+optimizerD = torch.optim.Adam(netD.parameters(), lr=args.lr * 0.1)
 
 g_losses = []
 d_losses = []
@@ -188,7 +188,7 @@ for epoch in range(0, args.epochs):
             high_resolution_real_image[batch_index] = normalize(high_resolution_real_image[batch_index])
 
         # Generate real and fake inputs
-        high_resolution_fake_image = generator(low_resolution_image)
+        high_resolution_fake_image = netG(low_resolution_image)
         real_image = torch.rand(batch_size, 1, device=device) * 0.5 + 0.7
         real_label = torch.ones(batch_size, 1, device=device)
         fake_image = torch.rand(batch_size, 1, device=device) * 0.3
@@ -197,27 +197,27 @@ for epoch in range(0, args.epochs):
         # (1) Update D network
         ##############################################
         # Set discriminator gradients to zero.
-        discriminator.zero_grad()
+        netD.zero_grad()
 
-        # Real image loss.
-        real_output = discriminator(high_resolution_real_image)
-        discriminator_real_loss = adversarial_loss(real_output, real_image)
-        # Fake image loss.
-        fake_output = discriminator(high_resolution_fake_image)
-        discriminator_fake_loss = adversarial_loss(fake_output.detach(), fake_image)
+        # train with real
+        real_output = netD(high_resolution_real_image)
+        errD_real = adversarial_loss(real_output, real_image)
+        # train with fake
+        fake_output = netD(high_resolution_fake_image)
+        errD_fake = adversarial_loss(fake_output.detach(), fake_image)
         # Combined real image loss and fake image loss. At the same time calculate gradients.
-        discriminator_loss = (discriminator_real_loss + discriminator_fake_loss) / 2
+        errD = (errD_real + errD_fake) / 2
 
         # Calculate gradients for discriminator.
-        discriminator_loss.backward()
+        errD.backward()
         # Update discriminator weights.
-        optimizer_D.step()
+        optimizerD.step()
 
         ##############################################
         # (2) Update G network
         ##############################################
         # Set generator gradients to zero
-        generator.zero_grad()
+        netG.zero_grad()
 
         # Extract picture features
         real_features = feature_extractor(high_resolution_real_image)
@@ -231,21 +231,21 @@ for epoch in range(0, args.epochs):
         # Calculate the difference between the generated image and the real image.
         generator_adversarial_loss = adversarial_loss(fake_output, real_label) * 0.001
         # Combined real image content loss and fake image content loss. At the same time calculate gradients.
-        generator_loss = generator_content_loss + generator_adversarial_loss
+        errG = generator_content_loss + generator_adversarial_loss
 
         # Calculate gradients for generator
-        generator_loss.backward()
+        errG.backward()
         # Update generator weights
-        optimizer_G.step()
+        optimizerG.step()
 
         progress_bar.set_description(f"[{epoch}/{args.epochs}][{i}/{len(dataloader)}] "
-                                     f"Loss_D: {discriminator_loss.item():.4f} "
-                                     f"loss_G: {generator_loss.item():.4f}")
+                                     f"Loss_D: {errD.item():.4f} "
+                                     f"loss_G: {errG.item():.4f}")
 
         if i % args.print_freq == 0:
             # Save Losses for plotting later
-            d_losses.append(discriminator_loss.item())
-            g_losses.append(generator_loss.item())
+            d_losses.append(errD.item())
+            g_losses.append(errG.item())
 
             vutils.save_image(high_resolution_real_image,
                               f"{args.outf}/real_samples.png",
@@ -267,11 +267,11 @@ for epoch in range(0, args.epochs):
 
     # do checkpointing
     if ngpu > 1:
-        torch.save(generator.module.state_dict(), f"weights/netG_epoch_{epoch}.pth")
-        torch.save(discriminator.module.state_dict(), f"weights/netD_epoch_{epoch}.pth")
+        torch.save(netG.module.state_dict(), f"weights/netG_epoch_{epoch}.pth")
+        torch.save(netD.module.state_dict(), f"weights/netD_epoch_{epoch}.pth")
     else:
-        torch.save(generator.state_dict(), f"weights/netG_epoch_{epoch}.pth")
-        torch.save(discriminator.state_dict(), f"weights/netD_epoch_{epoch}.pth")
+        torch.save(netG.state_dict(), f"weights/netG_epoch_{epoch}.pth")
+        torch.save(netD.state_dict(), f"weights/netD_epoch_{epoch}.pth")
 
     # save best model
     if best_mse_value < mse_value and best_psnr_value < psnr_value:
