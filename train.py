@@ -229,7 +229,7 @@ for epoch in range(0, args.epochs):
         generator_content_loss = image_content_loss + feature_content_loss
 
         # Calculate the difference between the generated image and the real image.
-        generator_adversarial_loss = adversarial_loss(fake_output.detach(), real_label) * 0.001
+        generator_adversarial_loss = adversarial_loss(fake_output, real_label) * 0.001
         # Combined real image content loss and fake image content loss. At the same time calculate gradients.
         generator_loss = generator_content_loss + generator_adversarial_loss
 
