@@ -88,7 +88,7 @@ if torch.cuda.is_available() and not args.cuda:
 
 dataset = datasets.ImageFolder(root=args.dataroot,
                                transform=transforms.Compose([
-                                   transforms.RandomResizedCrop(args.image_size * args.up_sampling),
+                                   transforms.RandomResizedCrop(args.image_size * args.upscale_factor),
                                    transforms.ToTensor()]))
 
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
@@ -281,7 +281,7 @@ for epoch in range(0, args.epochs):
         shutil.copyfile(f"weights/netG_epoch_{epoch}.pth", "weights/netG.pth")
         shutil.copyfile(f"weights/netD_epoch_{epoch}.pth", "weights/netD.pth")
 
-plt.figure(figsize=(50, 5))
+plt.figure(figsize=(20, 5))
 plt.title("Generator and Discriminator Loss During Training")
 plt.plot(g_losses, label="G_Loss")
 plt.plot(d_losses, label="D_Loss")
