@@ -11,121 +11,149 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import math
-
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+from .acitivity import swish
 
 
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.main = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),
-            nn.LeakyReLU(0.2),
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
 
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
+        self.bn3 = nn.BatchNorm2d(128)
+        self.conv4 = nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1)
+        self.bn4 = nn.BatchNorm2d(128)
+        self.conv5 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
+        self.bn5 = nn.BatchNorm2d(256)
+        self.conv6 = nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1)
+        self.bn6 = nn.BatchNorm2d(256)
+        self.conv7 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
+        self.bn7 = nn.BatchNorm2d(512)
+        self.conv8 = nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1)
+        self.bn8 = nn.BatchNorm2d(512)
 
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(256, 512, kernel_size=3, padding=1),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
-
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(512, 1024, kernel_size=1),
-            nn.LeakyReLU(0.2),
-            nn.Conv2d(1024, 1, kernel_size=1)
-        )
+        # Replaced original paper FC layers with FCN
+        self.conv9 = nn.Conv2d(512, 1, kernel_size=1, stride=1, padding=1)
 
     def forward(self, x):
-        batch_size = x.size(0)
-        return torch.sigmoid(self.main(x).view(batch_size))
+        x = self.conv1(x)
+        x = swish(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = swish(x)
+
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = swish(x)
+
+        x = self.conv4(x)
+        x = self.bn4(x)
+        x = swish(x)
+
+        x = self.conv5(x)
+        x = self.bn5(x)
+        x = swish(x)
+
+        x = self.conv6(x)
+        x = self.bn6(x)
+        x = swish(x)
+
+        x = self.conv7(x)
+        x = self.bn7(x)
+        x = swish(x)
+
+        x = self.conv8(x)
+        x = self.bn8(x)
+        x = swish(x)
+
+        x = self.conv9(x)
+
+        x = F.avg_pool2d(x, x.size()[2:])
+        x = torch.sigmoid(x)
+        out = torch.flatten(x, 1)
+        return out
 
 
 class Generator(nn.Module):
     def __init__(self, scale_factor):
-        upsample_block_num = int(math.log(scale_factor, 2))
-
         super(Generator, self).__init__()
-        self.block1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=9, padding=4),
-            nn.PReLU()
-        )
-        self.block2 = ResidualBlock(64)
-        self.block3 = ResidualBlock(64)
-        self.block4 = ResidualBlock(64)
-        self.block5 = ResidualBlock(64)
-        self.block6 = ResidualBlock(64)
-        self.block7 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64)
-        )
-        block8 = [UpsampleBLock(64, 2) for _ in range(upsample_block_num)]
-        block8.append(nn.Conv2d(64, 3, kernel_size=9, padding=4))
-        self.block8 = nn.Sequential(*block8)
+        self.scale_factor = scale_factor
+
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4)
+
+        for i in range(8):
+            self.add_module("residual_block_" + str(i + 1), ResidualBlock())
+
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+        self.bn = nn.BatchNorm2d(64)
+
+        for i in range(self.scale_factor // 2):
+            self.add_module("scale_block_" + str(i + 1), UpsampleBlock(64, 256))
+
+        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
     def forward(self, x):
-        block1 = self.block1(x)
-        block2 = self.block2(block1)
-        block3 = self.block3(block2)
-        block4 = self.block4(block3)
-        block5 = self.block5(block4)
-        block6 = self.block6(block5)
-        block7 = self.block7(block6)
-        block8 = self.block8(block1 + block7)
+        x = self.conv1(x)
+        x = swish(x)
 
-        return (torch.tanh(block8) + 1) / 2
+        y = x.clone()
+        for i in range(8):
+            y = self.__getattr__("residual_block_" + str(i + 1))(y)
+
+        shortcut = x
+
+        x = self.conv2(y)
+        x = self.bn(x)
+        x = x + shortcut
+
+        for i in range(self.scale_factor // 2):
+            x = self.__getattr__("scale_block_" + str(i + 1))(x)
+
+        out = self.conv3(x)
+
+        return out
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, in_channels=64, out_channels=64, kernel_size=3, stride=1):
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(channels)
-        self.prelu = nn.PReLU()
-        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(channels)
+
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=1)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size, stride=stride, padding=1)
+        self.bn = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.prelu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
+        shortcut = x
 
-        return x + out
+        x = self.conv1(x)
+        x = self.bn(x)
+        x = swish(x)
+
+        x = self.conv2(x)
+        x = self.bn(x)
+
+        out = x + shortcut
+
+        return out
 
 
-class UpsampleBLock(nn.Module):
-    def __init__(self, in_channels, up_scale):
-        super(UpsampleBLock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, in_channels * up_scale ** 2, kernel_size=3, padding=1)
-        self.pixel_shuffle = nn.PixelShuffle(up_scale)
-        self.prelu = nn.PReLU()
+class UpsampleBlock(nn.Module):
+    # Implements resize-convolution
+    def __init__(self, in_channels, out_channels):
+        super(UpsampleBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.shuffler = nn.PixelShuffle(2)
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.pixel_shuffle(x)
-        x = self.prelu(x)
-        return x
+        x = self.shuffler(x)
+
+        out = swish(x)
+        return out

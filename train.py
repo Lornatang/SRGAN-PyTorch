@@ -50,8 +50,8 @@ parser.add_argument("--image-size", type=int, default=88,
                     help="Size of the data crop (squared assumed). (default:88)")
 parser.add_argument("--upscale-factor", type=int, default=4,
                     help="Super resolution upscale factor. (default:4).")
-parser.add_argument("-p", "--print-freq", default=100, type=int,
-                    metavar="N", help="Print frequency. (default:100)")
+parser.add_argument("-p", "--print-freq", default=50, type=int,
+                    metavar="N", help="Print frequency. (default:50)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--netG", default="", help="Path to netG (to continue training).")
 parser.add_argument("--netD", default="", help="Path to netD (to continue training).")
@@ -121,6 +121,7 @@ adversarial_loss = nn.BCELoss().to(device)
 
 # Optimizers
 optimizerG = torch.optim.Adam(netG.parameters(), lr=args.lr)
+optimizerD = torch.optim.Adam(netD.parameters(), lr=args.lr)
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
@@ -129,42 +130,6 @@ resize = transforms.Compose([transforms.ToPILImage(),
                              transforms.ToTensor(),
                              normalize,
                              ])
-
-# Pre-train generator using raw MSE loss
-pre_epochs = round(100 // args.batch_size)
-print(f"Generator pre-training for {pre_epochs} epochs.")
-for epoch in range(pre_epochs):
-    progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    for i, data in progress_bar:
-        # Set generator gradients to zero
-        netG.zero_grad()
-        # Generate data
-        high_resolution_real_image = data[0].to(device)
-        batch_size = high_resolution_real_image.size(0)
-
-        low_resolution_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
-
-        # Down sample images to low resolution
-        for batch_index in range(batch_size):
-            low_resolution_image[batch_index] = resize(high_resolution_real_image[batch_index].cpu())
-            high_resolution_real_image[batch_index] = normalize(high_resolution_real_image[batch_index])
-
-        # Generate real and fake inputs
-        high_resolution_fake_image = netG(low_resolution_image)
-
-        # Content loss
-        generator_content_loss = content_loss(high_resolution_fake_image, high_resolution_real_image)
-
-        # Calculate gradients for generator
-        generator_content_loss.backward()
-        # Update generator weights
-        optimizerG.step()
-
-        progress_bar.set_description(f"[{epoch}/{pre_epochs}][{i}/{len(dataloader)}] "
-                                     f"Generator_MSE_Loss: {generator_content_loss.item():.4f}")
-
-optimizerG = torch.optim.Adam(netG.parameters(), lr=args.lr * 0.1)
-optimizerD = torch.optim.Adam(netD.parameters(), lr=args.lr * 0.1)
 
 g_losses = []
 d_losses = []
