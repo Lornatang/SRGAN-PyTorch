@@ -98,9 +98,9 @@ device = torch.device("cuda:0" if args.cuda else "cpu")
 ngpu = int(args.ngpu)
 
 netG = Generator(scale_factor=args.upscale_factor).to(device)
-print(f"# generator parameters: {sum(param.numel() for param in netG.parameters())}")
+print(f"# Generator parameters: {sum(param.numel() for param in netG.parameters())}")
 netD = Discriminator().to(device)
-print(f"# discriminator parameters: {sum(param.numel() for param in netD.parameters())}")
+print(f"# Discriminator parameters: {sum(param.numel() for param in netD.parameters())}")
 
 if args.cuda and ngpu > 1:
     netG = torch.nn.DataParallel(netG).to(device)
