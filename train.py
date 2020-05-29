@@ -89,7 +89,8 @@ if torch.cuda.is_available() and not args.cuda:
 dataset = datasets.ImageFolder(root=args.dataroot,
                                transform=transforms.Compose([
                                    transforms.RandomResizedCrop(args.image_size * args.upscale_factor),
-                                   transforms.ToTensor()]))
+                                   transforms.ToTensor()])
+                               )
 
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                                          shuffle=True, pin_memory=True, num_workers=int(args.workers))
