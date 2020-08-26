@@ -11,11 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import math
 
 import cv2
 import torch.nn as nn
-from sewar.full_ref import mse
-from sewar.full_ref import psnr
 from torchvision.models import vgg19
 
 
@@ -29,11 +28,21 @@ class FeatureExtractor(nn.Module):
         return self.features(x)
 
 
-def evaluate_performance(input_image, target_image):
-    fake_image = cv2.imread(input_image)
-    real_image = cv2.imread(target_image)
+def evaluate_performance(real_image, fake_image):
+    prediction = cv2.imread(fake_image)
+    target = cv2.imread(real_image)
 
-    return mse(real_image, fake_image), psnr(real_image, fake_image)
+    error_value = []
+    for i in range(len(target)):
+        error_value.append((target[i] - prediction[i]) ** 2)
+
+    mse = sum(error_value) / len(error_value)
+
+    if mse < 1.0e-10:
+        return 100
+    psnr = 20 * math.log10(1 / math.sqrt(mse))
+
+    return mse, psnr
 
 
 # custom weights initialization called on netG and netD
