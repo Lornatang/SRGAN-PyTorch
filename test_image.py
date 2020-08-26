@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
 parser.add_argument("--file", type=str, default="assets/test_1.jpg",
                     help="Test low resolution image name. (default:`assets/test_1.jpg`)")
 parser.add_argument("--model-name", type=str, default="weights/netG.pth",
-                    help="Generator model name.  (default:`selfie2anime`)")
+                    help="Generator model name.  (default:`weights/netG.pth`)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--image-size", type=int, default=88,
                     help="size of the data crop (squared assumed). (default:88)")
@@ -55,7 +55,7 @@ device = torch.device("cuda:0" if args.cuda else "cpu")
 model = Generator(scale_factor=args.upscale_factor).to(device)
 
 # Load state dicts
-model.load_state_dict(torch.load(args.model_name))
+model.load_state_dict(torch.load(args.model_name, map_location=device))
 
 # Set model mode
 model.eval()

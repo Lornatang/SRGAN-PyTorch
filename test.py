@@ -69,7 +69,7 @@ device = torch.device("cuda:0" if args.cuda else "cpu")
 model = Generator(scale_factor=args.upscale_factor).to(device)
 
 # Load state dicts
-model.load_state_dict(torch.load("weights/netG.pth"))
+model.load_state_dict(torch.load("weights/netG.pth", map_location=device))
 
 # Set model mode
 model.eval()
