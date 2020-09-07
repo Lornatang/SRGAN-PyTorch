@@ -35,8 +35,8 @@ parser.add_argument("--image-size", type=int, default=96,
 parser.add_argument("--scale-factor", type=int, default=4,
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
-parser.add_argument("--weights", default="./weights/netG_X4.pth",
-                    help="Path to netG (default:`./weights/netG_X4.pth`).")
+parser.add_argument("--weights", default="./weights/srgan_X4.pth",
+                    help="Path to weights (default:`./weights/srgan_X4.pth`).")
 parser.add_argument("--outf", default="./results",
                     help="folder to output images. (default:`./outputs`).")
 parser.add_argument("--manualSeed", type=int,
