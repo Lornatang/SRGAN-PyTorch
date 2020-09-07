@@ -1,4 +1,4 @@
-# Copyright 2020 Lorna Authors. All Rights Reserved.
+# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -25,13 +25,16 @@ from srgan_pytorch import Generator
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
 parser.add_argument("--file", type=str, default="assets/test_1.jpg",
-                    help="Test low resolution image name. (default:`assets/test_1.jpg`)")
-parser.add_argument("--model-name", type=str, default="weights/netG.pth",
-                    help="Generator model name.  (default:`weights/netG.pth`)")
+                    help="Test low resolution image name. "
+                         "(default:`assets/test_1.jpg`)")
+parser.add_argument("--model-name", type=str, default="weights/srgan_4.pth",
+                    help="Generator model name.  "
+                         "(default:`weights/srgan_X4.pth`)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
-parser.add_argument("--image-size", type=int, default=88,
-                    help="size of the data crop (squared assumed). (default:88)")
-parser.add_argument("--upscale-factor", default=4, type=int, help="Super resolution upscale factor")
+parser.add_argument("--image-size", type=int, default=96,
+                    help="size of the data crop (squared assumed). (default:96)")
+parser.add_argument("--upscale-factor", default=4, type=int,
+                    help="Super resolution upscale factor")
 parser.add_argument("--manualSeed", type=int,
                     help="Seed for initializing training. (default:none)")
 
@@ -47,12 +50,13 @@ torch.manual_seed(args.manualSeed)
 cudnn.benchmark = True
 
 if torch.cuda.is_available() and not args.cuda:
-    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+    print("WARNING: You have a CUDA device, "
+          "so you should probably run with --cuda")
 
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # create model
-model = Generator(scale_factor=args.upscale_factor).to(device)
+model = Generator(8, args.upscale_factor).to(device)
 
 # Load state dicts
 model.load_state_dict(torch.load(args.model_name, map_location=device))
@@ -71,4 +75,5 @@ start = time.clock()
 high_resolution_fake_image = model(image)
 elapsed = (time.clock() - start)
 print(f"cost {elapsed:.4f}s")
-vutils.save_image(high_resolution_fake_image.detach(), "result.jpg", normalize=True)
+vutils.save_image(high_resolution_fake_image.detach(), "result.jpg",
+                  normalize=True)
