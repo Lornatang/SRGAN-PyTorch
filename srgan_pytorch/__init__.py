@@ -1,4 +1,4 @@
-# Copyright 2020 Lorna Authors. All Rights Reserved.
+# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -11,16 +11,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from .calculate_psnr import cal_psnr
+from .calculate_ssim import cal_ssim
 from .model import Discriminator
 from .model import Generator
 from .utils import FeatureExtractor
-from .utils import evaluate_performance
 from .utils import weights_init
 
 __all__ = [
+    "cal_psnr",
+    "cal_ssim",
     "Discriminator",
     "Generator",
     "FeatureExtractor",
-    "evaluate_performance",
     "weights_init",
 ]
