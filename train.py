@@ -150,47 +150,47 @@ resize = transforms.Compose([transforms.ToPILImage(),
                              normalize,
                              ])
 
-# Pre-train generator using raw MSE loss
-print(f"Generator pre-training for {args.epochs // 10} epochs.")
-print(f"Searching generator pretrained model weights.")
-
-if os.path.exists(f"./weights/pretrained_X{args.scale_factor}.pth"):
-    print("Found pretrained weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weights/pretrained_X{args.scale_factor}.pth"))
-else:
-    print("Not found pretrained weights. start training.")
-    for epoch in range(0, args.epochs // 10):
-        for i, data in enumerate(dataloader):
-            # Set generator gradients to zero
-            netG.zero_grad()
-            # Generate data
-            hr_real_image = data[0].to(device)
-            batch_size = hr_real_image.size(0)
-
-            lr_fake_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
-
-            # Down sample images to low resolution
-            for batch_i in range(batch_size):
-                lr_fake_image[batch_i] = resize(hr_real_image[batch_i].cpu())
-                hr_real_image[batch_i] = normalize(hr_real_image[batch_i])
-
-            # Generate real and fake inputs
-            hr_fake_image = netG(lr_fake_image)
-
-            # Content loss
-            g_content_loss = content_loss(hr_fake_image, hr_real_image)
-
-            # Calculate gradients for generator
-            g_content_loss.backward()
-            # Update generator weights
-            optimizer_G.step()
-
-            if i % args.print_freq == 0:
-                print(f"[{epoch}/{args.epochs // 10}][{i}/{len(dataloader)}] "
-                      f"Generator MSE loss: {g_content_loss.item():.4f}")
-
-    torch.save(netG, f"./weights/pretrained_X{args.scale_factor}.pth")
-    print(f"Saving pre-train weights to `./weights/pretrained_X{args.scale_factor}.pth`.")
+# # Pre-train generator using raw MSE loss
+# print(f"Generator pre-training for {args.epochs // 10} epochs.")
+# print(f"Searching generator pretrained model weights.")
+#
+# if os.path.exists(f"./weights/pretrained_X{args.scale_factor}.pth"):
+#     print("Found pretrained weights. Skip pre-train.")
+#     netG.load_state_dict(torch.load(f"./weights/pretrained_X{args.scale_factor}.pth"))
+# else:
+#     print("Not found pretrained weights. start training.")
+#     for epoch in range(0, args.epochs // 10):
+#         for i, data in enumerate(dataloader):
+#             # Set generator gradients to zero
+#             netG.zero_grad()
+#             # Generate data
+#             hr_real_image = data[0].to(device)
+#             batch_size = hr_real_image.size(0)
+#
+#             lr_fake_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
+#
+#             # Down sample images to low resolution
+#             for batch_i in range(batch_size):
+#                 lr_fake_image[batch_i] = resize(hr_real_image[batch_i].cpu())
+#                 hr_real_image[batch_i] = normalize(hr_real_image[batch_i])
+#
+#             # Generate real and fake inputs
+#             hr_fake_image = netG(lr_fake_image)
+#
+#             # Content loss
+#             g_content_loss = content_loss(hr_fake_image, hr_real_image)
+#
+#             # Calculate gradients for generator
+#             g_content_loss.backward()
+#             # Update generator weights
+#             optimizer_G.step()
+#
+#             if i % args.print_freq == 0:
+#                 print(f"[{epoch}/{args.epochs // 10}][{i}/{len(dataloader)}] "
+#                       f"Generator MSE loss: {g_content_loss.item():.4f}")
+#
+#     torch.save(netG, f"./weights/pretrained_X{args.scale_factor}.pth")
+#     print(f"Saving pre-train weights to `./weights/pretrained_X{args.scale_factor}.pth`.")
 
 optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr * 0.1)
 optimizer_D = torch.optim.Adam(netD.parameters(), lr=args.lr * 0.1)
@@ -313,7 +313,7 @@ for epoch in range(0, args.epochs):
 
             print("\n")
             print("====================== Performance summary ======================")
-            print(f"======== [{epoch}/{args.epochs}][{i}/{len(dataloader)}] ========")
+            print(f"===================== {epoch}/{args.epochs}][{i}/{len(dataloader)}] ========")
             print("=================================================================")
             print(f"Loss_D: {d_loss.item():.4f} loss_G: {g_loss.item():.4f}\n"
                   f"MSE: {mse_value:.2f}\n"
@@ -345,7 +345,7 @@ for epoch in range(0, args.epochs):
 
     print("\n")
     print("====================== Performance summary ======================")
-    print(f"======================   Epoch {epoch}   =======================")
+    print(f"=====================    Epoch {epoch}   =======================")
     print("=================================================================")
     print(f"Avg MSE: {total_mse_value / len(dataloader):.2f}\n"
           f"Avg RMSE: {total_rmse_value / len(dataloader):.2f}\n"
