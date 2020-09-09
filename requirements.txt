@@ -4,3 +4,6 @@ tqdm
 matplotlib
 opencv-python
 sewar
+pillow
+numpy
+scipy
