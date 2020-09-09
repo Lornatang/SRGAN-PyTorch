@@ -13,17 +13,15 @@
 # ==============================================================================
 import math
 
-import torch
-import torchvision.transforms as transforms
-from PIL import Image
+from .calculate_mse import cal_mse
 
 
-def cal_psnr(prediction, target):
+def cal_psnr(src_img, dst_img):
     r"""Python simply calculates the maximum signal noise ratio.
 
     Args:
-        prediction (tensor): Low resolution image.
-        target (tensor): high resolution image.
+        src_img (np.array): Prediction image format read by OpenCV.
+        dst_img (np.array): Target image format read by OpenCV.
 
     ..math:
         10 \cdot \log _{10}\left(\frac{MAX_{I}^{2}}{MSE}\right)
@@ -31,12 +29,8 @@ def cal_psnr(prediction, target):
     Returns:
         Maximum signal to noise ratio between two images.
     """
-    pil_to_tensor = transforms.ToTensor()
-    # Convert pictures to tensor format
-    with torch.no_grad():
-        prediction = pil_to_tensor(Image.open(prediction)).unsqueeze(0)
-        target = pil_to_tensor(Image.open(target)).unsqueeze(0)
+    mse = cal_mse(src_img, dst_img)
 
-    mse = ((prediction - target) ** 2).data.mean()
-
-    return 10 * math.log10((target.max() ** 2) / mse)
+    if mse < 1.0e-10:
+        return 100
+    return 10 * math.log10(255.0 ** 2 / mse)
