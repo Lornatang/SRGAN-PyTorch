@@ -15,19 +15,26 @@ import argparse
 import os
 import random
 
+import cv2
 import torch.backends.cudnn as cudnn
 import torch.utils.data.distributed
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from sewar.full_ref import msssim
+from sewar.full_ref import sam
+from sewar.full_ref import vifp
 
 from srgan_pytorch import Generator
+from srgan_pytorch import cal_mse
+from srgan_pytorch import cal_niqe
 from srgan_pytorch import cal_psnr
+from srgan_pytorch import cal_rmse
 from srgan_pytorch import cal_ssim
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
-parser.add_argument("--dataroot", type=str, default="./data",
-                    help="Path to dataset. (default:`./data`)")
+parser.add_argument("--dataroot", type=str, default="./data/Set5",
+                    help="Path to dataset. (default:`./data/Set5`)")
 parser.add_argument("-j", "--workers", default=0, type=int, metavar="N",
                     help="Number of data loading workers. (default:0)")
 parser.add_argument("--image-size", type=int, default=96,
@@ -38,7 +45,7 @@ parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--weights", default="./weights/srgan_X4.pth",
                     help="Path to weights (default:`./weights/srgan_X4.pth`).")
 parser.add_argument("--outf", default="./results",
-                    help="folder to output images. (default:`./outputs`).")
+                    help="folder to output images. (default:`./results`).")
 parser.add_argument("--manualSeed", type=int,
                     help="Seed for initializing training. (default:none)")
 
@@ -59,8 +66,7 @@ torch.manual_seed(args.manualSeed)
 cudnn.benchmark = True
 
 if torch.cuda.is_available() and not args.cuda:
-    print("WARNING: You have a CUDA device, "
-          "so you should probably run with --cuda")
+    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 # Load dataset
 dataset = datasets.ImageFolder(root=args.dataroot,
@@ -87,15 +93,21 @@ resize = transforms.Compose([transforms.ToPILImage(),
                                                   std=[0.229, 0.224, 0.225]),
                              ])
 
+# Evaluate algorithm performance
+total_mse_value = 0.0
+total_rmse_value = 0.0
 total_psnr_value = 0.0
 total_ssim_value = 0.0
+total_ms_ssim_value = 0.0
+total_niqe_value = 0.0
+total_sam_value = 0.0
+total_vif_value = 0.0
 
 for i, data in enumerate(dataloader):
     hr_real_image = data[0].to(device)
     batch_size = hr_real_image.size(0)
 
-    lr_real_image = torch.randn(batch_size, 3, args.image_size,
-                                args.image_size, device=device)
+    lr_real_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
 
     # Down sample images to low resolution
     for batch_index in range(batch_size):
@@ -104,19 +116,28 @@ for i, data in enumerate(dataloader):
     # Generate real and fake inputs
     hr_fake_image = model(lr_real_image)
 
-    vutils.save_image(hr_real_image,
-                      f"{args.outf}/hr_real_{i}.png",
-                      normalize=True)
-    vutils.save_image(hr_fake_image,
-                      f"{args.outf}/hr_fake_{i}.png", normalize=True)
-    vutils.save_image(lr_real_image,
-                      f"{args.outf}/lr_real_{i}.png",
-                      normalize=True)
+    vutils.save_image(hr_real_image, f"{args.outf}/hr_real_{i}.png", normalize=True)
+    vutils.save_image(hr_fake_image, f"{args.outf}/hr_fake_{i}.png", normalize=True)
+    vutils.save_image(lr_real_image, f"{args.outf}/lr_real_{i}.png", normalize=True)
 
-    total_psnr_value += cal_psnr(f"{args.outf}/hr_real_{i}.png",
-                                 f"{args.outf}/hr_fake_{i}.png")
-    total_ssim_value += cal_ssim(f"{args.outf}/hr_real_{i}.png",
-                                 f"{args.outf}/hr_fake_{i}.png")
+    # Evaluate performance
+    src_img = cv2.imread(f"{args.outf}/hr_fake_{i}.png")
+    dst_img = cv2.imread(f"{args.outf}/hr_real_{i}.png")
 
-print(f"Avg PSNR: {total_psnr_value / len(dataloader):.2f} "
-      f"Avg SSIM: {total_ssim_value / len(dataloader):.4f}")
+    total_mse_value += cal_mse(src_img, dst_img)
+    total_rmse_value += cal_rmse(src_img, dst_img)
+    total_psnr_value += cal_psnr(src_img, dst_img)
+    total_ssim_value += cal_ssim(src_img, dst_img)
+    total_ms_ssim_value += msssim(src_img, dst_img)
+    total_niqe_value += cal_niqe(f"{args.outf}/hr_fake_{i}.png")
+    total_sam_value += sam(src_img, dst_img)
+    total_vif_value += vifp(src_img, dst_img)
+
+print(f"Avg MSE: {total_mse_value / len(dataloader):.2f}\n"
+      f"Avg RMSE: {total_rmse_value / len(dataloader):.2f}\n"
+      f"Avg PSNR: {total_psnr_value / len(dataloader):.2f}\n"
+      f"Avg SSIM: {total_ssim_value / len(dataloader):.4f}\n"
+      f"Avg MS-SSIM: {total_ms_ssim_value / len(dataloader):.4f}\n"
+      f"Avg NIQE: {total_niqe_value / len(dataloader):.2f}\n"
+      f"Avg SAM: {total_sam_value / len(dataloader):.4f}\n"
+      f"Avg VIF: {total_vif_value / len(dataloader):.4f}")
