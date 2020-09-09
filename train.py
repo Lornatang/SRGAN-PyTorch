@@ -93,8 +93,7 @@ torch.manual_seed(args.manualSeed)
 cudnn.benchmark = True
 
 if torch.cuda.is_available() and not args.cuda:
-    print("WARNING: You have a CUDA device, "
-          "so you should probably run with --cuda")
+    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 dataset = datasets.ImageFolder(root=args.dataroot,
                                transform=transforms.Compose(
@@ -390,4 +389,4 @@ plt.plot(vif_list, label="VIF")
 plt.xlabel("Epochs")
 plt.ylabel("Value")
 plt.legend()
-plt.savefig("model_performance_result.png")
+plt.savefig("train_performance_result.png")
