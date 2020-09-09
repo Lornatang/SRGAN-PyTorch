@@ -17,37 +17,51 @@ import torch.nn.functional as F
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channels=64, out_channels=64, kernel_size=3,
-                 stride=1):
+    r"""Main residual block structure"""
+
+    def __init__(self, in_channels=64, out_channels=64, kernel_size=3, stride=1):
+        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
+
+        Args:
+            in_channels (int): Number of channels in the input image. Default: 64.
+            out_channels (int): Number of channels produced by the convolution. Default: 64.
+            kernel_size (int or tuple): Size of the convolving kernel. Default: 3.
+            stride (int or tuple, optional): Stride of the convolution. Default: 1.
+
+        """
         super(ResidualBlock, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size,
-                               stride=stride, padding=1)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size,
-                               stride=stride, padding=1)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=1)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size, stride=stride, padding=1)
         self.bn = nn.BatchNorm2d(out_channels)
 
-    def forward(self, x):
-        shortcut = x
+    def forward(self, inputs):
+        shortcut = inputs
 
-        x = self.conv1(x)
-        x = self.bn(x)
-        x = F.relu(x, inplace=True)
+        out = self.conv1(inputs)
+        out = self.bn(out)
+        out = F.relu(out, inplace=True)
 
-        x = self.conv2(x)
-        x = self.bn(x)
+        out = self.conv2(out)
+        out = self.bn(out)
 
-        out = x + shortcut
+        out = out + shortcut
 
         return out
 
 
 class UpsampleBlock(nn.Module):
-    # Implements resize-convolution
+    r"""Up-sampling method block"""
+
     def __init__(self, in_channels, out_channels):
+        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
+
+        Args:
+            in_channels (int): Number of channels in the input image.
+            out_channels (int): Number of channels produced by the convolution.
+        """
         super(UpsampleBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3,
-                              stride=1, padding=1)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
         self.shuffler = nn.PixelShuffle(2)
 
     def forward(self, x):
@@ -59,7 +73,15 @@ class UpsampleBlock(nn.Module):
 
 
 class Generator(nn.Module):
+    r"""The main architecture of the generator."""
+
     def __init__(self, n_residual_blocks, upsample_factor):
+        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
+
+        Args:
+            n_residual_blocks (int): Number of consecutive residual blocks.
+            upsample_factor (int): Coefficient of image magnification.
+        """
         super(Generator, self).__init__()
         self.n_residual_blocks = n_residual_blocks
         self.upsample_factor = upsample_factor
@@ -73,8 +95,7 @@ class Generator(nn.Module):
         self.bn = nn.BatchNorm2d(64)
 
         for i in range(self.upsample_factor // 2):
-            self.add_module("upsample_block_" + str(i + 1),
-                            UpsampleBlock(64, 256))
+            self.add_module("upsample_block_" + str(i + 1), UpsampleBlock(64, 256))
 
         self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
@@ -101,6 +122,8 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
+    r"""The main architecture of the discriminator."""
+
     def __init__(self):
         super(Discriminator, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
