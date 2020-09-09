@@ -15,10 +15,17 @@ import torch.nn as nn
 
 
 class FeatureExtractor(nn.Module):
+    r"""Base class for all neural network modules."""
+
     def __init__(self, model, feature_layer=11):
+        r"""
+
+        Args:
+            model (torch.nn.Sequential): Pre training model architecture.
+            feature_layer (int): Feature layer of pre training model.
+        """
         super(FeatureExtractor, self).__init__()
-        self.features = nn.Sequential(
-            *list(model.features.children())[:(feature_layer + 1)])
+        self.features = nn.Sequential(*list(model.features.children())[:(feature_layer + 1)])
 
     def forward(self, x):
         return self.features(x)
