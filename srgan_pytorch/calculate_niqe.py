@@ -21,6 +21,7 @@ import scipy.ndimage
 import scipy.special
 from PIL import Image
 
+# Define some parameters
 gamma_range = np.arange(0.2, 10, 0.001)
 a = scipy.special.gamma(2.0 / gamma_range)
 a *= a
@@ -53,9 +54,7 @@ def aggd_features(imdata):
         r_hat = (np.average(np.abs(imdata)) ** 2) / (np.average(imdata2))
     else:
         r_hat = np.inf
-    rhat_norm = r_hat * (
-            ((math.pow(gamma_hat, 3) + 1) * (gamma_hat + 1)) / math.pow(
-        math.pow(gamma_hat, 2) + 1, 2))
+    rhat_norm = r_hat * (((math.pow(gamma_hat, 3) + 1) * (gamma_hat + 1)) / math.pow(math.pow(gamma_hat, 2) + 1, 2))
 
     # solve alpha by guessing values that minimize ro
     pos = np.argmin((prec_gammas - rhat_norm) ** 2)
@@ -114,8 +113,7 @@ def gen_gauss_window(lw, sigma):
     return weights
 
 
-def compute_image_mscn_transform(image, C=1, avg_window=None,
-                                 extend_mode="constant"):
+def compute_image_mscn_transform(image, C=1, avg_window=None, extend_mode="constant"):
     if avg_window is None:
         avg_window = gen_gauss_window(3, 7.0 / 6.0)
     assert len(np.shape(image)) == 2
@@ -124,12 +122,9 @@ def compute_image_mscn_transform(image, C=1, avg_window=None,
     var_image = np.zeros((h, w), dtype=np.float32)
     image = np.array(image).astype("float32")
     scipy.ndimage.correlate1d(image, avg_window, 0, mu_image, mode=extend_mode)
-    scipy.ndimage.correlate1d(mu_image, avg_window, 1, mu_image,
-                              mode=extend_mode)
-    scipy.ndimage.correlate1d(image ** 2, avg_window, 0, var_image,
-                              mode=extend_mode)
-    scipy.ndimage.correlate1d(var_image, avg_window, 1, var_image,
-                              mode=extend_mode)
+    scipy.ndimage.correlate1d(mu_image, avg_window, 1, mu_image, mode=extend_mode)
+    scipy.ndimage.correlate1d(image ** 2, avg_window, 0, var_image, mode=extend_mode)
+    scipy.ndimage.correlate1d(var_image, avg_window, 1, var_image, mode=extend_mode)
     var_image = np.sqrt(np.abs(var_image - mu_image ** 2))
     return (image - mu_image) / (var_image + C), var_image, mu_image
 
@@ -150,15 +145,45 @@ def _niqe_extract_subband_feats(mscncoefs):
                      ])
 
 
-def get_patches_train_features(img, patch_size, stride=8):
+def get_patches_train_features(img, patch_size):
+    r"""Get the general features in each block of the train image
+
+        Args:
+            img (np.array): Image data read by opencv
+            patch_size (int): Number of image patch
+
+        Returns:
+            General train features
+
+        """
     return _get_patches_generic(img, patch_size)
 
 
-def get_patches_test_features(img, patch_size, stride=8):
+def get_patches_test_features(img, patch_size):
+    r"""Get the general features in each block of the test image
+
+    Args:
+        img (np.array): Image data read by opencv
+        patch_size (int): Number of image patch
+
+    Returns:
+        General test features
+
+    """
     return _get_patches_generic(img, patch_size)
 
 
 def extract_on_patches(img, patch_size):
+    r"""The feature parameters are extracted from the trained general features
+
+    Args:
+        img (np.array): Image data read by opencv
+        patch_size (int): Number of image patch
+
+    Returns:
+        Feature parameters.
+
+    """
     h, w = img.shape
     patch_size = np.int(patch_size)
     patches = []
@@ -178,6 +203,16 @@ def extract_on_patches(img, patch_size):
 
 
 def _get_patches_generic(img, patch_size):
+    r"""Finding common features from training images
+
+    Args:
+        img (np.array): Image data read by opencv
+        patch_size (int): Number of image patch
+
+    Returns:
+        Return to general train features
+
+    """
     h, w = np.shape(img)
     if h < patch_size or w < patch_size:
         print("Input image is too small")
@@ -193,8 +228,7 @@ def _get_patches_generic(img, patch_size):
         img = img[:, :-woffset]
 
     img = img.astype(np.float32)
-    img2 = Image.fromarray(img).resize(size=(h // 2, w // 2),
-                                       resample=Image.BICUBIC)
+    img2 = Image.fromarray(img).resize(size=(h // 2, w // 2), resample=Image.BICUBIC)
 
     mscn1, var, mu = compute_image_mscn_transform(img)
     mscn1 = mscn1.astype(np.float32)
@@ -203,7 +237,7 @@ def _get_patches_generic(img, patch_size):
     mscn2 = mscn2.astype(np.float32)
 
     feats_lvl1 = extract_on_patches(mscn1, patch_size)
-    feats_lvl2 = extract_on_patches(mscn2, patch_size / 2)
+    feats_lvl2 = extract_on_patches(mscn2, patch_size // 2)
 
     feats = np.hstack((feats_lvl1, feats_lvl2))  # feats_lvl3))
 
@@ -211,9 +245,17 @@ def _get_patches_generic(img, patch_size):
 
 
 def cal_niqe(filename):
+    r"""Assessment of natural image quality
+
+    Args:
+        filename (str): Image path to be evaluated.
+
+    Returns:
+        Niqe score.
+
+    """
     patch_size = 96
-    params = scipy.io.loadmat(
-        os.path.join("data", "niqe_image_params.mat"))
+    params = scipy.io.loadmat(os.path.join("data", "niqe_image_params.mat"))
     pop_mu = np.ravel(params["pop_mu"])
     pop_cov = params["pop_cov"]
 
@@ -223,13 +265,10 @@ def cal_niqe(filename):
 
     # assert C == 1, "niqe called with videos containing %d channels.
     # Please supply only the luminance channel" % (C,)
-    assert M > (patch_size * 2 + 1), "niqe called with small frame size, " \
-                                     "requires > 192x192 resolution video " \
+    assert M > (patch_size * 2 + 1), "niqe called with small frame size, requires > 192x192 resolution video " \
                                      "using current training parameters"
-    assert N > (
-            patch_size * 2 + 1), "niqe called with small frame size, " \
-                                 "requires > 192x192 resolution video " \
-                                 "using current training parameters"
+    assert N > (patch_size * 2 + 1), "niqe called with small frame size, requires > 192x192 resolution video " \
+                                     "using current training parameters"
 
     feats = get_patches_test_features(img, patch_size)
     sample_mu = np.mean(feats, axis=0)
