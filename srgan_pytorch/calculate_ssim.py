@@ -16,38 +16,84 @@ from math import exp
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from PIL import Image
-from torch.autograd import Variable
 
 
-def gaussian(window_size, sigma):
+def gaussian(kernel_size, sigma):
+    r"""Implementation of Gaussian kernel function.
+
+    Args:
+        kernel_size (int): Gaussian kernel size.
+        sigma (float): Penalty coefficient.
+
+    ..math:
+        K(x, y)=e^{-\gamma|| x-y||^{2}}
+
+    Returns:
+        Linear separable data processed by Gaussian kernel.
+
+    """
     gauss = torch.Tensor(
-        [exp(-(x - window_size // 2) ** 2 / float(2 * sigma ** 2)) for x in
-         range(window_size)])
+        [exp(-(x - kernel_size // 2) ** 2 / float(2 * sigma ** 2)) for x in
+         range(kernel_size)])
     return gauss / gauss.sum()
 
 
 def create_window(window_size, channel):
+    r"""Create a 2D flat window.
+
+    Args:
+        window_size (int): Flat window size.
+        channel (int): The number of channels of the image.
+
+    Returns:
+        2D flat window.
+    """
     _1D_window = gaussian(window_size, 1.5).unsqueeze(1)
     _2D_window = _1D_window.mm(_1D_window.t()).float().unsqueeze(0).unsqueeze(0)
-    window = Variable(
-        _2D_window.expand(channel, 1, window_size, window_size).contiguous())
+    window = _2D_window.expand(channel, 1, window_size,
+                               window_size).contiguous()
     return window
 
 
-def _ssim(img1, img2, window, window_size, channel, size_average=True):
-    mu1 = F.conv2d(img1, window, padding=window_size // 2, groups=channel)
-    mu2 = F.conv2d(img2, window, padding=window_size // 2, groups=channel)
+def cal_ssim(src_img, dst_img, window_size=11, size_average=True):
+    r"""The structural similarity between the two images was calculated.
+
+    Args:
+        src_img (np.array): Prediction image format read by OpenCV.
+        dst_img (np.array): Target image format read by OpenCV.
+        window_size (int): Flat window size. Default: 11.
+        size_average (int): The pixel size of the fill window.
+
+    Returns:
+        Structural similarity of two images.
+
+    """
+    # Convert pictures to tensor format
+    pil_to_tensor = transforms.ToTensor()
+    with torch.no_grad():
+        src_img = pil_to_tensor(src_img).unsqueeze(0)
+        dst_img = pil_to_tensor(dst_img).unsqueeze(0)
+
+    (_, channel, _, _) = src_img.size()
+    window = create_window(window_size, channel)
+
+    if src_img.is_cuda:
+        window = window.cuda(src_img.get_device())
+    window = window.type_as(src_img)
+
+    mu1 = F.conv2d(src_img, window, padding=window_size // 2, groups=channel)
+    mu2 = F.conv2d(dst_img, window, padding=window_size // 2, groups=channel)
 
     mu1_sq = mu1.pow(2)
     mu2_sq = mu2.pow(2)
     mu1_mu2 = mu1 * mu2
 
-    sigma1_sq = F.conv2d(img1 * img1, window, padding=window_size // 2,
+    sigma1_sq = F.conv2d(src_img * src_img, window,
+                         padding=window_size // 2,
                          groups=channel) - mu1_sq
-    sigma2_sq = F.conv2d(img2 * img2, window, padding=window_size // 2,
+    sigma2_sq = F.conv2d(dst_img * dst_img, window, padding=window_size // 2,
                          groups=channel) - mu2_sq
-    sigma12 = F.conv2d(img1 * img2, window, padding=window_size // 2,
+    sigma12 = F.conv2d(src_img * dst_img, window, padding=window_size // 2,
                        groups=channel) - mu1_mu2
 
     C1 = 0.01 ** 2
@@ -60,66 +106,3 @@ def _ssim(img1, img2, window, window_size, channel, size_average=True):
         return ssim_map.mean()
     else:
         return ssim_map.mean(1).mean(1).mean(1)
-
-
-class SSIM(torch.nn.Module):
-    def __init__(self, window_size=11, size_average=True):
-        super(SSIM, self).__init__()
-        self.window_size = window_size
-        self.size_average = size_average
-        self.channel = 1
-        self.window = create_window(window_size, self.channel)
-
-    def forward(self, img1, img2):
-        (_, channel, _, _) = img1.size()
-
-        if channel == self.channel and self.window.data.type() == img1.data.type():
-            window = self.window
-        else:
-            window = create_window(self.window_size, channel)
-
-            if img1.is_cuda:
-                window = window.cuda(img1.get_device())
-            window = window.type_as(img1)
-
-            self.window = window
-            self.channel = channel
-
-        return _ssim(img1, img2, window, self.window_size, channel,
-                     self.size_average)
-
-
-def cal_ssim(fake_image, real_image, window_size=11, size_average=True):
-    """
-
-    Args:
-        fake_image:
-        real_image:
-        window_size:
-        size_average:
-
-    ..math:
-        \operatorname{SSIM}(x, y)=\frac{\left(2 \mu_{x} \mu_{y}+c_{1}\right)
-        \left(\sigma_{x y}+c_{2}\right)}{\left(\mu_{x}^{2}+\mu_{y}^{2}+c_{1}
-        \right)\left(\sigma_{x}^{2}+\sigma_{y}^{2}+c_{2}\right)}
-
-    Returns:
-
-    """
-    prediction = Image.open(fake_image)
-    target = Image.open(real_image)
-
-    # Convert pictures to tensor format
-    pil_to_tensor = transforms.ToTensor()
-    with torch.no_grad():
-        prediction = pil_to_tensor(prediction).unsqueeze(0)
-        target = pil_to_tensor(target).unsqueeze(0)
-
-    (_, channel, _, _) = prediction.size()
-    window = create_window(window_size, channel)
-
-    if prediction.is_cuda:
-        window = window.cuda(prediction.get_device())
-    window = window.type_as(prediction)
-
-    return _ssim(prediction, target, window, window_size, channel, size_average)
