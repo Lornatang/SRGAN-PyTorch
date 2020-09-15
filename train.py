@@ -242,10 +242,8 @@ for epoch in range(0, args.epochs):
         optimizer_G.step()
 
         if i % args.print_freq == 0:
-            print(f"====================== [{epoch}/{args.epochs}][{i}/{len(train_dataloader)}] ========"
-                  "Loss_D: {d_loss.item():.4f} loss_G: {g_loss.item():.4f}\n")
-            print("============================== End ==============================")
-            print("\n")
+            print(f"======================= [{epoch}/{args.epochs}][{i}/{len(train_dataloader)}] =======================\n"
+                  f"Loss_D: {d_loss.item():.4f} loss_G: {g_loss.item():.4f}\n")
 
             d_losses.append(d_loss.item())
             g_losses.append(g_loss.item())
