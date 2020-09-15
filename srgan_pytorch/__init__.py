@@ -25,8 +25,6 @@ from .loss import GeneratorLoss
 from .loss import TVLoss
 from .model import Discriminator
 from .model import Generator
-from .utils import FeatureExtractor
-from .utils import weights_init
 
 __all__ = [
     "cal_mse",
@@ -43,6 +41,4 @@ __all__ = [
     "TVLoss",
     "Discriminator",
     "Generator",
-    "FeatureExtractor",
-    "weights_init",
 ]
