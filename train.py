@@ -147,7 +147,7 @@ print(f"Searching generator pretrained model weights.")
 
 if os.path.exists(f"./weights/pretrained_X{args.scale_factor}.pth"):
     print("Found pretrained weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weights/pretrained_X{args.scale_factor}.pth"))
+    netG.load_state_dict(torch.load(f"./weights/pretrained_X{args.scale_factor}.pth", map_location=device))
 else:
     print("Not found pretrained weights. start training.")
     for epoch in range(0, args.epochs // 10):
@@ -173,7 +173,7 @@ else:
                 print(f"[{epoch}/{args.epochs // 10}][{i}/{len(train_dataloader)}] "
                       f"Generator MSE loss: {g_loss.item():.4f}")
 
-    torch.save(netG, f"./weights/pretrained_X{args.scale_factor}.pth")
+    torch.save(netG.state_dict(), f"./weights/pretrained_X{args.scale_factor}.pth")
     print(f"Saving pre-train weights to `./weights/pretrained_X{args.scale_factor}.pth`.")
 
 optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr * 0.1)
@@ -242,7 +242,10 @@ for epoch in range(0, args.epochs):
         optimizer_G.step()
 
         if i % args.print_freq == 0:
-            print(f"Loss_D: {d_loss.item():.4f} loss_G: {g_loss.item():.4f}\n")
+            print(f"====================== [{epoch}/{args.epochs}][{i}/{len(train_dataloader)}] ========"
+                  "Loss_D: {d_loss.item():.4f} loss_G: {g_loss.item():.4f}\n")
+            print("============================== End ==============================")
+            print("\n")
 
             d_losses.append(d_loss.item())
             g_losses.append(g_loss.item())
@@ -283,48 +286,42 @@ for epoch in range(0, args.epochs):
             total_sam_value += sam_value
             total_vif_value += vif_value
 
-            print("\n")
-            print("====================== Performance summary ======================")
-            print(f"====================== [{epoch}/{args.epochs}][{i}/{len(train_dataloader)}] ========")
-            print("=================================================================")
-            print(f"MSE: {mse_value:.2f}\n"
-                  f"RMSE: {rmse_value:.2f}\n"
-                  f"PSNR: {psnr_value:.2f}\n"
-                  f"SSIM: {ssim_value:.4f}\n"
-                  f"MS-SSIM: {ms_ssim_value:.4f}\n"
-                  f"NIQE: {niqe_value:.2f}\n"
-                  f"SAM: {sam_value:.4f}\n"
-                  f"VIF: {vif_value:.4f}")
-            print("============================== End ==============================")
-            print("\n")
+        # do checkpointing
+        torch.save(netG.state_dict(), f"weights/srgan_G_epoch_{epoch}.pth")
+        torch.save(netD.state_dict(), f"weights/srgan_D_epoch_{epoch}.pth")
 
-            # do checkpointing
-            torch.save(netG.state_dict(), f"weights/srgan_G_epoch_{epoch}.pth")
-            torch.save(netD.state_dict(), f"weights/srgan_D_epoch_{epoch}.pth")
-
-            # save best model
-            if best_psnr_value < psnr_value and best_ssim_value < ssim_value:
-                best_psnr_value = psnr_value
-            best_ssim_value = ssim_value
-            shutil.copyfile(f"weights/srgan_D_epoch_{epoch}.pth",
-                            f"weights/srgan_D_X{args.scale_factor}.pth")
-            shutil.copyfile(f"weights/srgan_G_epoch_{epoch}.pth",
-                            f"weights/srgan_G_X{args.scale_factor}.pth")
+    avg_mse_value = total_mse_value / len(val_dataloader)
+    avg_rmse_value = total_rmse_value / len(val_dataloader)
+    avg_psnr_value = total_psnr_value / len(val_dataloader)
+    avg_ssim_value = total_ssim_value / len(val_dataloader)
+    avg_ms_ssim_value = total_ms_ssim_value / len(val_dataloader)
+    avg_niqe_value = total_niqe_value / len(val_dataloader)
+    avg_sam_value = total_sam_value / len(val_dataloader)
+    avg_vif_value = total_vif_value / len(val_dataloader)
 
     print("\n")
     print("====================== Performance summary ======================")
     print(f"======================    Epoch {epoch}   =======================")
     print("=================================================================")
-    print(f"Avg MSE: {total_mse_value / len(val_dataloader):.2f}\n"
-          f"Avg RMSE: {total_rmse_value / len(val_dataloader):.2f}\n"
-          f"Avg PSNR: {total_psnr_value / len(val_dataloader):.2f}\n"
-          f"Avg SSIM: {total_ssim_value / len(val_dataloader):.4f}\n"
-          f"Avg MS-SSIM: {total_ms_ssim_value / len(val_dataloader):.4f}\n"
-          f"Avg NIQE: {total_niqe_value / len(val_dataloader):.2f}\n"
-          f"Avg SAM: {total_sam_value / len(val_dataloader):.4f}\n"
-          f"Avg VIF: {total_vif_value / len(val_dataloader):.4f}")
+    print(f"Avg MSE: {avg_mse_value:.2f}\n"
+          f"Avg RMSE: {avg_rmse_value:.2f}\n"
+          f"Avg PSNR: {avg_psnr_value:.2f}\n"
+          f"Avg SSIM: {avg_ssim_value:.4f}\n"
+          f"Avg MS-SSIM: {avg_ms_ssim_value:.4f}\n"
+          f"Avg NIQE: {avg_niqe_value:.2f}\n"
+          f"Avg SAM: {avg_sam_value:.4f}\n"
+          f"Avg VIF: {avg_vif_value:.4f}")
     print("============================== End ==============================")
     print("\n")
+
+    # save best model
+    if best_psnr_value < avg_psnr_value and best_ssim_value < avg_ssim_value:
+        best_psnr_value = avg_psnr_value
+        best_ssim_value = avg_ssim_value
+        shutil.copyfile(f"weights/srgan_D_epoch_{epoch}.pth",
+                        f"weights/srgan_D_X{args.scale_factor}.pth")
+        shutil.copyfile(f"weights/srgan_G_epoch_{epoch}.pth",
+                        f"weights/srgan_G_X{args.scale_factor}.pth")
 
     mse_list.append(total_mse_value / len(val_dataloader))
     rmse_list.append(total_rmse_value / len(val_dataloader))
