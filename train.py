@@ -55,7 +55,7 @@ parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
                          "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate. (default:0.0001)")
-parser.add_argument("--scale-factor", type=int, default=4, choices=[2, 4, 8, 16],
+parser.add_argument("--scale-factor", type=int, default=4, choices=[4, 8, 16],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("-p", "--print-freq", default=5, type=int, metavar="N",
                     help="Print frequency. (default:5)")
@@ -95,7 +95,7 @@ if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 train_dataset = TrainDatasetFromFolder(dataset_dir=f'{args.dataroot}/train',
-                                       crop_size=args.image_size,
+                                       image_size=args.image_size,
                                        upscale_factor=args.scale_factor)
 train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                batch_size=args.batch_size,
@@ -103,6 +103,7 @@ train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                num_workers=int(args.workers))
 
 val_dataset = ValDatasetFromFolder(dataset_dir=f'{args.dataroot}/val',
+                                   image_size=args.image_size,
                                    upscale_factor=args.scale_factor)
 val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset,
                                              batch_size=1,
@@ -169,8 +170,8 @@ else:
             # Update generator weights
             optimizer_G.step()
 
-            if i % args.print_freq == 0:
-                print(f"[{epoch}/{args.epochs // 10}][{i}/{len(train_dataloader)}] "
+            if (i + 1) % args.print_freq == 0:
+                print(f"[{epoch}/{args.epochs // 10}][{i + 1}/{len(train_dataloader)}] "
                       f"Generator MSE loss: {g_loss.item():.4f}")
 
     torch.save(netG.state_dict(), f"./weights/pretrained_X{args.scale_factor}.pth")
@@ -241,8 +242,8 @@ for epoch in range(0, args.epochs):
         # Update generator weights.
         optimizer_G.step()
 
-        if i % args.print_freq == 0:
-            print(f"======================= [{epoch}/{args.epochs}][{i}/{len(train_dataloader)}] =======================\n"
+        if (i + 1) % args.print_freq == 0:
+            print(f"============== [{epoch}/{args.epochs}][{i + 1}/{len(train_dataloader)}] ==============\n"
                   f"Loss_D: {d_loss.item():.4f} loss_G: {g_loss.item():.4f}\n")
 
             d_losses.append(d_loss.item())
@@ -259,6 +260,7 @@ for epoch in range(0, args.epochs):
 
             hr_fake_image = netG(lr_real_image)
 
+            vutils.save_image(lr_real_image, f"{args.outf}/lr_real_epoch_{epoch}.png", normalize=True)
             vutils.save_image(hr_real_image, f"{args.outf}/hr_real_epoch_{epoch}.png", normalize=True)
             vutils.save_image(hr_restore_image, f"{args.outf}/hr_restore_epoch_{epoch}.png", normalize=True)
             vutils.save_image(hr_fake_image, f"{args.outf}/hr_fake_epoch_{epoch}.png", normalize=True)
