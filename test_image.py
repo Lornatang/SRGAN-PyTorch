@@ -12,7 +12,6 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
-import random
 
 import cv2
 import torch.backends.cudnn as cudnn
@@ -43,17 +42,9 @@ parser.add_argument("--image-size", type=int, default=96,
                     help="size of the data crop (squared assumed). (default:96)")
 parser.add_argument("--upscale-factor", default=4, type=int,
                     help="Super resolution upscale factor")
-parser.add_argument("--manualSeed", type=int,
-                    help="Seed for initializing training. (default:none)")
 
 args = parser.parse_args()
 print(args)
-
-if args.manualSeed is None:
-    args.manualSeed = random.randint(1, 10000)
-print("Random Seed: ", args.manualSeed)
-random.seed(args.manualSeed)
-torch.manual_seed(args.manualSeed)
 
 cudnn.benchmark = True
 
@@ -63,7 +54,7 @@ if torch.cuda.is_available() and not args.cuda:
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # create model
-model = Generator(8, args.upscale_factor).to(device)
+model = Generator(scale_factor=args.upscale_factor).to(device)
 
 # Load state dicts
 model.load_state_dict(torch.load(args.weights, map_location=device))
@@ -77,8 +68,8 @@ pre_process = transforms.Compose([transforms.Resize(args.image_size), transforms
 image = pre_process(image).unsqueeze(0)
 image = image.to(device)
 
-high_resolution_fake_image = model(image)
-vutils.save_image(high_resolution_fake_image.detach(), "result.png", normalize=False)
+hr_fake_image = model(image)
+vutils.save_image(hr_fake_image, "result.png", normalize=False)
 
 # Evaluate performance
 src_img = cv2.imread("result.png")
@@ -104,4 +95,3 @@ print(f"MSE: {mse_value:.2f}\n"
       f"SAM: {sam_value:.4f}\n"
       f"VIF: {vif_value:.4f}")
 print("============================== End ==============================")
-print("\n")
