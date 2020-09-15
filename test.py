@@ -27,6 +27,7 @@ from sewar.full_ref import vifp
 
 from srgan_pytorch import Generator
 from srgan_pytorch import cal_mse
+from srgan_pytorch import TestDatasetFromFolder
 from srgan_pytorch import cal_niqe
 from srgan_pytorch import cal_psnr
 from srgan_pytorch import cal_rmse
@@ -44,8 +45,8 @@ parser.add_argument("--scale-factor", type=int, default=4,
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--weights", default="./weights/srgan_X4.pth",
                     help="Path to weights (default:`./weights/srgan_X4.pth`).")
-parser.add_argument("--outf", default="./results",
-                    help="folder to output images. (default:`./results`).")
+parser.add_argument("--outf", default="./result",
+                    help="folder to output images. (default:`./result`).")
 parser.add_argument("--manualSeed", type=int,
                     help="Seed for initializing training. (default:none)")
 
@@ -69,29 +70,20 @@ if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 # Load dataset
-dataset = datasets.ImageFolder(root=args.dataroot,
-                               transform=transforms.Compose([
-                                   transforms.RandomResizedCrop(
-                                       args.image_size * args.scale_factor),
-                                   transforms.ToTensor()]))
+dataset = TestDatasetFromFolder(dataset_dir=args.dataroot, upscale_factor=args.scale_factor)
 
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                                         shuffle=False, pin_memory=True,
+dataloader = torch.utils.data.DataLoader(dataset,
+                                         batch_size=1,
+                                         shuffle=False,
+                                         pin_memory=True,
                                          num_workers=int(args.workers))
 
 # Setting device
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # Load model
-model = Generator(8, args.scale_factor).to(device)
-model.load_state_dict(torch.load(args.weights))
-
-resize = transforms.Compose([transforms.ToPILImage(),
-                             transforms.Resize(args.image_size),
-                             transforms.ToTensor(),
-                             transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                  std=[0.229, 0.224, 0.225]),
-                             ])
+model = Generator(scale_factor=8).to(device)
+model.load_state_dict(torch.load(args.weights, map_location=device))
 
 # Evaluate algorithm performance
 total_mse_value = 0.0
@@ -104,32 +96,29 @@ total_sam_value = 0.0
 total_vif_value = 0.0
 
 for i, data in enumerate(dataloader):
-    hr_real_image = data[0].to(device)
-    batch_size = hr_real_image.size(0)
-
-    lr_real_image = torch.randn(batch_size, 3, args.image_size, args.image_size, device=device)
-
-    # Down sample images to low resolution
-    for batch_index in range(batch_size):
-        lr_real_image[batch_index] = resize(hr_real_image[batch_index].cpu())
+    filename = data[0]
+    lr_real_image = data[1].to(device)
+    hr_restore_image = data[2].to(device)
+    hr_real_image = data[3].to(device)
 
     # Generate real and fake inputs
     hr_fake_image = model(lr_real_image)
 
-    vutils.save_image(hr_real_image, f"{args.outf}/hr_real_{i}.png", normalize=True)
-    vutils.save_image(hr_fake_image, f"{args.outf}/hr_fake_{i}.png", normalize=True)
-    vutils.save_image(lr_real_image, f"{args.outf}/lr_real_{i}.png", normalize=True)
+    vutils.save_image(lr_real_image, f"{args.outf}/{filename}_lr.png", normalize=True)
+    vutils.save_image(hr_restore_image, f"{args.outf}/{filename}_restore.png", normalize=True)
+    vutils.save_image(hr_fake_image, f"{args.outf}/{filename}_srgan.png", normalize=True)
+    vutils.save_image(hr_real_image, f"{args.outf}/{filename}_hr.png", normalize=True)
 
     # Evaluate performance
-    src_img = cv2.imread(f"{args.outf}/hr_fake_{i}.png")
-    dst_img = cv2.imread(f"{args.outf}/hr_real_{i}.png")
+    src_img = cv2.imread(f"{args.outf}/{filename}_srgan.png")
+    dst_img = cv2.imread(f"{args.outf}/{filename}_hr.png")
 
     total_mse_value += cal_mse(src_img, dst_img)
     total_rmse_value += cal_rmse(src_img, dst_img)
     total_psnr_value += cal_psnr(src_img, dst_img)
     total_ssim_value += cal_ssim(src_img, dst_img)
     total_ms_ssim_value += msssim(src_img, dst_img)
-    total_niqe_value += cal_niqe(f"{args.outf}/hr_fake_{i}.png")
+    total_niqe_value += cal_niqe(f"{args.outf}/{filename}_srgan.png")
     total_sam_value += sam(src_img, dst_img)
     total_vif_value += vifp(src_img, dst_img)
 
