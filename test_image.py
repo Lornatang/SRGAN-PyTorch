@@ -31,16 +31,16 @@ from srgan_pytorch import cal_rmse
 from srgan_pytorch import cal_ssim
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
-parser.add_argument("--file", type=str, default="assets/baby.png",
+parser.add_argument("--file", type=str, default="./assets/baby.png",
                     help="Test low resolution image name. "
-                         "(default:`assets/baby.png`)")
-parser.add_argument("--weights", type=str, default="weights/srgan_X4.pth",
+                         "(default:`./assets/baby.png`)")
+parser.add_argument("--weights", type=str, default="weights/SRGAN_X4.pth",
                     help="Generator model name.  "
-                         "(default:`weights/srgan_X4.pth`)")
+                         "(default:`weights/SRGAN_X4.pth`)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--image-size", type=int, default=96,
                     help="size of the data crop (squared assumed). (default:96)")
-parser.add_argument("--upscale-factor", default=4, type=int,
+parser.add_argument("--scale-factor", default=4, type=int,
                     help="Super resolution upscale factor")
 
 args = parser.parse_args()
@@ -54,7 +54,7 @@ if torch.cuda.is_available() and not args.cuda:
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # create model
-model = Generator(scale_factor=args.upscale_factor).to(device)
+model = Generator(scale_factor=args.scale_factor).to(device)
 
 # Load state dicts
 model.load_state_dict(torch.load(args.weights, map_location=device))
@@ -64,16 +64,21 @@ model.eval()
 
 # Load image
 image = Image.open(args.file)
-pre_process = transforms.Compose([transforms.Resize(args.image_size), transforms.ToTensor()])
-image = pre_process(image).unsqueeze(0)
-image = image.to(device)
 
-hr_fake_image = model(image)
+lr_process = transforms.Compose([transforms.Resize(args.image_size), transforms.ToTensor()])
+hr_process = transforms.Compose([transforms.Resize(args.image_size * args.scale_factor), transforms.ToTensor()])
+
+hr_real_image = hr_process(image).unsqueeze(0)
+lr_real_image = lr_process(image).unsqueeze(0)
+lr_real_image = lr_real_image.to(device)
+
+hr_fake_image = model(lr_real_image)
+vutils.save_image(hr_real_image, "target.png", normalize=False)
 vutils.save_image(hr_fake_image, "result.png", normalize=False)
 
 # Evaluate performance
 src_img = cv2.imread("result.png")
-dst_img = cv2.imread(f"{args.file}")
+dst_img = cv2.imread("target.png")
 
 mse_value = cal_mse(src_img, dst_img)
 rmse_value = cal_rmse(src_img, dst_img)
