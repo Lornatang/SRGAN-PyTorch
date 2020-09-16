@@ -17,6 +17,9 @@ import torch.utils.data.dataset
 import torchvision.transforms as transforms
 from PIL import Image
 
+from .utils import img2tensor
+from .utils import tensor2img
+
 
 def check_image_file(filename):
     r"""Filter non image files in directory.
@@ -31,25 +34,25 @@ def check_image_file(filename):
     return any(filename.endswith(extension) for extension in ['.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'])
 
 
-def calculate_valid_crop_size(crop_size, upscale_factor):
+def calculate_valid_crop_size(image_size, upscale_factor):
     r"""Auto crop image size.
 
     Args:
-        crop_size (int): Minimum size of image block.
+        image_size (int): Minimum size of image block.
         upscale_factor (int): Image magnification factor.
 
     Returns:
         The minimum length and width of the cropped image.
 
     """
-    return crop_size - (crop_size % upscale_factor)
+    return image_size - (image_size % upscale_factor)
 
 
-def train_hr_transform(crop_size, upscale_factor):
+def train_hr_transform(image_size, upscale_factor):
     r"""Processing format of training high resolution image.
 
     Args:
-        crop_size (int): Minimum size of image block.
+        image_size (int): Minimum size of image block.
         upscale_factor (int): Image magnification factor.
 
     Returns:
@@ -57,25 +60,26 @@ def train_hr_transform(crop_size, upscale_factor):
 
     """
     return transforms.Compose([
-        transforms.RandomCrop(crop_size * upscale_factor),
-        transforms.ToTensor(),
+        transforms.RandomCrop(image_size * upscale_factor),
+        img2tensor()
     ])
 
 
-def train_lr_transform(crop_size):
+def train_lr_transform(image_size):
     r"""Processing format of training low resolution image.
 
     Args:
-        crop_size (int): Minimum size of image block.
+        image_size (int): Minimum size of image block.
+
 
     Returns:
         Composes several transforms together.
 
     """
     return transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((crop_size, crop_size), interpolation=Image.BICUBIC),
-        transforms.ToTensor()
+        tensor2img(),
+        transforms.Resize((image_size, image_size), interpolation=Image.BICUBIC),
+        img2tensor()
     ])
 
 
@@ -90,29 +94,29 @@ def display_transform(image_size=384):
 
     """
     return transforms.Compose([
-        transforms.ToPILImage(),
+        tensor2img(),
         transforms.Resize((image_size, image_size)),
         transforms.CenterCrop(image_size),
-        transforms.ToTensor()
+        img2tensor()
     ])
 
 
 class TrainDatasetFromFolder(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, dataset_dir, crop_size, upscale_factor):
+    def __init__(self, dataset_dir, image_size, upscale_factor):
         r"""
 
         Args:
             dataset_dir (str): Directory address of the file.
-            crop_size (int): Minimum size of image block.
+            image_size (int): Minimum size of image block.
             upscale_factor (int): Image magnification factor.
         """
         super(TrainDatasetFromFolder, self).__init__()
         self.image_filenames = [os.path.join(dataset_dir, x) for x in os.listdir(dataset_dir) if check_image_file(x)]
-        crop_size = calculate_valid_crop_size(crop_size, upscale_factor)
-        self.hr_transform = train_hr_transform(crop_size, upscale_factor)
-        self.lr_transform = train_lr_transform(crop_size)
+        image_size = calculate_valid_crop_size(image_size, upscale_factor)
+        self.hr_transform = train_hr_transform(image_size, upscale_factor)
+        self.lr_transform = train_lr_transform(image_size)
 
     def __getitem__(self, index):
         hr_image = self.hr_transform(Image.open(self.image_filenames[index]))
@@ -126,28 +130,27 @@ class TrainDatasetFromFolder(torch.utils.data.dataset.Dataset):
 class ValDatasetFromFolder(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, dataset_dir, upscale_factor):
+    def __init__(self, dataset_dir, image_size, upscale_factor):
         r"""
 
         Args:
             dataset_dir (str): Directory address of the file.
+            image_size (int): Minimum size of image block.
             upscale_factor (int): Image magnification factor.
         """
         super(ValDatasetFromFolder, self).__init__()
+        self.image_size = calculate_valid_crop_size(image_size, upscale_factor)
         self.upscale_factor = upscale_factor
         self.image_filenames = [os.path.join(dataset_dir, x) for x in os.listdir(dataset_dir) if check_image_file(x)]
 
     def __getitem__(self, index):
         hr_image = Image.open(self.image_filenames[index])
-        w, h = hr_image.size
-        crop_size = calculate_valid_crop_size(min(w, h), self.upscale_factor)
-        lr_scale = transforms.Resize((crop_size // self.upscale_factor, crop_size // self.upscale_factor),
-                                     interpolation=Image.BICUBIC)
-        hr_scale = transforms.Resize((crop_size, crop_size), interpolation=Image.BICUBIC)
-        hr_image = transforms.CenterCrop(crop_size)(hr_image)
+        lr_scale = transforms.Resize(self.image_size, interpolation=Image.BICUBIC)
+        hr_scale = transforms.Resize(self.image_size * self.upscale_factor, interpolation=Image.BICUBIC)
+        hr_image = transforms.CenterCrop(self.image_size * self.upscale_factor)(hr_image)
         lr_image = lr_scale(hr_image)
         hr_restore_img = hr_scale(lr_image)
-        return transforms.ToTensor()(lr_image), transforms.ToTensor()(hr_restore_img), transforms.ToTensor()(hr_image)
+        return img2tensor()(lr_image), img2tensor()(hr_restore_img), img2tensor()(hr_image)
 
     def __len__(self):
         return len(self.image_filenames)
@@ -156,29 +159,28 @@ class ValDatasetFromFolder(torch.utils.data.dataset.Dataset):
 class TestDatasetFromFolder(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, dataset_dir, upscale_factor):
+    def __init__(self, dataset_dir, image_size, upscale_factor):
         r"""
 
         Args:
             dataset_dir (str): Directory address of the file.
+            image_size (int): Minimum size of image block.
             upscale_factor (int): Image magnification factor.
         """
         super(TestDatasetFromFolder, self).__init__()
-        self.lr_path = dataset_dir + 'result/X' + str(upscale_factor) + '/data'
-        self.hr_path = dataset_dir + 'result/X' + str(upscale_factor) + '/target'
-        self.upscale_factor = upscale_factor
+        self.lr_path = dataset_dir + "/X" + str(upscale_factor) + "/data"
+        self.hr_path = dataset_dir + "/X" + str(upscale_factor) + "/target"
+        self.image_size = calculate_valid_crop_size(image_size, upscale_factor)
         self.lr_filenames = [os.path.join(self.lr_path, x) for x in os.listdir(self.lr_path) if check_image_file(x)]
         self.hr_filenames = [os.path.join(self.hr_path, x) for x in os.listdir(self.hr_path) if check_image_file(x)]
 
     def __getitem__(self, index):
         filename = self.lr_filenames[index].split('/')[-1]
         lr_image = Image.open(self.lr_filenames[index])
-        w, h = lr_image.size
         hr_image = Image.open(self.hr_filenames[index])
-        hr_scale = transforms.Resize((self.upscale_factor * h, self.upscale_factor * w), interpolation=Image.BICUBIC)
+        hr_scale = transforms.Resize(self.image_size, interpolation=Image.BICUBIC)
         hr_restore_img = hr_scale(lr_image)
-        return filename, transforms.ToTensor()(lr_image), transforms.ToTensor()(hr_restore_img), transforms.ToTensor()(
-            hr_image)
+        return filename, img2tensor()(lr_image), img2tensor()(hr_restore_img), img2tensor()(hr_image)
 
     def __len__(self):
         return len(self.lr_filenames)
