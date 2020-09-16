@@ -45,7 +45,7 @@ parser.add_argument("--scale-factor", type=int, default=4, choices=[4, 8, 16],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--cuda", action="store_true",
                     help="Enables cuda")
-parser.add_argument("--weights", default="./weights/SRGAN_X4.pth", required=True,
+parser.add_argument("--weights", default="./weights/SRGAN_X4.pth",
                     help="Path to weights. (default:`./weights/SRGAN_X4.pth`).")
 parser.add_argument("--outf", default="./result",
                     help="folder to output images. (default:`./result`).")
@@ -53,7 +53,6 @@ parser.add_argument("--manualSeed", type=int, default=0,
                     help="Seed for initializing training. (default:0)")
 
 args = parser.parse_args()
-print(args)
 
 try:
     os.makedirs(args.outf)
@@ -71,13 +70,14 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-dataset = ValDatasetFromFolder(dataset_dir=f'{args.dataroot}/val',
+dataset = ValDatasetFromFolder(dataset_dir=f"{args.dataroot}/val",
                                image_size=args.image_size,
                                upscale_factor=args.scale_factor)
 dataloader = torch.utils.data.DataLoader(dataset=dataset,
                                          batch_size=1,
                                          shuffle=True,
-                                         num_workers=int(args.workers))
+                                         num_workers=int(args.workers),
+                                         pin_memory=True)
 
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
@@ -87,10 +87,9 @@ model.load_state_dict(torch.load(args.weights, map_location=device))
 
 # Memory call of analysis model
 lr_image_size = calculate_valid_crop_size(args.image_size, args.scale_factor)
-lr = torch.randn(args.batch_size, 3, lr_image_size, lr_image_size, device=device)
 
 with profiler.profile(profile_memory=True, record_shapes=True) as prof:
-    model(lr)
+    model(torch.randn(1, 3, lr_image_size, lr_image_size, device=device))
 print(" # Generator # ")
 print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10))
 
@@ -114,19 +113,19 @@ with torch.no_grad():
 
         hr_fake_image = model(lr_real_image)
 
-        vutils.save_image(hr_real_image, f"{args.outf}/hr_real_epoch_{i}.png", normalize=True)
-        vutils.save_image(hr_restore_image, f"{args.outf}/hr_restore_epoch_{i}.png", normalize=True)
+        vutils.save_image(hr_real_image, f"{args.outf}/hr_real_{i}.png", normalize=True)
+        vutils.save_image(hr_restore_image, f"{args.outf}/hr_restore_{i}.png", normalize=True)
         vutils.save_image(hr_fake_image, f"{args.outf}/hr_fake_epoch_{i}.png", normalize=True)
 
-        src_img = cv2.imread(f"{args.outf}/hr_fake_epoch_{i}.png")
-        dst_img = cv2.imread(f"{args.outf}/hr_real_epoch_{i}.png")
+        src_img = cv2.imread(f"{args.outf}/hr_fake_{i}.png")
+        dst_img = cv2.imread(f"{args.outf}/hr_real_{i}.png")
 
         mse_value = cal_mse(src_img, dst_img)
         rmse_value = cal_rmse(src_img, dst_img)
         psnr_value = cal_psnr(src_img, dst_img)
         ssim_value = cal_ssim(src_img, dst_img)
         ms_ssim_value = msssim(src_img, dst_img)
-        niqe_value = cal_niqe(f"{args.outf}/hr_fake_epoch_{i}.png")
+        niqe_value = cal_niqe(f"{args.outf}/hr_fake_{i}.png")
         sam_value = sam(src_img, dst_img)
         vif_value = vifp(src_img, dst_img)
 
@@ -139,15 +138,24 @@ with torch.no_grad():
         total_sam_value += sam_value
         total_vif_value += vif_value
 
+    avg_mse_value = total_mse_value / len(dataloader)
+    avg_rmse_value = total_rmse_value / len(dataloader)
+    avg_psnr_value = total_psnr_value / len(dataloader)
+    avg_ssim_value = total_ssim_value / len(dataloader)
+    avg_ms_ssim_value = total_ms_ssim_value / len(dataloader)
+    avg_niqe_value = total_niqe_value / len(dataloader)
+    avg_sam_value = total_sam_value / len(dataloader)
+    avg_vif_value = total_vif_value / len(dataloader)
+
 print("\n")
 print("====================== Performance summary ======================")
-print(f"Avg MSE: {total_mse_value / len(dataloader):.2f}\n"
-      f"Avg RMSE: {total_rmse_value / len(dataloader):.2f}\n"
-      f"Avg PSNR: {total_psnr_value / len(dataloader):.2f}\n"
-      f"Avg SSIM: {total_ssim_value / len(dataloader):.4f}\n"
-      f"Avg MS-SSIM: {total_ms_ssim_value / len(dataloader):.4f}\n"
-      f"Avg NIQE: {total_niqe_value / len(dataloader):.2f}\n"
-      f"Avg SAM: {total_sam_value / len(dataloader):.4f}\n"
-      f"Avg VIF: {total_vif_value / len(dataloader):.4f}")
+print(f"Avg MSE: {avg_mse_value:.2f}\n"
+      f"Avg RMSE: {avg_rmse_value:.2f}\n"
+      f"Avg PSNR: {avg_psnr_value:.2f}\n"
+      f"Avg SSIM: {avg_ssim_value:.4f}\n"
+      f"Avg MS-SSIM: {avg_ms_ssim_value:.4f}\n"
+      f"Avg NIQE: {avg_niqe_value:.2f}\n"
+      f"Avg SAM: {avg_sam_value:.4f}\n"
+      f"Avg VIF: {avg_vif_value:.4f}")
 print("============================== End ==============================")
 print("\n")
