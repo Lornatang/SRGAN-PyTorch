@@ -11,8 +11,10 @@ This repository contains an op-for-op PyTorch reimplementation of [Photo-Realist
     * [Download pretrained weights](#download-pretrained-weights)
     * [Download dataset](#download-dataset)
 4. [Test](#test)
+    * [Basic test](#basic-test)
+    * [Test benchmark](#test-benchmark)
+    * [Test image](#test-image)
 4. [Train](#train-eg-div2k)
-    * [Example](#example-eg-div2k)
 5. [Contributing](#contributing) 
 6. [Credit](#credit)
 
@@ -51,8 +53,8 @@ and if it's 0, it's not real.
 #### Clone and install requirements
 
 ```bash
-$ git clone https://github.com/Lornatang/SRGAN-PyTorch
-$ cd SRGAN-PyTorch/
+$ git clone https://github.com/Lornatang/SRGAN_PyTorch.git
+$ cd SRGAN_PyTorch/
 $ pip3 install -r requirements.txt
 ```
 
@@ -67,15 +69,89 @@ $ bash download_weights.sh
 
 ```bash
 $ cd data/
-$ bash get_dataset.sh
+$ bash download_dataset.sh
 ```
 
 ### Test
 
 Using pre training model to generate pictures.
 
-```bash
-$ python3 test.py --cuda
+#### Basic test
+
+```text
+usage: test.py [-h] [--dataroot DATAROOT] [-j N] [--image-size IMAGE_SIZE]
+               [--scale-factor SCALE_FACTOR] [--cuda] [--weights WEIGHTS]
+               [--outf OUTF] [--manualSeed MANUALSEED]
+
+PyTorch Super Resolution GAN.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dataroot DATAROOT   Path to dataset. (default:`./data/Set5`)
+  -j N, --workers N     Number of data loading workers. (default:0)
+  --image-size IMAGE_SIZE
+                        Size of the data crop (squared assumed). (default:96)
+  --scale-factor SCALE_FACTOR
+                        Low to high resolution scaling factor. (default:4).
+  --cuda                Enables cuda
+  --weights WEIGHTS     Path to weights (default:`./weights/SRGAN_X4.pth`).
+  --outf OUTF           folder to output images. (default:`./result`).
+  --manualSeed MANUALSEED
+                        Seed for initializing training. (default:0)
+
+# Example
+$ python test.py --dataroot ./data/Set5 --cuda --weights ./weights/SRGAN_X4.pth
+```
+
+#### Test benchmark
+
+```text
+usage: test_benchmark.py [-h] [--dataroot DATAROOT] [-j N]
+                         [--image-size IMAGE_SIZE] [--scale-factor {4,8,16}]
+                         [--cuda] --weights WEIGHTS [--outf OUTF]
+                         [--manualSeed MANUALSEED]
+
+PyTorch Super Resolution GAN.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dataroot DATAROOT   Path to datasets. (default:`./data/DIV2K`)
+  -j N, --workers N     Number of data loading workers. (default:0)
+  --image-size IMAGE_SIZE
+                        Size of the data crop (squared assumed). (default:96)
+  --scale-factor {4,8,16}
+                        Low to high resolution scaling factor. (default:4).
+  --cuda                Enables cuda
+  --weights WEIGHTS     Path to weights. (default:`./weights/SRGAN_X4.pth`).
+  --outf OUTF           folder to output images. (default:`./result`).
+  --manualSeed MANUALSEED
+                        Seed for initializing training. (default:0)
+
+# Example
+$ python test_benchmark.py --dataroot ./data/DIV2K --cuda --weights ./weights/SRGAN_X4.pth
+```
+
+#### Test image
+
+```text
+usage: test_image.py [-h] [--file FILE] [--weights WEIGHTS] [--cuda]
+                     [--image-size IMAGE_SIZE] [--scale-factor SCALE_FACTOR]
+
+PyTorch Super Resolution GAN.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --file FILE           Test low resolution image name.
+                        (default:`./assets/baby.png`)
+  --weights WEIGHTS     Generator model name. (default:`weights/SRGAN_X4.pth`)
+  --cuda                Enables cuda
+  --image-size IMAGE_SIZE
+                        size of the data crop (squared assumed). (default:96)
+  --scale-factor SCALE_FACTOR
+                        Super resolution upscale factor
+
+# Example
+$ python test_image.py --file ./assets/baby.png --cuda --weights ./weights/SRGAN_X4.pth
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
@@ -88,21 +164,44 @@ Low resolution / Recovered High Resolution / Ground Truth
 ```text
 usage: train.py [-h] [--dataroot DATAROOT] [-j N] [--epochs N]
                 [--image-size IMAGE_SIZE] [-b N] [--lr LR]
-                [--up-sampling UP_SAMPLING] [-p N] [--cuda] [--netG NETG]
+                [--scale-factor {4,8,16}] [-p N] [--cuda] [--netG NETG]
                 [--netD NETD] [--outf OUTF] [--manualSeed MANUALSEED]
-                [--ngpu NGPU]
-```
 
-#### Example (e.g DIV2K)
+PyTorch Super Resolution GAN.
 
-```bash
-$ python3 train.py --ngpu 2 --cuda
+optional arguments:
+  -h, --help            show this help message and exit
+  --dataroot DATAROOT   Path to datasets. (default:`./data/DIV2K`)
+  -j N, --workers N     Number of data loading workers. (default:0)
+  --epochs N            Number of total epochs to run. (default:2000)
+  --image-size IMAGE_SIZE
+                        Size of the data crop (squared assumed). (default:96)
+  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch
+                        size of all GPUs on the current node when using Data
+                        Parallel or Distributed Data Parallel.
+  --lr LR               Learning rate. (default:0.0001)
+  --scale-factor {4,8,16}
+                        Low to high resolution scaling factor. (default:4).
+  -p N, --print-freq N  Print frequency. (default:5)
+  --cuda                Enables cuda
+  --netG NETG           Path to netG (to continue training).
+  --netD NETD           Path to netD (to continue training).
+  --outf OUTF           folder to output images. (default:`./output`).
+  --manualSeed MANUALSEED
+                        Seed for initializing training. (default:0)
+
+# Example (e.g DIV2K)
+$ python train.py --dataroot ./data/DIV2K --cuda --scale-factor 4
 ```
 
 If you want to load weights that you've trained before, run the following command.
 
 ```bash
-$ python3 train.py --ngpu 2 --netG weights/netG_epoch_*.pth --netD weights/netD_epoch_*.pth --cuda
+$ python train.py --dataroot ./data/DIV2K \
+                  --cuda                  \
+                  --scale-factor 4        \
+                  --netG ./weights/SRGAN_G_epoch_50.pth \
+                  --netD ./weights/SRGAN_D_epoch_50.pth 
 ```
 
 ### Contributing
@@ -135,7 +234,7 @@ An extensive mean-opinion-score (MOS) test shows hugely significant gains in per
 The MOS scores obtained with SRGAN are closer to those of the original high-resolution images than to those obtained 
 with any state-of-the-art method.
 
-[[Paper]](https://arxiv.org/pdf/1609.04802)
+[[Paper]](https://arxiv.org/pdf/1609.04802))
 
 ```
 @InProceedings{srgan,
