@@ -20,11 +20,11 @@ from .dataset import TestDatasetFromFolder
 from .dataset import TrainDatasetFromFolder
 from .dataset import ValDatasetFromFolder
 from .dataset import calculate_valid_crop_size
-from .dataset import display_transform
-from .loss import GeneratorLoss
-from .loss import TVLoss
+from .loss import PerceptualLoss
 from .model import Discriminator
 from .model import Generator
+from .utils import img2tensor
+from .utils import tensor2img
 
 __all__ = [
     "cal_mse",
@@ -36,9 +36,8 @@ __all__ = [
     "TrainDatasetFromFolder",
     "ValDatasetFromFolder",
     "calculate_valid_crop_size",
-    "display_transform",
-    "GeneratorLoss",
-    "TVLoss",
     "Discriminator",
     "Generator",
+    "img2tensor",
+    "tensor2img"
 ]
