@@ -43,12 +43,12 @@ parser.add_argument("--image-size", type=int, default=96,
 parser.add_argument("--scale-factor", type=int, default=4,
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
-parser.add_argument("--weights", default="./weights/srgan_X4.pth",
-                    help="Path to weights (default:`./weights/srgan_X4.pth`).")
+parser.add_argument("--weights", default="./weights/SRGAN_X4.pth",
+                    help="Path to weights (default:`./weights/SRGAN_X4.pth`).")
 parser.add_argument("--outf", default="./result",
                     help="folder to output images. (default:`./result`).")
-parser.add_argument("--manualSeed", type=int,
-                    help="Seed for initializing training. (default:none)")
+parser.add_argument("--manualSeed", type=int, default=0,
+                    help="Seed for initializing training. (default:0)")
 
 args = parser.parse_args()
 print(args)
@@ -70,19 +70,17 @@ if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 # Load dataset
-dataset = TestDatasetFromFolder(dataset_dir=args.dataroot, upscale_factor=args.scale_factor)
-
+dataset = TestDatasetFromFolder(dataset_dir=args.dataroot, image_size=args.image_size, upscale_factor=args.scale_factor)
 dataloader = torch.utils.data.DataLoader(dataset,
                                          batch_size=1,
-                                         shuffle=False,
-                                         pin_memory=True,
-                                         num_workers=int(args.workers))
-
+                                         shuffle=True,
+                                         num_workers=int(args.workers),
+                                         pin_memory=True)
 # Setting device
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # Load model
-model = Generator(scale_factor=8).to(device)
+model = Generator(scale_factor=args.scale_factor).to(device)
 model.load_state_dict(torch.load(args.weights, map_location=device))
 
 # Evaluate algorithm performance
