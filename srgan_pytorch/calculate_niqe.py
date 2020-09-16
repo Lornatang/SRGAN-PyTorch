@@ -254,7 +254,7 @@ def cal_niqe(filename):
         Niqe score.
 
     """
-    patch_size = 96
+    patch_size = 32
     params = scipy.io.loadmat(os.path.join("data", "niqe_image_params.mat"))
     pop_mu = np.ravel(params["pop_mu"])
     pop_cov = params["pop_cov"]
