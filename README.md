@@ -53,8 +53,8 @@ and if it's 0, it's not real.
 #### Clone and install requirements
 
 ```bash
-$ git clone https://github.com/Lornatang/SRGAN_PyTorch.git
-$ cd SRGAN_PyTorch/
+$ git clone https://github.com/Lornatang/SRGAN-PyTorch.git
+$ cd SRGAN-PyTorch/
 $ pip3 install -r requirements.txt
 ```
 
