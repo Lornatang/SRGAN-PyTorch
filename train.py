@@ -45,8 +45,8 @@ parser.add_argument("--dataroot", type=str, default="./data/DIV2K",
                     help="Path to datasets. (default:`./data/DIV2K`)")
 parser.add_argument("-j", "--workers", default=0, type=int, metavar="N",
                     help="Number of data loading workers. (default:0)")
-parser.add_argument("--epochs", default=200, type=int, metavar="N",
-                    help="Number of total epochs to run. (default:200)")
+parser.add_argument("--epochs", default=2000, type=int, metavar="N",
+                    help="Number of total epochs to run. (default:2000)")
 parser.add_argument("--image-size", type=int, default=96,
                     help="Size of the data crop (squared assumed). (default:96)")
 parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
@@ -65,10 +65,10 @@ parser.add_argument("--netG", default="",
                     help="Path to netG (to continue training).")
 parser.add_argument("--netD", default="",
                     help="Path to netD (to continue training).")
-parser.add_argument("--outf", default="./outputs",
-                    help="folder to output images. (default:`./outputs`).")
-parser.add_argument("--manualSeed", type=int,
-                    help="Seed for initializing training. (default:none)")
+parser.add_argument("--outf", default="./output",
+                    help="folder to output images. (default:`./output`).")
+parser.add_argument("--manualSeed", type=int, default=0,
+                    help="Seed for initializing training. (default:0)")
 
 args = parser.parse_args()
 print(args)
@@ -100,15 +100,17 @@ train_dataset = TrainDatasetFromFolder(dataset_dir=f'{args.dataroot}/train',
 train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                batch_size=args.batch_size,
                                                shuffle=True,
-                                               num_workers=int(args.workers))
+                                               num_workers=int(args.workers),
+                                               pin_memory=True)
 
 val_dataset = ValDatasetFromFolder(dataset_dir=f'{args.dataroot}/val',
                                    image_size=args.image_size,
                                    upscale_factor=args.scale_factor)
 val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset,
                                              batch_size=1,
-                                             shuffle=False,
-                                             num_workers=int(args.workers))
+                                             shuffle=True,
+                                             num_workers=int(args.workers),
+                                             pin_memory=True)
 
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
@@ -140,18 +142,26 @@ print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10))
 generator_loss = GeneratorLoss().to(device)
 mse_loss = nn.MSELoss().to(device)
 
+# According to the requirements of the original paper
+# init lr: 0.0001. train step 100000 after lr=lr * 0.1.
+# Max steps: 2000 * len(train_dataloader).
 optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr)
+optimizer_D = torch.optim.Adam(netD.parameters(), lr=args.lr)
+scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, step_size=args.epochs // 2, gamma=0.1)
+scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=args.epochs // 2, gamma=0.1)
 
 # Pre-train generator using raw MSE loss
-print(f"Generator pre-training for {args.epochs // 10} epochs.")
+pre_epochs = 100 // args.batch_size
+print(f"Generator pre-training for {pre_epochs} epochs.")
 print(f"Searching generator pretrained model weights.")
 
+# Save the generator model based on MSE pre training to speed up the training time
 if os.path.exists(f"./weights/pretrained_X{args.scale_factor}.pth"):
     print("Found pretrained weights. Skip pre-train.")
     netG.load_state_dict(torch.load(f"./weights/pretrained_X{args.scale_factor}.pth", map_location=device))
 else:
     print("Not found pretrained weights. start training.")
-    for epoch in range(0, args.epochs // 10):
+    for epoch in range(pre_epochs):
         for i, data in enumerate(train_dataloader):
             # Set generator gradients to zero
             netG.zero_grad()
@@ -171,14 +181,11 @@ else:
             optimizer_G.step()
 
             if (i + 1) % args.print_freq == 0:
-                print(f"[{epoch}/{args.epochs // 10}][{i + 1}/{len(train_dataloader)}] "
+                print(f"[{epoch}/{pre_epochs}][{i + 1}/{len(train_dataloader)}] "
                       f"Generator MSE loss: {g_loss.item():.4f}")
 
     torch.save(netG.state_dict(), f"./weights/pretrained_X{args.scale_factor}.pth")
     print(f"Saving pre-train weights to `./weights/pretrained_X{args.scale_factor}.pth`.")
-
-optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr * 0.1)
-optimizer_D = torch.optim.Adam(netD.parameters(), lr=args.lr * 0.1)
 
 g_losses = []
 d_losses = []
@@ -225,6 +232,7 @@ for epoch in range(0, args.epochs):
         d_loss.backward(retain_graph=True)
         # Update discriminator weights.
         optimizer_D.step()
+        scheduler_D.step()
 
         ##############################################
         # (2) Update G network
@@ -241,10 +249,11 @@ for epoch in range(0, args.epochs):
 
         # Update generator weights.
         optimizer_G.step()
+        scheduler_G.step()
 
         if (i + 1) % args.print_freq == 0:
             print(f"============== [{epoch}/{args.epochs}][{i + 1}/{len(train_dataloader)}] ==============\n"
-                  f"Loss_D: {d_loss.item():.4f} loss_G: {g_loss.item():.4f}\n")
+                  f"Loss_D: {d_loss.item():.8f} loss_G: {g_loss.item():.8f}\n")
 
             d_losses.append(d_loss.item())
             g_losses.append(g_loss.item())
@@ -287,8 +296,8 @@ for epoch in range(0, args.epochs):
             total_vif_value += vif_value
 
         # do checkpointing
-        torch.save(netG.state_dict(), f"weights/srgan_G_epoch_{epoch}.pth")
-        torch.save(netD.state_dict(), f"weights/srgan_D_epoch_{epoch}.pth")
+        torch.save(netG.state_dict(), f"weights/SRGAN_G_epoch_{epoch}.pth")
+        torch.save(netD.state_dict(), f"weights/SRGAN_D_epoch_{epoch}.pth")
 
     avg_mse_value = total_mse_value / len(val_dataloader)
     avg_rmse_value = total_rmse_value / len(val_dataloader)
@@ -301,7 +310,7 @@ for epoch in range(0, args.epochs):
 
     print("\n")
     print("====================== Performance summary ======================")
-    print(f"======================    Epoch {epoch}   =======================")
+    print(f"======================   Epoch {epoch}    ======================")
     print("=================================================================")
     print(f"Avg MSE: {avg_mse_value:.2f}\n"
           f"Avg RMSE: {avg_rmse_value:.2f}\n"
@@ -318,10 +327,8 @@ for epoch in range(0, args.epochs):
     if best_psnr_value < avg_psnr_value and best_ssim_value < avg_ssim_value:
         best_psnr_value = avg_psnr_value
         best_ssim_value = avg_ssim_value
-        shutil.copyfile(f"weights/srgan_D_epoch_{epoch}.pth",
-                        f"weights/srgan_D_X{args.scale_factor}.pth")
-        shutil.copyfile(f"weights/srgan_G_epoch_{epoch}.pth",
-                        f"weights/srgan_G_X{args.scale_factor}.pth")
+        shutil.copyfile(f"weights/SRGAN_G_epoch_{epoch}.pth",
+                        f"weights/SRGAN_X{args.scale_factor}.pth")
 
     mse_list.append(total_mse_value / len(val_dataloader))
     rmse_list.append(total_rmse_value / len(val_dataloader))
