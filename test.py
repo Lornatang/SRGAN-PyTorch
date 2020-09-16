@@ -102,7 +102,6 @@ for i, data in enumerate(dataloader):
     # Generate real and fake inputs
     hr_fake_image = model(lr_real_image)
 
-    vutils.save_image(lr_real_image, f"{args.outf}/{filename}_lr.png", normalize=True)
     vutils.save_image(hr_restore_image, f"{args.outf}/{filename}_restore.png", normalize=True)
     vutils.save_image(hr_fake_image, f"{args.outf}/{filename}_srgan.png", normalize=True)
     vutils.save_image(hr_real_image, f"{args.outf}/{filename}_hr.png", normalize=True)
