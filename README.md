@@ -234,7 +234,7 @@ An extensive mean-opinion-score (MOS) test shows hugely significant gains in per
 The MOS scores obtained with SRGAN are closer to those of the original high-resolution images than to those obtained 
 with any state-of-the-art method.
 
-[[Paper]](https://arxiv.org/pdf/1609.04802))
+[[Paper]](https://arxiv.org/pdf/1609.04802)
 
 ```
 @InProceedings{srgan,
