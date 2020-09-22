@@ -11,113 +11,61 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import math
+
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-
-class ResidualBlock(nn.Module):
-    r"""Main residual block structure"""
-
-    def __init__(self, in_channels=64, out_channels=64, kernel_size=3, stride=1):
-        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
-
-        Args:
-            in_channels (int): Number of channels in the input image. Default: 64.
-            out_channels (int): Number of channels produced by the convolution. Default: 64.
-            kernel_size (int or tuple): Size of the convolving kernel. Default: 3.
-            stride (int or tuple, optional): Stride of the convolution. Default: 1.
-
-        """
-        super(ResidualBlock, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=1)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size, stride=stride, padding=1)
-        self.bn = nn.BatchNorm2d(out_channels)
-
-    def forward(self, inputs):
-        shortcut = inputs
-
-        out = self.conv1(inputs)
-        out = self.bn(out)
-        out = F.relu(out, inplace=True)
-
-        out = self.conv2(out)
-        out = self.bn(out)
-
-        out = out + shortcut
-
-        return out
-
-
-class UpsampleBlock(nn.Module):
-    r"""Up-sampling method block"""
-
-    def __init__(self, in_channels, out_channels):
-        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
-
-        Args:
-            in_channels (int): Number of channels in the input image.
-            out_channels (int): Number of channels produced by the convolution.
-        """
-        super(UpsampleBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
-        self.shuffler = nn.PixelShuffle(2)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.shuffler(x)
-
-        out = F.relu(x, inplace=True)
-        return out
+from torch import nn
 
 
 class Generator(nn.Module):
     r"""The main architecture of the generator."""
 
-    def __init__(self, n_residual_blocks, upsample_factor):
-        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
+    def __init__(self, scale_factor):
+        upsample_block_num = int(math.log(scale_factor, 2))
 
-        Args:
-            n_residual_blocks (int): Number of consecutive residual blocks.
-            upsample_factor (int): Coefficient of image magnification.
-        """
         super(Generator, self).__init__()
-        self.n_residual_blocks = n_residual_blocks
-        self.upsample_factor = upsample_factor
+        # First layer
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=9, padding=4),
+            nn.PReLU()
+        )
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4)
+        # Residual blocks
+        residual_blocks = []
+        for _ in range(16):
+            residual_blocks.append(ResidualBlock(64))
+        self.residual_blocks = nn.Sequential(*residual_blocks)
 
-        for i in range(self.n_residual_blocks):
-            self.add_module("residual_block_" + str(i + 1), ResidualBlock())
+        # Second conv layer post residual blocks
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), 
+            nn.BatchNorm2d(64, 0.8)
+        )
 
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
-        self.bn = nn.BatchNorm2d(64)
+        # Upsampling layers
+        upsampling = []
+        for out_features in range(upsample_block_num):
+            upsampling += [
+                nn.Conv2d(64, 256, 3, 1, 1),
+                nn.BatchNorm2d(256),
+                nn.PixelShuffle(upscale_factor=2),
+                nn.PReLU(),
+            ]
+        self.upsampling = nn.Sequential(*upsampling)
 
-        for i in range(self.upsample_factor // 2):
-            self.add_module("upsample_block_" + str(i + 1), UpsampleBlock(64, 256))
+        # Final output layer
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4), 
+            nn.Tanh()
+        )
 
-        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x, inplace=True)
-
-        y = x.clone()
-        for i in range(self.n_residual_blocks):
-            y = self.__getattr__("residual_block_" + str(i + 1))(y)
-
-        shortcut = x
-
-        x = self.conv2(y)
-        x = self.bn(x)
-        x = x + shortcut
-
-        for i in range(self.upsample_factor // 2):
-            x = self.__getattr__("upsample_block_" + str(i + 1))(x)
-
-        out = self.conv3(x)
-
+    def forward(self, inputs):
+        out1 = self.conv1(inputs)
+        out = self.residual_blocks(out1)
+        out2 = self.conv2(out)
+        out = torch.add(out1, out2)
+        out = self.upsampling(out)
+        out = self.conv3(out)
         return out
 
 
@@ -126,61 +74,77 @@ class Discriminator(nn.Module):
 
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),
+            nn.LeakyReLU(0.2),
 
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(128)
-        self.conv4 = nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1)
-        self.bn4 = nn.BatchNorm2d(128)
-        self.conv5 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.bn5 = nn.BatchNorm2d(256)
-        self.conv6 = nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1)
-        self.bn6 = nn.BatchNorm2d(256)
-        self.conv7 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
-        self.bn7 = nn.BatchNorm2d(512)
-        self.conv8 = nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1)
-        self.bn8 = nn.BatchNorm2d(512)
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2),
 
-        # Replaced original paper FC layers with FCN
-        self.conv9 = nn.Conv2d(512, 1, kernel_size=1, stride=1, padding=1)
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2),
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x, inplace=True)
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2),
 
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = F.relu(x, inplace=True)
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2),
 
-        x = self.conv3(x)
-        x = self.bn3(x)
-        x = F.relu(x, inplace=True)
+            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2),
 
-        x = self.conv4(x)
-        x = self.bn4(x)
-        x = F.relu(x, inplace=True)
+            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2),
 
-        x = self.conv5(x)
-        x = self.bn5(x)
-        x = F.relu(x, inplace=True)
+            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2)
+        )
 
-        x = self.conv6(x)
-        x = self.bn6(x)
-        x = F.relu(x, inplace=True)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        
+        self.classifier = nn.Sequential(
+            nn.Linear(512, 1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, 1)
+        )
 
-        x = self.conv7(x)
-        x = self.bn7(x)
-        x = F.relu(x, inplace=True)
+    def forward(self, inputs):
+        out = self.features(inputs)
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        out = self.classifier(out)
+        return torch.sigmoid(out)
 
-        x = self.conv8(x)
-        x = self.bn8(x)
-        x = F.relu(x, inplace=True)
 
-        x = self.conv9(x)
+class ResidualBlock(nn.Module):
+    r"""Main residual block structure"""
 
-        x = F.avg_pool2d(x, x.size()[2:])
-        x = torch.sigmoid(x)
-        out = torch.flatten(x, 1)
-        return out
+    def __init__(self, channels):
+        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
+
+        Args:
+            channels (int): Number of channels in the input image.
+
+        """
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(channels)
+        self.prelu = nn.PReLU()
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(channels)
+
+    def forward(self, inputs):
+        out = self.conv1(inputs)
+        out = self.bn1(out)
+        out = self.prelu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        return out + inputs
