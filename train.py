@@ -14,7 +14,6 @@
 import argparse
 import os
 import random
-import shutil
 
 import cv2
 import torch.autograd.profiler as profiler
@@ -55,7 +54,7 @@ parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
                          "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate. (default:0.0001)")
-parser.add_argument("--scale-factor", type=int, default=4, choices=[4, 8, 16],
+parser.add_argument("--scale-factor", type=int, default=4, choices=[4],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("-p", "--print-freq", default=5, type=int, metavar="N",
                     help="Print frequency. (default:5)")
@@ -94,7 +93,7 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-train_dataset = TrainDatasetFromFolder(dataset_dir=f'{args.dataroot}/train',
+train_dataset = TrainDatasetFromFolder(dataset_dir=f"{args.dataroot}/train",
                                        image_size=args.image_size,
                                        upscale_factor=args.scale_factor)
 train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
@@ -103,7 +102,7 @@ train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                num_workers=int(args.workers),
                                                pin_memory=True)
 
-val_dataset = ValDatasetFromFolder(dataset_dir=f'{args.dataroot}/val',
+val_dataset = ValDatasetFromFolder(dataset_dir=f"{args.dataroot}/val",
                                    image_size=args.image_size,
                                    upscale_factor=args.scale_factor)
 val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset,
@@ -143,24 +142,24 @@ generator_loss = GeneratorLoss().to(device)
 mse_loss = nn.MSELoss().to(device)
 
 # According to the requirements of the original paper
-# init lr: 0.0001. train step 100000 after lr=lr * 0.1.
-# Max steps: 2000 * len(train_dataloader).
 optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr)
 optimizer_D = torch.optim.Adam(netD.parameters(), lr=args.lr)
 scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, step_size=args.epochs // 2, gamma=0.1)
 scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=args.epochs // 2, gamma=0.1)
 
 # Pre-train generator using raw MSE loss
-pre_epochs = 100 // args.batch_size
+# Total pretraining step 1000000 for ImageNet 350K.
+# Ours have DIV2K only have 0.8K images. We use 100 * (800/16) = 5000
+pre_epochs = 100
 print(f"Generator pre-training for {pre_epochs} epochs.")
 print(f"Searching generator pretrained model weights.")
 
 # Save the generator model based on MSE pre training to speed up the training time
-if os.path.exists(f"./weights/pretrained_X{args.scale_factor}.pth"):
-    print("Found pretrained weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weights/pretrained_X{args.scale_factor}.pth", map_location=device))
+if os.path.exists(f"./weights/SRResNet_X{args.scale_factor}.pth"):
+    print("[*] Found pretrained weights. Skip pre-train.")
+    netG.load_state_dict(torch.load(f"./weights/SRResNet_X{args.scale_factor}.pth", map_location=device))
 else:
-    print("Not found pretrained weights. start training.")
+    print("[!] Not found pretrained weights. Start training MSE model.")
     for epoch in range(pre_epochs):
         for i, data in enumerate(train_dataloader):
             # Set generator gradients to zero
@@ -184,8 +183,10 @@ else:
                 print(f"[{epoch}/{pre_epochs}][{i + 1}/{len(train_dataloader)}] "
                       f"Generator MSE loss: {g_loss.item():.4f}")
 
-    torch.save(netG.state_dict(), f"./weights/pretrained_X{args.scale_factor}.pth")
-    print(f"Saving pre-train weights to `./weights/pretrained_X{args.scale_factor}.pth`.")
+        if (epoch + 1) % 20 == 0:
+            torch.save(netG.state_dict(), f"./weights/SRResNet_X{args.scale_factor}_epoch_{epoch + 1}.pth")
+    torch.save(netG.state_dict(), f"./weights/SRResNet_X{args.scale_factor}.pth")
+    print(f"[*] Training done! Saving pre-train weights to `./weights/SRResNet_X{args.scale_factor}.pth`.")
 
 g_losses = []
 d_losses = []
@@ -202,6 +203,7 @@ vif_list = []
 best_psnr_value = 0.0
 best_ssim_value = 0.0
 
+print(f"[*] Staring training SRGAN model!")
 for epoch in range(0, args.epochs):
     # Evaluate algorithm performance
     total_mse_value = 0.0
@@ -296,8 +298,10 @@ for epoch in range(0, args.epochs):
             total_vif_value += vif_value
 
         # do checkpointing
-        torch.save(netG.state_dict(), f"weights/SRGAN_G_epoch_{epoch}.pth")
-        torch.save(netD.state_dict(), f"weights/SRGAN_D_epoch_{epoch}.pth")
+        if (epoch + 1) % 100 == 0:
+            print(f"[*] Save SRGAN model!")
+            torch.save(netG.state_dict(), f"./weights/netG_X_{args.scale_factor}_epoch_{epoch + 1}.pth")
+            torch.save(netD.state_dict(), f"./weights/netD_X_{args.scale_factor}_epoch_{epoch + 1}.pth")
 
     avg_mse_value = total_mse_value / len(val_dataloader)
     avg_rmse_value = total_rmse_value / len(val_dataloader)
@@ -327,8 +331,7 @@ for epoch in range(0, args.epochs):
     if best_psnr_value < avg_psnr_value and best_ssim_value < avg_ssim_value:
         best_psnr_value = avg_psnr_value
         best_ssim_value = avg_ssim_value
-        shutil.copyfile(f"weights/SRGAN_G_epoch_{epoch}.pth",
-                        f"weights/SRGAN_X{args.scale_factor}.pth")
+        torch.save(netG.state_dict(), f"weights/SRGAN_X{args.scale_factor}.pth")
 
     mse_list.append(total_mse_value / len(val_dataloader))
     rmse_list.append(total_rmse_value / len(val_dataloader))
