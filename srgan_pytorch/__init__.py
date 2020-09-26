@@ -20,7 +20,7 @@ from .dataset import TestDatasetFromFolder
 from .dataset import TrainDatasetFromFolder
 from .dataset import ValDatasetFromFolder
 from .dataset import calculate_valid_crop_size
-from .loss import PerceptualLoss
+from .loss import GeneratorLoss
 from .model import Discriminator
 from .model import Generator
 from .utils import img2tensor
@@ -36,6 +36,7 @@ __all__ = [
     "TrainDatasetFromFolder",
     "ValDatasetFromFolder",
     "calculate_valid_crop_size",
+    "GeneratorLoss",
     "Discriminator",
     "Generator",
     "img2tensor",
