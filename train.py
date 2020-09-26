@@ -42,8 +42,8 @@ from srgan_pytorch import calculate_valid_crop_size
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
 parser.add_argument("--dataroot", type=str, default="./data/DIV2K",
                     help="Path to datasets. (default:`./data/DIV2K`)")
-parser.add_argument("-j", "--workers", default=0, type=int, metavar="N",
-                    help="Number of data loading workers. (default:0)")
+parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
+                    help="Number of data loading workers. (default:4)")
 parser.add_argument("--epochs", default=2000, type=int, metavar="N",
                     help="Number of total epochs to run. (default:2000)")
 parser.add_argument("--image-size", type=int, default=96,
