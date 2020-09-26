@@ -128,7 +128,8 @@ dmypy.json
 
 .DS_Store
 
-data/X4
+data/DIV2K
+
 outputs
 results
 weights/*.pth
