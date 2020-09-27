@@ -129,6 +129,7 @@ dmypy.json
 .DS_Store
 
 data/DIV2K
+data/video
 
 output
 result
