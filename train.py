@@ -184,7 +184,7 @@ else:
             progress_bar.set_description(f"[{epoch + 1}/{pre_epochs}][{i + 1}/{len(train_dataloader)}] "
                                          f"MSE loss: {g_loss.item():.6f}")
 
-        if (epoch + 1) % 20 == 0:
+        if (epoch + 1) % args.print_freq == 0:
             torch.save(netG.state_dict(), f"./weights/SRResNet_{args.scale_factor}x_epoch_{epoch + 1}.pth")
     torch.save(netG.state_dict(), f"./weights/SRResNet_{args.scale_factor}x.pth")
     print(f"[*] Training done! Saving pre-train weights to `./weights/SRResNet_{args.scale_factor}x.pth`.")
@@ -299,7 +299,7 @@ for epoch in range(0, args.epochs):
             total_vif_value += vif_value
 
         # do checkpointing
-        if (epoch + 1) % 100 == 0:
+        if (epoch + 1) % args.print_freq == 0:
             print(f"[*] Save SRGAN model!")
             torch.save(netG.state_dict(), f"./weights/netG_X_{args.scale_factor}_epoch_{epoch + 1}.pth")
             torch.save(netD.state_dict(), f"./weights/netD_X_{args.scale_factor}_epoch_{epoch + 1}.pth")
