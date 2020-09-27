@@ -72,7 +72,7 @@ if torch.cuda.is_available() and not args.cuda:
 
 dataset = ValDatasetFromFolder(dataset_dir=f"{args.dataroot}/val",
                                image_size=args.image_size,
-                               upscale_factor=args.scale_factor)
+                               scale_factor=args.scale_factor)
 dataloader = torch.utils.data.DataLoader(dataset=dataset,
                                          batch_size=1,
                                          shuffle=True,

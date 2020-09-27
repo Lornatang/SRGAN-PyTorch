@@ -44,8 +44,8 @@ parser.add_argument("--dataroot", type=str, default="./data/DIV2K",
                     help="Path to datasets. (default:`./data/DIV2K`)")
 parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
                     help="Number of data loading workers. (default:4)")
-parser.add_argument("--epochs", default=2000, type=int, metavar="N",
-                    help="Number of total epochs to run. (default:2000)")
+parser.add_argument("--epochs", default=200, type=int, metavar="N",
+                    help="Number of total epochs to run. (default:200)")
 parser.add_argument("--image-size", type=int, default=96,
                     help="Size of the data crop (squared assumed). (default:96)")
 parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
@@ -95,7 +95,7 @@ if torch.cuda.is_available() and not args.cuda:
 
 train_dataset = TrainDatasetFromFolder(dataset_dir=f"{args.dataroot}/train",
                                        image_size=args.image_size,
-                                       upscale_factor=args.scale_factor)
+                                       scale_factor=args.scale_factor)
 train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                batch_size=args.batch_size,
                                                shuffle=True,
@@ -104,7 +104,7 @@ train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
 
 val_dataset = ValDatasetFromFolder(dataset_dir=f"{args.dataroot}/val",
                                    image_size=args.image_size,
-                                   upscale_factor=args.scale_factor)
+                                   scale_factor=args.scale_factor)
 val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset,
                                              batch_size=1,
                                              shuffle=True,
@@ -150,14 +150,14 @@ scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=args.epochs
 # Pre-train generator using raw MSE loss
 # Total pretraining step 1000000 for ImageNet 350K.
 # Ours have DIV2K only have 0.8K images. We use 100 * (800/16) = 5000
-pre_epochs = 100
+pre_epochs = args.scale_factor // 10
 print(f"Generator pre-training for {pre_epochs} epochs.")
 print(f"Searching generator pretrained model weights.")
 
 # Save the generator model based on MSE pre training to speed up the training time
-if os.path.exists(f"./weights/SRResNet_X{args.scale_factor}.pth"):
+if os.path.exists(f"./weights/SRResNet_{args.scale_factor}x.pth"):
     print("[*] Found pretrained weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weights/SRResNet_X{args.scale_factor}.pth", map_location=device))
+    netG.load_state_dict(torch.load(f"./weights/SRResNet_{args.scale_factor}x.pth", map_location=device))
 else:
     print("[!] Not found pretrained weights. Start training MSE model.")
     for epoch in range(pre_epochs):
@@ -184,9 +184,9 @@ else:
                       f"Generator MSE loss: {g_loss.item():.4f}")
 
         if (epoch + 1) % 20 == 0:
-            torch.save(netG.state_dict(), f"./weights/SRResNet_X{args.scale_factor}_epoch_{epoch + 1}.pth")
-    torch.save(netG.state_dict(), f"./weights/SRResNet_X{args.scale_factor}.pth")
-    print(f"[*] Training done! Saving pre-train weights to `./weights/SRResNet_X{args.scale_factor}.pth`.")
+            torch.save(netG.state_dict(), f"./weights/SRResNet_{args.scale_factor}x_epoch_{epoch + 1}.pth")
+    torch.save(netG.state_dict(), f"./weights/SRResNet_{args.scale_factor}x.pth")
+    print(f"[*] Training done! Saving pre-train weights to `./weights/SRResNet_{args.scale_factor}x.pth`.")
 
 g_losses = []
 d_losses = []

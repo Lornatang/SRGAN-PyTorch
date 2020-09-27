@@ -34,33 +34,33 @@ def check_image_file(filename):
     return any(filename.endswith(extension) for extension in ["bmp", ".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"])
 
 
-def calculate_valid_crop_size(image_size, upscale_factor):
+def calculate_valid_crop_size(image_size, scale_factor):
     r"""Auto crop image size.
 
     Args:
         image_size (int): Minimum size of image block.
-        upscale_factor (int): Image magnification factor.
+        scale_factor (int): Image magnification factor.
 
     Returns:
         The minimum length and width of the cropped image.
 
     """
-    return image_size - (image_size % upscale_factor)
+    return image_size - (image_size % scale_factor)
 
 
-def train_hr_transform(image_size, upscale_factor):
+def train_hr_transform(image_size, scale_factor):
     r"""Processing format of training high resolution image.
 
     Args:
         image_size (int): Minimum size of image block.
-        upscale_factor (int): Image magnification factor.
+        scale_factor (int): Image magnification factor.
 
     Returns:
         Composes several transforms together.
 
     """
     return transforms.Compose([
-        transforms.RandomCrop(image_size * upscale_factor),
+        transforms.RandomCrop(image_size * scale_factor),
         img2tensor(),
     ])
 
@@ -130,19 +130,19 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
 class TrainDatasetFromFolder(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, dataset_dir, image_size, upscale_factor):
+    def __init__(self, dataset_dir, image_size, scale_factor):
         r"""
 
         Args:
             dataset_dir (str): Directory address of the file.
             image_size (int): Minimum size of image block.
-            upscale_factor (int): Image magnification factor.
+            scale_factor (int): Image magnification factor.
 
         """
         super(TrainDatasetFromFolder, self).__init__()
         self.image_filenames = [os.path.join(dataset_dir, x) for x in os.listdir(dataset_dir) if check_image_file(x)]
-        image_size = calculate_valid_crop_size(image_size, upscale_factor)
-        self.hr_transform = train_hr_transform(image_size, upscale_factor)
+        image_size = calculate_valid_crop_size(image_size, scale_factor)
+        self.hr_transform = train_hr_transform(image_size, scale_factor)
         self.lr_transform = train_lr_transform(image_size)
 
     def __getitem__(self, index):
@@ -157,17 +157,17 @@ class TrainDatasetFromFolder(torch.utils.data.dataset.Dataset):
 class ValDatasetFromFolder(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, dataset_dir, image_size, upscale_factor):
+    def __init__(self, dataset_dir, image_size, scale_factor):
         r"""
 
         Args:
             dataset_dir (str): Directory address of the file.
             image_size (int): Minimum size of image block.
-            upscale_factor (int): Image magnification factor.
+            scale_factor (int): Image magnification factor.
         """
         super(ValDatasetFromFolder, self).__init__()
-        self.image_size = calculate_valid_crop_size(image_size, upscale_factor)
-        self.upscale_factor = upscale_factor
+        self.image_size = calculate_valid_crop_size(image_size, scale_factor)
+        self.upscale_factor = scale_factor
         self.image_filenames = [os.path.join(dataset_dir, x) for x in os.listdir(dataset_dir) if check_image_file(x)]
 
     def __getitem__(self, index):
