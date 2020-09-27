@@ -26,6 +26,7 @@ from matplotlib import pyplot as plt
 from sewar.full_ref import msssim
 from sewar.full_ref import sam
 from sewar.full_ref import vifp
+from tqdm import tqdm
 
 from srgan_pytorch import Discriminator
 from srgan_pytorch import Generator
@@ -150,7 +151,7 @@ scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=args.epochs
 # Pre-train generator using raw MSE loss
 # Total pretraining step 1000000 for ImageNet 350K.
 # Ours have DIV2K only have 0.8K images. We use 100 * (800/16) = 5000
-pre_epochs = args.scale_factor // 10
+pre_epochs = args.epochs // 10
 print(f"Generator pre-training for {pre_epochs} epochs.")
 print(f"Searching generator pretrained model weights.")
 
@@ -161,7 +162,8 @@ if os.path.exists(f"./weights/SRResNet_{args.scale_factor}x.pth"):
 else:
     print("[!] Not found pretrained weights. Start training MSE model.")
     for epoch in range(pre_epochs):
-        for i, data in enumerate(train_dataloader):
+        progress_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader))
+        for i, data in progress_bar:
             # Set generator gradients to zero
             netG.zero_grad()
             # Generate data
@@ -179,9 +181,8 @@ else:
             # Update generator weights
             optimizer_G.step()
 
-            if (i + 1) % args.print_freq == 0:
-                print(f"[{epoch}/{pre_epochs}][{i + 1}/{len(train_dataloader)}] "
-                      f"Generator MSE loss: {g_loss.item():.4f}")
+            progress_bar.set_description(f"[{epoch + 1}/{pre_epochs}][{i + 1}/{len(train_dataloader)}] "
+                                         f"MSE loss: {g_loss.item():.6f}")
 
         if (epoch + 1) % 20 == 0:
             torch.save(netG.state_dict(), f"./weights/SRResNet_{args.scale_factor}x_epoch_{epoch + 1}.pth")
@@ -214,7 +215,8 @@ for epoch in range(0, args.epochs):
     total_niqe_value = 0.0
     total_sam_value = 0.0
     total_vif_value = 0.0
-    for i, data in enumerate(train_dataloader):
+    progress_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader))
+    for i, data in progress_bar:
         lr_real_image = data[0].to(device)
         hr_real_image = data[1].to(device)
 
@@ -253,12 +255,11 @@ for epoch in range(0, args.epochs):
         optimizer_G.step()
         scheduler_G.step()
 
-        if (i + 1) % args.print_freq == 0:
-            print(f"============== [{epoch}/{args.epochs}][{i + 1}/{len(train_dataloader)}] ==============\n"
-                  f"Loss_D: {d_loss.item():.8f} loss_G: {g_loss.item():.8f}\n")
-
-            d_losses.append(d_loss.item())
-            g_losses.append(g_loss.item())
+        progress_bar.set_description(f"[{epoch+1}/{args.epochs}][{i+1}/{len(train_dataloader)}] "
+                                     f"Loss_D: {d_loss.item():.6f} "
+                                     f"Loss_G: {g_loss.item():.6f}")
+        d_losses.append(d_loss.item())
+        g_losses.append(g_loss.item())
 
     # Start evaluate model performance
     with torch.no_grad():
