@@ -41,12 +41,12 @@ parser.add_argument("-j", "--workers", default=0, type=int, metavar="N",
                     help="Number of data loading workers. (default:0)")
 parser.add_argument("--image-size", type=int, default=96,
                     help="Size of the data crop (squared assumed). (default:96)")
-parser.add_argument("--scale-factor", type=int, default=4, choices=[4, 8, 16],
+parser.add_argument("--scale-factor", type=int, default=4, choices=[4],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--cuda", action="store_true",
                     help="Enables cuda")
-parser.add_argument("--weights", default="./weights/SRGAN_X4.pth",
-                    help="Path to weights. (default:`./weights/SRGAN_X4.pth`).")
+parser.add_argument("--weights", default="./weights/SRGAN_4x.pth",
+                    help="Path to weights. (default:`./weights/SRGAN_4x.pth`).")
 parser.add_argument("--outf", default="./result",
                     help="folder to output images. (default:`./result`).")
 parser.add_argument("--manualSeed", type=int, default=0,
