@@ -301,8 +301,8 @@ for epoch in range(0, args.epochs):
         # do checkpointing
         if (epoch + 1) % args.print_freq == 0:
             print(f"[*] Save SRGAN model!")
-            torch.save(netG.state_dict(), f"./weights/netG_X_{args.scale_factor}_epoch_{epoch + 1}.pth")
-            torch.save(netD.state_dict(), f"./weights/netD_X_{args.scale_factor}_epoch_{epoch + 1}.pth")
+            torch.save(netG.state_dict(), f"./weights/netG_{args.scale_factor}x_epoch_{epoch + 1}.pth")
+            torch.save(netD.state_dict(), f"./weights/netD_{args.scale_factor}x_epoch_{epoch + 1}.pth")
 
     avg_mse_value = total_mse_value / len(val_dataloader)
     avg_rmse_value = total_rmse_value / len(val_dataloader)
@@ -332,7 +332,7 @@ for epoch in range(0, args.epochs):
     if best_psnr_value < avg_psnr_value and best_ssim_value < avg_ssim_value:
         best_psnr_value = avg_psnr_value
         best_ssim_value = avg_ssim_value
-        torch.save(netG.state_dict(), f"weights/SRGAN_X{args.scale_factor}.pth")
+        torch.save(netG.state_dict(), f"weights/SRGAN_{args.scale_factor}x.pth")
 
     mse_list.append(total_mse_value / len(val_dataloader))
     rmse_list.append(total_rmse_value / len(val_dataloader))
