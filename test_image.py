@@ -34,9 +34,9 @@ parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
 parser.add_argument("--file", type=str, default="./assets/baby.png",
                     help="Test low resolution image name. "
                          "(default:`./assets/baby.png`)")
-parser.add_argument("--weights", type=str, default="weights/SRGAN_X4.pth",
+parser.add_argument("--weights", type=str, default="weights/SRGAN_4x.pth",
                     help="Generator model name.  "
-                         "(default:`weights/SRGAN_X4.pth`)")
+                         "(default:`weights/SRGAN_4x.pth`)")
 parser.add_argument("--cuda", action="store_true", help="Enables cuda")
 parser.add_argument("--image-size", type=int, default=96,
                     help="size of the data crop (squared assumed). (default:96)")
