@@ -117,14 +117,14 @@ for index in progress_bar:
         # 4. Combine the bottom zone with the upper zone.
         final_image = np.concatenate((top_img, bottom_img))
 
+        # save compare video
+        compare_writer.write(final_image)
+
         if args.view:
             # display video
             cv2.imshow("LR video convert HR video ", final_image)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-        else:
-            # save compare video
-            compare_writer.write(final_image)
 
         # next frame
         success, raw_frame = video_capture.read()
