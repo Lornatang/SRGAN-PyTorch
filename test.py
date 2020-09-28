@@ -70,7 +70,7 @@ if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 # Load dataset
-dataset = TestDatasetFromFolder(dataset_dir=args.dataroot, image_size=args.image_size, upscale_factor=args.scale_factor)
+dataset = TestDatasetFromFolder(dataset_dir=args.dataroot, image_size=args.image_size, scale_factor=args.scale_factor)
 dataloader = torch.utils.data.DataLoader(dataset,
                                          batch_size=1,
                                          shuffle=True,

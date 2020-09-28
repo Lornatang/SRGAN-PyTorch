@@ -186,18 +186,18 @@ class ValDatasetFromFolder(torch.utils.data.dataset.Dataset):
 class TestDatasetFromFolder(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, dataset_dir, image_size, upscale_factor):
+    def __init__(self, dataset_dir, image_size, scale_factor):
         r"""
 
         Args:
             dataset_dir (str): Directory address of the file.
             image_size (int): Minimum size of image block.
-            upscale_factor (int): Image magnification factor.
+            scale_factor (int): Image magnification factor.
         """
         super(TestDatasetFromFolder, self).__init__()
-        self.lr_path = dataset_dir + "/X" + str(upscale_factor) + "/data"
-        self.hr_path = dataset_dir + "/X" + str(upscale_factor) + "/target"
-        self.image_size = calculate_valid_crop_size(image_size, upscale_factor)
+        self.lr_path = dataset_dir + "/X" + str(scale_factor) + "/data"
+        self.hr_path = dataset_dir + "/X" + str(scale_factor) + "/target"
+        self.image_size = calculate_valid_crop_size(image_size, scale_factor)
         self.lr_filenames = [os.path.join(self.lr_path, x) for x in os.listdir(self.lr_path) if check_image_file(x)]
         self.hr_filenames = [os.path.join(self.hr_path, x) for x in os.listdir(self.hr_path) if check_image_file(x)]
 
