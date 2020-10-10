@@ -11,51 +11,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import torch
 from torch import nn
 from torchvision.models import vgg19
 
 
-class GeneratorLoss(nn.Module):
-    r"""Loss function of generator. It consists of three parts."""
-    def __init__(self):
-        super(GeneratorLoss, self).__init__()
-        vgg = vgg19(pretrained=True)
-        loss_network = nn.Sequential(*list(vgg.features)[:31]).eval()
-        for param in loss_network.parameters():
-            param.requires_grad = False
-        self.loss_network = loss_network
-        self.mse_loss = nn.MSELoss()
-        self.tv_loss = TVLoss()
+class ContentLoss_VGG22(nn.Module):
+    """A loss defined on feature maps representing lower-level features.
+    """
 
-    def forward(self, out_labels, out_images, target_images):
-        # Adversarial Loss
-        adversarial_loss = torch.mean(1 - out_labels)
-        # Perception Loss
-        perception_loss = self.mse_loss(self.loss_network(out_images), self.loss_network(target_images))
-        # Image Loss
-        image_loss = self.mse_loss(out_images, target_images)
-        # TV Loss
-        tv_loss = self.tv_loss(out_images)
-        return image_loss + 0.001 * adversarial_loss + 0.006 * perception_loss + 2e-8 * tv_loss
+    def __init__(self, feature_layer=8):
+        """ Constructing characteristic loss function of VGG network. For VGG2.2.
 
-
-class TVLoss(nn.Module):
-    r"""total variation"""
-    def __init__(self, tv_loss_weight=1):
-        super(TVLoss, self).__init__()
-        self.tv_loss_weight = tv_loss_weight
+        Args:
+            feature_layer (int): How many layers in VGG19. (Default:8).
+        """
+        super(ContentLoss_VGG22, self).__init__()
+        model = vgg19(pretrained=True)
+        self.features = nn.Sequential(*list(model.features.children())[:(feature_layer + 1)]).eval()
 
     def forward(self, x):
-        batch_size = x.size()[0]
-        h_x = x.size()[2]
-        w_x = x.size()[3]
-        count_h = self.tensor_size(x[:, :, 1:, :])
-        count_w = self.tensor_size(x[:, :, :, 1:])
-        h_tv = torch.pow((x[:, :, 1:, :] - x[:, :, :h_x - 1, :]), 2).sum()
-        w_tv = torch.pow((x[:, :, :, 1:] - x[:, :, :, :w_x - 1]), 2).sum()
-        return self.tv_loss_weight * 2 * (h_tv / count_h + w_tv / count_w) / batch_size
+        return self.features(x)
 
-    @staticmethod
-    def tensor_size(t):
-        return t.size()[1] * t.size()[2] * t.size()[3]
+
+class ContentLoss_VGG54(nn.Module):
+    """ a loss defined on feature maps of higher level features from deeper network layers
+        with more potential to focus on the content of the images. We refer to this network
+        as SRGAN in the following.
+    """
+
+    def __init__(self, feature_layer=30):
+        """ Constructing characteristic loss function of VGG network. For VGG5.4.
+
+        Args:
+            feature_layer (int): How many layers in VGG19. (Default:30).
+        """
+        super(ContentLoss_VGG54, self).__init__()
+        model = vgg19(pretrained=True)
+        self.features = nn.Sequential(*list(model.features.children())[:(feature_layer + 1)]).eval()
+
+    def forward(self, x):
+        return self.features(x)

@@ -15,6 +15,7 @@ import math
 
 import torch
 from torch import nn
+from torchvision.models import vgg19
 
 
 class Generator(nn.Module):
@@ -38,7 +39,7 @@ class Generator(nn.Module):
 
         # Second conv layer post residual blocks
         self.conv2 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), 
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64, 0.8)
         )
 
@@ -55,7 +56,7 @@ class Generator(nn.Module):
 
         # Final output layer
         self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4), 
+            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4),
             nn.Tanh()
         )
 
@@ -108,7 +109,7 @@ class Discriminator(nn.Module):
         )
 
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        
+
         self.classifier = nn.Sequential(
             nn.Linear(512, 1024),
             nn.LeakyReLU(0.2),

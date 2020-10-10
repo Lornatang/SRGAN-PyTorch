@@ -34,7 +34,7 @@ from tqdm import tqdm
 
 from srgan_pytorch import Discriminator
 from srgan_pytorch import Generator
-from srgan_pytorch import GeneratorLoss
+from srgan_pytorch import ContentLoss_VGG54
 from srgan_pytorch import cal_niqe
 from srgan_pytorch import DatasetFromFolder
 
@@ -91,9 +91,9 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-train_dataset = DatasetFromFolder(data_dir=f"{args.dataroot}/{args.upscale_factor}x/train/input",
+train_dataset = DatasetFromFolder(input_dir=f"{args.dataroot}/{args.upscale_factor}x/train/input",
                                   target_dir=f"{args.dataroot}/{args.upscale_factor}x/train/target")
-val_dataset = DatasetFromFolder(data_dir=f"{args.dataroot}/{args.upscale_factor}x/val/input",
+val_dataset = DatasetFromFolder(input_dir=f"{args.dataroot}/{args.upscale_factor}x/val/input",
                                 target_dir=f"{args.dataroot}/{args.upscale_factor}x/val/target")
 
 train_dataloader = torch.utils.data.DataLoader(train_dataset,
@@ -115,12 +115,13 @@ if args.netG != "":
 if args.netD != "":
     netD.load_state_dict(torch.load(args.netD, map_location=device))
 
-# define loss function (adversarial_loss) and optimizer
-generator_loss = GeneratorLoss().to(device)
+# define loss function and optimizer
 mse_loss = nn.MSELoss().to(device)
+content_loss = ContentLoss_VGG54().to(device)
+adversarial_loss = nn.BCELoss().to(device)
 
 # According to the requirements of the original paper
-optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr)
+optimizer = torch.optim.Adam(netG.parameters(), lr=args.lr)
 
 # Pre-train generator using raw MSE loss
 psnr_epochs = int(args.psnr_iters // len(train_dataloader))
@@ -144,16 +145,14 @@ else:
             input = input[0].to(device)
             target = target[1].to(device)
 
-            # Generate real and fake inputs
+            # Generating fake high resolution images from real low resolution images.
             output = netG(input)
-
-            # Content loss
-            g_loss = mse_loss(output, target)
-
+            # The MSE of the generated fake high-resolution image and real high-resolution image is calculated.
+            loss = mse_loss(output, target)
             # Calculate gradients for generator
-            g_loss.backward()
+            loss.backward()
             # Update generator weights
-            optimizer_G.step()
+            optimizer.step()
 
             # The image is saved every 500 iterations.
             if (i + 1) % 500 == 0:
@@ -161,7 +160,7 @@ else:
                 vutils.save_image(target, f"{args.outf}/hr_real_epoch_{epoch}.png", normalize=True)
 
             progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(train_dataloader)}] "
-                                         f"MSE loss: {g_loss.item():.6f}")
+                                         f"MSE loss: {loss.item():.6f}")
 
         # The model is saved every 200000 iterations.
         if (epoch + 1) % save_interval == 0:

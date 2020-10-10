@@ -13,7 +13,8 @@
 # ==============================================================================
 from .calculate_niqe import cal_niqe
 from .dataset import DatasetFromFolder
-from .loss import GeneratorLoss
+from .loss import ContentLoss_VGG22
+from .loss import ContentLoss_VGG54
 from .model import Discriminator
 from .model import Generator
 from .utils import img2tensor
@@ -22,7 +23,8 @@ from .utils import tensor2img
 __all__ = [
     "cal_niqe",
     "DatasetFromFolder",
-    "GeneratorLoss",
+    "ContentLoss_VGG22",
+    "ContentLoss_VGG54",
     "Discriminator",
     "Generator",
     "img2tensor",

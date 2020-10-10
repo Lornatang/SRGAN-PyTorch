@@ -40,15 +40,15 @@ def check_image_file(filename):
 class DatasetFromFolder(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, data_dir, target_dir):
+    def __init__(self, input_dir, target_dir):
         r"""
 
         Args:
-            data_dir (str): The directory address where the data image is stored.
+            input_dir (str): The directory address where the data image is stored.
             target_dir (str): The directory address where the target image is stored.
         """
         super(DatasetFromFolder, self).__init__()
-        self.data_filenames = [os.path.join(data_dir, x) for x in os.listdir(data_dir) if check_image_file(x)]
+        self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
         self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
         self.transforms = transforms.Compose([
             img2tensor(),
@@ -64,9 +64,9 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
         Returns:
             Low resolution image, high resolution image.
         """
-        data = self.transforms(Image.open(self.data_filenames[index]))
+        input = self.transforms(Image.open(self.input_filenames[index]))
         target = self.transforms(Image.open(self.target_filenames[index]))
-        return data, target
+        return input, target
 
     def __len__(self):
-        return len(self.data_filenames)
+        return len(self.input_filenames)

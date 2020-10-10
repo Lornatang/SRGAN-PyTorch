@@ -21,9 +21,9 @@ input_dir_4x = "./4x/train/input"  # Low resolution image at 4x.
 target_dir_2x = "./2x/train/target"  # High resolution image at 2x.
 target_dir_4x = "./4x/train/target"  # High resolution image at 4x.
 # Define the directory address of the dataset
-lr_val_dir_2x = "./2x/val/data"
+lr_val_dir_2x = "./2x/val/input"
 hr_val_dir_2x = "./2x/val/target"
-lr_val_dir_4x = "./4x/val/data"
+lr_val_dir_4x = "./4x/val/input"
 hr_val_dir_4x = "./4x/val/target"
 
 # Ratio of val set in total dataset.
