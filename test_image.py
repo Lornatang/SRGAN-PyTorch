@@ -19,16 +19,16 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
+from sewar.full_ref import mse
 from sewar.full_ref import msssim
+from sewar.full_ref import psnr
+from sewar.full_ref import rmse
 from sewar.full_ref import sam
+from sewar.full_ref import ssim
 from sewar.full_ref import vifp
 
 from srgan_pytorch import Generator
-from srgan_pytorch import cal_mse
 from srgan_pytorch import cal_niqe
-from srgan_pytorch import cal_psnr
-from srgan_pytorch import cal_rmse
-from srgan_pytorch import cal_ssim
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
 parser.add_argument("--file", type=str, default="./assets/baby.png",
@@ -54,7 +54,7 @@ if torch.cuda.is_available() and not args.cuda:
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # create model
-model = Generator(scale_factor=args.scale_factor).to(device)
+model = Generator(upscale_factor=args.scale_factor).to(device)
 
 # Load state dicts
 model.load_state_dict(torch.load(args.weights, map_location=device))
@@ -80,10 +80,10 @@ vutils.save_image(hr_fake_image, "result.png", normalize=False)
 src_img = cv2.imread("result.png")
 dst_img = cv2.imread("target.png")
 
-mse_value = cal_mse(src_img, dst_img)
-rmse_value = cal_rmse(src_img, dst_img)
-psnr_value = cal_psnr(src_img, dst_img)
-ssim_value = cal_ssim(src_img, dst_img)
+mse_value = mse(src_img, dst_img)
+rmse_value = rmse(src_img, dst_img)
+psnr_value = psnr(src_img, dst_img)
+ssim_value = ssim(src_img, dst_img)
 ms_ssim_value = msssim(src_img, dst_img)
 niqe_value = cal_niqe("result.png")
 sam_value = sam(src_img, dst_img)

@@ -18,20 +18,18 @@ import random
 import cv2
 import torch.backends.cudnn as cudnn
 import torch.utils.data.distributed
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from sewar.full_ref import mse
 from sewar.full_ref import msssim
+from sewar.full_ref import psnr
+from sewar.full_ref import rmse
 from sewar.full_ref import sam
+from sewar.full_ref import ssim
 from sewar.full_ref import vifp
 
 from srgan_pytorch import Generator
-from srgan_pytorch import cal_mse
 from srgan_pytorch import TestDatasetFromFolder
 from srgan_pytorch import cal_niqe
-from srgan_pytorch import cal_psnr
-from srgan_pytorch import cal_rmse
-from srgan_pytorch import cal_ssim
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
 parser.add_argument("--dataroot", type=str, default="./data/Set5",
@@ -80,7 +78,7 @@ dataloader = torch.utils.data.DataLoader(dataset,
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # Load model
-model = Generator(scale_factor=args.scale_factor).to(device)
+model = Generator(upscale_factor=args.scale_factor).to(device)
 model.load_state_dict(torch.load(args.weights, map_location=device))
 
 # Evaluate algorithm performance
@@ -110,10 +108,10 @@ for i, data in enumerate(dataloader):
     src_img = cv2.imread(f"{args.outf}/{filename}_srgan.png")
     dst_img = cv2.imread(f"{args.outf}/{filename}_hr.png")
 
-    total_mse_value += cal_mse(src_img, dst_img)
-    total_rmse_value += cal_rmse(src_img, dst_img)
-    total_psnr_value += cal_psnr(src_img, dst_img)
-    total_ssim_value += cal_ssim(src_img, dst_img)
+    total_mse_value += mse(src_img, dst_img)
+    total_rmse_value += rmse(src_img, dst_img)
+    total_psnr_value += psnr(src_img, dst_img)
+    total_ssim_value += ssim(src_img, dst_img)
     total_ms_ssim_value += msssim(src_img, dst_img)
     total_niqe_value += cal_niqe(f"{args.outf}/{filename}_srgan.png")
     total_sam_value += sam(src_img, dst_img)

@@ -23,42 +23,39 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.utils as vutils
 from matplotlib import pyplot as plt
+from sewar.full_ref import mse
 from sewar.full_ref import msssim
+from sewar.full_ref import psnr
+from sewar.full_ref import rmse
 from sewar.full_ref import sam
+from sewar.full_ref import ssim
 from sewar.full_ref import vifp
 from tqdm import tqdm
 
 from srgan_pytorch import Discriminator
 from srgan_pytorch import Generator
 from srgan_pytorch import GeneratorLoss
-from srgan_pytorch import TrainDatasetFromFolder
-from srgan_pytorch import ValDatasetFromFolder
-from srgan_pytorch import cal_mse
 from srgan_pytorch import cal_niqe
-from srgan_pytorch import cal_psnr
-from srgan_pytorch import cal_rmse
-from srgan_pytorch import cal_ssim
-from srgan_pytorch import calculate_valid_crop_size
+from srgan_pytorch import DatasetFromFolder
 
-parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
-parser.add_argument("--dataroot", type=str, default="./data/DIV2K",
-                    help="Path to datasets. (default:`./data/DIV2K`)")
+parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution "
+                                             "Using a Generative Adversarial Network.")
+parser.add_argument("--dataroot", type=str, default="./data",
+                    help="Path to datasets. (default:`./data`)")
 parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
                     help="Number of data loading workers. (default:4)")
-parser.add_argument("--epochs", default=2000, type=int, metavar="N",
-                    help="Number of total epochs to run. (default:2000)")
-parser.add_argument("--image-size", type=int, default=96,
-                    help="Size of the data crop (squared assumed). (default:96)")
+parser.add_argument("--psnr_iters", default=1e6, type=int, metavar="N",
+                    help="The number of iterations is needed in the training of PSNR model. (default:1e6)")
+parser.add_argument("--srgan_iters", default=2e5, type=int, metavar="N",
+                    help="The training of srgan model requires the number of iterations. (default:2e5)")
 parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
                     help="mini-batch size (default: 16), this is the total "
                          "batch size of all GPUs on the current node when "
                          "using Data Parallel or Distributed Data Parallel.")
-parser.add_argument("--lr", type=float, default=0.0001,
-                    help="Learning rate. (default:0.0001)")
-parser.add_argument("--scale-factor", type=int, default=4, choices=[4],
+parser.add_argument("--lr", type=float, default=1e-4,
+                    help="Learning rate. (default:1e-4)")
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
                     help="Low to high resolution scaling factor. (default:4).")
-parser.add_argument("-p", "--print-freq", default=5, type=int, metavar="N",
-                    help="Print frequency. (default:5)")
 parser.add_argument("--cuda", action="store_true",
                     help="Enables cuda")
 parser.add_argument("--netG", default="",
@@ -94,27 +91,23 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-train_dataset = TrainDatasetFromFolder(dataset_dir=f"{args.dataroot}/train",
-                                       image_size=args.image_size,
-                                       scale_factor=args.scale_factor)
-train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               batch_size=args.batch_size,
-                                               shuffle=True,
-                                               num_workers=int(args.workers),
-                                               pin_memory=True)
+train_dataset = DatasetFromFolder(data_dir=f"{args.dataroot}/{args.upscale_factor}x/train/input",
+                                  target_dir=f"{args.dataroot}/{args.upscale_factor}x/train/target")
+val_dataset = DatasetFromFolder(data_dir=f"{args.dataroot}/{args.upscale_factor}x/val/input",
+                                target_dir=f"{args.dataroot}/{args.upscale_factor}x/val/target")
 
-val_dataset = ValDatasetFromFolder(dataset_dir=f"{args.dataroot}/val",
-                                   image_size=args.image_size,
-                                   scale_factor=args.scale_factor)
-val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset,
-                                             batch_size=1,
-                                             shuffle=True,
-                                             num_workers=int(args.workers),
-                                             pin_memory=True)
+train_dataloader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=args.batch_size,
+                                               pin_memory=True,
+                                               num_workers=int(args.workers))
+val_dataloader = torch.utils.data.DataLoader(val_dataset,
+                                             batch_size=args.batch_size,
+                                             pin_memory=True,
+                                             num_workers=int(args.workers))
 
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
-netG = Generator(scale_factor=args.scale_factor).to(device)
+netG = Generator(upscale_factor=args.upscale_factor).to(device)
 netD = Discriminator().to(device)
 
 if args.netG != "":
@@ -122,75 +115,59 @@ if args.netG != "":
 if args.netD != "":
     netD.load_state_dict(torch.load(args.netD, map_location=device))
 
-# Memory call of analysis model
-lr_image_size = calculate_valid_crop_size(args.image_size, args.scale_factor)
-lr = torch.randn(args.batch_size, 3, lr_image_size, lr_image_size, device=device)
-
-with profiler.profile(profile_memory=True, record_shapes=True) as prof:
-    netG(lr)
-print(" # Generator # ")
-print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10))
-
-hr_image_size = calculate_valid_crop_size(args.image_size, args.scale_factor) * args.scale_factor
-hr = torch.randn(args.batch_size, 3, hr_image_size, hr_image_size, device=device)
-with profiler.profile(profile_memory=True, record_shapes=True) as prof:
-    netD(hr)
-print(" # Discriminator # ")
-print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10))
-
 # define loss function (adversarial_loss) and optimizer
 generator_loss = GeneratorLoss().to(device)
 mse_loss = nn.MSELoss().to(device)
 
 # According to the requirements of the original paper
 optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr)
-optimizer_D = torch.optim.Adam(netD.parameters(), lr=args.lr)
-scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, step_size=args.epochs // 2, gamma=0.1)
-scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=args.epochs // 2, gamma=0.1)
 
 # Pre-train generator using raw MSE loss
-# Total pretraining step 1000000 for ImageNet 350K.
-# Ours have DIV2K only have 0.8K images. We use 100 * (800/16) = 5000
-pre_epochs = args.epochs // 10
-print(f"Generator pre-training for {pre_epochs} epochs.")
-print(f"Searching generator pretrained model weights.")
+psnr_epochs = int(args.psnr_iters // len(train_dataloader))
+save_interval = int(psnr_epochs // 5)
+print("[*] Start training PSNR model based on MSE loss.")
+print(f"[*] Generator pre-training for {psnr_epochs} epochs.")
+print(f"[*] Searching PSNR pretrained model weights.")
 
 # Save the generator model based on MSE pre training to speed up the training time
-if os.path.exists(f"./weights/SRResNet_{args.scale_factor}x.pth"):
-    print("[*] Found pretrained weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weights/SRResNet_{args.scale_factor}x.pth", map_location=device))
+if os.path.exists(f"./weights/SRResNet_{args.upscale_factor}x.pth"):
+    print("[*] Found PSNR pretrained model weights. Skip pre-train.")
+    netG.load_state_dict(torch.load(f"./weights/SRResNet_{args.upscale_factor}x.pth", map_location=device))
 else:
-    print("[!] Not found pretrained weights. Start training MSE model.")
-    for epoch in range(pre_epochs):
+    print("[!] Not found pretrained weights. Start training PSNR model.")
+    for epoch in range(psnr_epochs):
         progress_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader))
-        for i, data in progress_bar:
+        for i, (input, target) in progress_bar:
             # Set generator gradients to zero
             netG.zero_grad()
             # Generate data
-            lr_real_image = data[0].to(device)
-            hr_real_image = data[1].to(device)
+            input = input[0].to(device)
+            target = target[1].to(device)
 
             # Generate real and fake inputs
-            hr_fake_image = netG(lr_real_image)
+            output = netG(input)
 
             # Content loss
-            g_loss = mse_loss(hr_fake_image, hr_real_image)
+            g_loss = mse_loss(output, target)
 
             # Calculate gradients for generator
             g_loss.backward()
             # Update generator weights
             optimizer_G.step()
 
-            progress_bar.set_description(f"[{epoch + 1}/{pre_epochs}][{i + 1}/{len(train_dataloader)}] "
+            # The image is saved every 500 iterations.
+            if (i + 1) % 500 == 0:
+                vutils.save_image(output, f"{args.outf}/hr_fake_epoch_{epoch}.png", normalize=True)
+                vutils.save_image(target, f"{args.outf}/hr_real_epoch_{epoch}.png", normalize=True)
+
+            progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(train_dataloader)}] "
                                          f"MSE loss: {g_loss.item():.6f}")
 
-        if (epoch + 1) % args.print_freq == 0:
-            torch.save(netG.state_dict(), f"./weights/SRResNet_{args.scale_factor}x_epoch_{epoch + 1}.pth")
-    torch.save(netG.state_dict(), f"./weights/SRResNet_{args.scale_factor}x.pth")
-    print(f"[*] Training done! Saving pre-train weights to `./weights/SRResNet_{args.scale_factor}x.pth`.")
-
-g_losses = []
-d_losses = []
+        # The model is saved every 200000 iterations.
+        if (epoch + 1) % save_interval == 0:
+            torch.save(netG.state_dict(), f"./weights/SRResNet_{args.upscale_factor}x_epoch_{epoch}.pth")
+    torch.save(netG.state_dict(), f"./weights/SRResNet_{args.upscale_factor}x.pth")
+    print(f"[*] Training PSNR model done! Saving PSNR model weight to `./weights/SRResNet_{args.upscale_factor}x.pth`.")
 
 mse_list = []
 rmse_list = []
@@ -204,8 +181,17 @@ vif_list = []
 best_psnr_value = 0.0
 best_ssim_value = 0.0
 
+# Alternating training SRGAN network.
+srgan_epochs = int(args.srgan_iters // len(train_dataloader))
+save_interval = int(srgan_epochs // 5)
+optimizer_G = torch.optim.Adam(netG.parameters(), lr=args.lr)
+optimizer_D = torch.optim.Adam(netD.parameters(), lr=args.lr)
+scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, step_size=srgan_epochs // 2, gamma=0.1)
+scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=srgan_epochs // 2, gamma=0.1)
+
 print(f"[*] Staring training SRGAN model!")
-for epoch in range(0, args.epochs):
+print(f"[*] Training for {srgan_epochs} epochs.")
+for epoch in range(0, srgan_epochs):
     # Evaluate algorithm performance
     total_mse_value = 0.0
     total_rmse_value = 0.0
@@ -216,27 +202,26 @@ for epoch in range(0, args.epochs):
     total_sam_value = 0.0
     total_vif_value = 0.0
     progress_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader))
-    for i, data in progress_bar:
-        lr_real_image = data[0].to(device)
-        hr_real_image = data[1].to(device)
+    for i, (input, target) in progress_bar:
+        input = input[0].to(device)
+        target = target[1].to(device)
 
         ##############################################
         # (1) Update D network
         ##############################################
-        hr_fake_image = netG(lr_real_image)
+        output = netG(input)
 
         # Set discriminator gradients to zero.
         netD.zero_grad()
 
-        real_out = netD(lr_real_image).mean()
-        fake_out = netD(hr_fake_image).mean()
+        real_out = netD(input).mean()
+        fake_out = netD(output).mean()
         d_loss = 1 - real_out + fake_out
 
         # Calculate gradients for discriminator.
         d_loss.backward(retain_graph=True)
         # Update discriminator weights.
         optimizer_D.step()
-        scheduler_D.step()
 
         ##############################################
         # (2) Update G network
@@ -244,125 +229,127 @@ for epoch in range(0, args.epochs):
         # Set generator gradients to zero
         netG.zero_grad()
 
-        hr_fake_image = netG(lr_real_image)
-        fake_out = netD(hr_fake_image).mean()
+        output = netG(input)
+        fake_out = netD(output).mean()
 
-        g_loss = generator_loss(fake_out, hr_fake_image, hr_real_image)
+        g_loss = generator_loss(fake_out, output, target)
         # Calculate gradients for generator.
         g_loss.backward()
-
         # Update generator weights.
         optimizer_G.step()
-        scheduler_G.step()
 
-        progress_bar.set_description(f"[{epoch+1}/{args.epochs}][{i+1}/{len(train_dataloader)}] "
+        # Dynamic adjustment of learning rate
+        scheduler_G.step()
+        scheduler_D.step()
+
+        # The image is saved every 500 iterations.
+        if (i + 1) % 500 == 0:
+            vutils.save_image(output, f"{args.outf}/hr_fake_epoch_{epoch}.png", normalize=True)
+            vutils.save_image(target, f"{args.outf}/hr_real_epoch_{epoch}.png", normalize=True)
+
+        progress_bar.set_description(f"[{epoch + 1}/{args.epochs}][{i + 1}/{len(train_dataloader)}] "
                                      f"Loss_D: {d_loss.item():.6f} "
                                      f"Loss_G: {g_loss.item():.6f}")
-        d_losses.append(d_loss.item())
-        g_losses.append(g_loss.item())
+
+        # The model is saved every 20000 iterations.
+        if (epoch + 1) % save_interval == 0:
+            torch.save(netG.state_dict(), f"./weights/SRResNet_{args.upscale_factor}x_epoch_{epoch}.pth")
+    torch.save(netG.state_dict(), f"./weights/SRResNet_{args.upscale_factor}x.pth")
+    print(f"[*] Training PSNR model done! Saving PSNR model weight to `./weights/SRResNet_{args.upscale_factor}x.pth`.")
 
     # Start evaluate model performance
-    with torch.no_grad():
-        netG.eval()
-        netD.eval()
-        for i, data in enumerate(val_dataloader):
-            lr_real_image = data[0].to(device)
-            hr_restore_image = data[1].to(device)
-            hr_real_image = data[2].to(device)
-
-            hr_fake_image = netG(lr_real_image)
-
-            vutils.save_image(lr_real_image, f"{args.outf}/lr_real_epoch_{epoch}.png", normalize=True)
-            vutils.save_image(hr_real_image, f"{args.outf}/hr_real_epoch_{epoch}.png", normalize=True)
-            vutils.save_image(hr_restore_image, f"{args.outf}/hr_restore_epoch_{epoch}.png", normalize=True)
-            vutils.save_image(hr_fake_image, f"{args.outf}/hr_fake_epoch_{epoch}.png", normalize=True)
-
-            src_img = cv2.imread(f"{args.outf}/hr_fake_epoch_{epoch}.png")
-            dst_img = cv2.imread(f"{args.outf}/hr_real_epoch_{epoch}.png")
-
-            mse_value = cal_mse(src_img, dst_img)
-            rmse_value = cal_rmse(src_img, dst_img)
-            psnr_value = cal_psnr(src_img, dst_img)
-            ssim_value = cal_ssim(src_img, dst_img)
-            ms_ssim_value = msssim(src_img, dst_img)
-            niqe_value = cal_niqe(f"{args.outf}/hr_fake_epoch_{epoch}.png")
-            sam_value = sam(src_img, dst_img)
-            vif_value = vifp(src_img, dst_img)
-
-            total_mse_value += mse_value
-            total_rmse_value += rmse_value
-            total_psnr_value += psnr_value
-            total_ssim_value += ssim_value
-            total_ms_ssim_value += ms_ssim_value
-            total_niqe_value += niqe_value
-            total_sam_value += sam_value
-            total_vif_value += vif_value
-
-        # do checkpointing
-        if (epoch + 1) % args.print_freq == 0:
-            print(f"[*] Save SRGAN model!")
-            torch.save(netG.state_dict(), f"./weights/netG_{args.scale_factor}x_epoch_{epoch + 1}.pth")
-            torch.save(netD.state_dict(), f"./weights/netD_{args.scale_factor}x_epoch_{epoch + 1}.pth")
-
-    avg_mse_value = total_mse_value / len(val_dataloader)
-    avg_rmse_value = total_rmse_value / len(val_dataloader)
-    avg_psnr_value = total_psnr_value / len(val_dataloader)
-    avg_ssim_value = total_ssim_value / len(val_dataloader)
-    avg_ms_ssim_value = total_ms_ssim_value / len(val_dataloader)
-    avg_niqe_value = total_niqe_value / len(val_dataloader)
-    avg_sam_value = total_sam_value / len(val_dataloader)
-    avg_vif_value = total_vif_value / len(val_dataloader)
-
-    print("\n")
-    print("====================== Performance summary ======================")
-    print(f"======================   Epoch {epoch}    ======================")
-    print("=================================================================")
-    print(f"Avg MSE: {avg_mse_value:.2f}\n"
-          f"Avg RMSE: {avg_rmse_value:.2f}\n"
-          f"Avg PSNR: {avg_psnr_value:.2f}\n"
-          f"Avg SSIM: {avg_ssim_value:.4f}\n"
-          f"Avg MS-SSIM: {avg_ms_ssim_value:.4f}\n"
-          f"Avg NIQE: {avg_niqe_value:.2f}\n"
-          f"Avg SAM: {avg_sam_value:.4f}\n"
-          f"Avg VIF: {avg_vif_value:.4f}")
-    print("============================== End ==============================")
-    print("\n")
-
-    # save best model
-    if best_psnr_value < avg_psnr_value and best_ssim_value < avg_ssim_value:
-        best_psnr_value = avg_psnr_value
-        best_ssim_value = avg_ssim_value
-        torch.save(netG.state_dict(), f"weights/SRGAN_{args.scale_factor}x.pth")
-
-    mse_list.append(total_mse_value / len(val_dataloader))
-    rmse_list.append(total_rmse_value / len(val_dataloader))
-    psnr_list.append(total_psnr_value / len(val_dataloader))
-    rmse_list.append(total_ssim_value / len(val_dataloader))
-    ms_ssim_list.append(total_ms_ssim_value / len(val_dataloader))
-    niqe_list.append(total_niqe_value / len(val_dataloader))
-    sam_list.append(total_sam_value / len(val_dataloader))
-    vif_list.append(total_vif_value / len(val_dataloader))
-
-plt.figure(figsize=(50, 2))
-plt.title("Generator and Discriminator Loss During Training")
-plt.plot(g_losses, label="G_Loss")
-plt.plot(d_losses, label="D_Loss")
-plt.xlabel("Iter")
-plt.ylabel("Loss")
-plt.legend()
-plt.savefig("model_loss_result.png")
-
-plt.figure(figsize=(50, 40))
-plt.title("Model performance")
-plt.plot(mse_list, label="MSE")
-plt.plot(rmse_list, label="RMSE")
-plt.plot(psnr_list, label="PSNR")
-plt.plot(ssim_list, label="SSIM")
-plt.plot(ms_ssim_list, label="MS-SSIM")
-plt.plot(niqe_list, label="NIQE")
-plt.plot(sam_list, label="SAM")
-plt.plot(vif_list, label="VIF")
-plt.xlabel("Epochs")
-plt.ylabel("Value")
-plt.legend()
-plt.savefig("train_performance_result.png")
+#     with torch.no_grad():
+#         netG.eval()
+#         netD.eval()
+#         for i, data in enumerate(val_dataloader):
+#             lr_real_image = data[0].to(device)
+#             hr_restore_image = data[1].to(device)
+#             hr_real_image = data[2].to(device)
+#
+#             hr_fake_image = netG(lr_real_image)
+#
+#             vutils.save_image(lr_real_image, f"{args.outf}/lr_real_epoch_{epoch}.png", normalize=True)
+#             vutils.save_image(hr_real_image, f"{args.outf}/hr_real_epoch_{epoch}.png", normalize=True)
+#             vutils.save_image(hr_restore_image, f"{args.outf}/hr_restore_epoch_{epoch}.png", normalize=True)
+#             vutils.save_image(hr_fake_image, f"{args.outf}/hr_fake_epoch_{epoch}.png", normalize=True)
+#
+#             src_img = cv2.imread(f"{args.outf}/hr_fake_epoch_{epoch}.png")
+#             dst_img = cv2.imread(f"{args.outf}/hr_real_epoch_{epoch}.png")
+#
+#             mse_value = mse(src_img, dst_img)
+#             rmse_value = rmse(src_img, dst_img)
+#             psnr_value = psnr(src_img, dst_img)
+#             ssim_value = ssim(src_img, dst_img)
+#             ms_ssim_value = msssim(src_img, dst_img)
+#             niqe_value = cal_niqe(f"{args.outf}/hr_fake_epoch_{epoch}.png")
+#             sam_value = sam(src_img, dst_img)
+#             vif_value = vifp(src_img, dst_img)
+#
+#             total_mse_value += mse_value
+#             total_rmse_value += rmse_value
+#             total_psnr_value += psnr_value
+#             total_ssim_value += ssim_value
+#             total_ms_ssim_value += ms_ssim_value
+#             total_niqe_value += niqe_value
+#             total_sam_value += sam_value
+#             total_vif_value += vif_value
+#
+#         # do checkpointing
+#         if (epoch + 1) % args.print_freq == 0:
+#             print(f"[*] Save SRGAN model!")
+#             torch.save(netG.state_dict(), f"./weights/netG_{args.upscale_factor}x_epoch_{epoch + 1}.pth")
+#             torch.save(netD.state_dict(), f"./weights/netD_{args.upscale_factor}x_epoch_{epoch + 1}.pth")
+#
+#     avg_mse_value = total_mse_value / len(val_dataloader)
+#     avg_rmse_value = total_rmse_value / len(val_dataloader)
+#     avg_psnr_value = total_psnr_value / len(val_dataloader)
+#     avg_ssim_value = total_ssim_value / len(val_dataloader)
+#     avg_ms_ssim_value = total_ms_ssim_value / len(val_dataloader)
+#     avg_niqe_value = total_niqe_value / len(val_dataloader)
+#     avg_sam_value = total_sam_value / len(val_dataloader)
+#     avg_vif_value = total_vif_value / len(val_dataloader)
+#
+#     print("\n")
+#     print("====================== Performance summary ======================")
+#     print(f"======================   Epoch {epoch}    ======================")
+#     print("=================================================================")
+#     print(f"Avg MSE: {avg_mse_value:.2f}\n"
+#           f"Avg RMSE: {avg_rmse_value:.2f}\n"
+#           f"Avg PSNR: {avg_psnr_value:.2f}\n"
+#           f"Avg SSIM: {avg_ssim_value:.4f}\n"
+#           f"Avg MS-SSIM: {avg_ms_ssim_value:.4f}\n"
+#           f"Avg NIQE: {avg_niqe_value:.2f}\n"
+#           f"Avg SAM: {avg_sam_value:.4f}\n"
+#           f"Avg VIF: {avg_vif_value:.4f}")
+#     print("============================== End ==============================")
+#     print("\n")
+#
+#     # save best model
+#     if best_psnr_value < avg_psnr_value and best_ssim_value < avg_ssim_value:
+#         best_psnr_value = avg_psnr_value
+#         best_ssim_value = avg_ssim_value
+#         torch.save(netG.state_dict(), f"weights/SRGAN_{args.upscale_factor}x.pth")
+#
+#     mse_list.append(total_mse_value / len(val_dataloader))
+#     rmse_list.append(total_rmse_value / len(val_dataloader))
+#     psnr_list.append(total_psnr_value / len(val_dataloader))
+#     rmse_list.append(total_ssim_value / len(val_dataloader))
+#     ms_ssim_list.append(total_ms_ssim_value / len(val_dataloader))
+#     niqe_list.append(total_niqe_value / len(val_dataloader))
+#     sam_list.append(total_sam_value / len(val_dataloader))
+#     vif_list.append(total_vif_value / len(val_dataloader))
+#
+# plt.figure(figsize=(50, 40))
+# plt.title("Model performance")
+# plt.plot(mse_list, label="MSE")
+# plt.plot(rmse_list, label="RMSE")
+# plt.plot(psnr_list, label="PSNR")
+# plt.plot(ssim_list, label="SSIM")
+# plt.plot(ms_ssim_list, label="MS-SSIM")
+# plt.plot(niqe_list, label="NIQE")
+# plt.plot(sam_list, label="SAM")
+# plt.plot(vif_list, label="VIF")
+# plt.xlabel("Epochs")
+# plt.ylabel("Value")
+# plt.legend()
+# plt.savefig("train_performance_result.png")

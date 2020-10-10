@@ -27,10 +27,10 @@ from srgan_pytorch import Generator
 parser = argparse.ArgumentParser(description="SRGAN algorithm is applied to video files.")
 parser.add_argument("--file", type=str, required=True,
                     help="Test low resolution video name.")
-parser.add_argument("--weights", type=str, required=True,
-                    help="Generator model name. ")
 parser.add_argument("--scale-factor", type=int, default=4, choices=[4],
                     help="Super resolution upscale factor. (default:4)")
+parser.add_argument("--weights", type=str, required=True,
+                    help="Generator model name. ")
 parser.add_argument("--view", action="store_true",
                     help="Super resolution real time to show.")
 parser.add_argument("--cuda", action="store_true",
@@ -47,7 +47,7 @@ if torch.cuda.is_available() and not args.cuda:
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
 # create model
-model = Generator(scale_factor=args.scale_factor).to(device)
+model = Generator(upscale_factor=args.scale_factor).to(device)
 
 # Load state dicts
 model.load_state_dict(torch.load(args.weights, map_location=device))

@@ -21,17 +21,17 @@ import torch.backends.cudnn as cudnn
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.utils as vutils
+from sewar.full_ref import mse
 from sewar.full_ref import msssim
+from sewar.full_ref import psnr
+from sewar.full_ref import rmse
 from sewar.full_ref import sam
+from sewar.full_ref import ssim
 from sewar.full_ref import vifp
 
 from srgan_pytorch import Generator
 from srgan_pytorch import ValDatasetFromFolder
-from srgan_pytorch import cal_mse
 from srgan_pytorch import cal_niqe
-from srgan_pytorch import cal_psnr
-from srgan_pytorch import cal_rmse
-from srgan_pytorch import cal_ssim
 from srgan_pytorch import calculate_valid_crop_size
 
 parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
@@ -81,7 +81,7 @@ dataloader = torch.utils.data.DataLoader(dataset=dataset,
 
 device = torch.device("cuda:0" if args.cuda else "cpu")
 
-model = Generator(scale_factor=args.scale_factor).to(device)
+model = Generator(upscale_factor=args.scale_factor).to(device)
 
 model.load_state_dict(torch.load(args.weights, map_location=device))
 
@@ -120,10 +120,10 @@ with torch.no_grad():
         src_img = cv2.imread(f"{args.outf}/hr_fake_{i}.png")
         dst_img = cv2.imread(f"{args.outf}/hr_real_{i}.png")
 
-        mse_value = cal_mse(src_img, dst_img)
-        rmse_value = cal_rmse(src_img, dst_img)
-        psnr_value = cal_psnr(src_img, dst_img)
-        ssim_value = cal_ssim(src_img, dst_img)
+        mse_value = mse(src_img, dst_img)
+        rmse_value = rmse(src_img, dst_img)
+        psnr_value = psnr(src_img, dst_img)
+        ssim_value = ssim(src_img, dst_img)
         ms_ssim_value = msssim(src_img, dst_img)
         niqe_value = cal_niqe(f"{args.outf}/hr_fake_{i}.png")
         sam_value = sam(src_img, dst_img)
