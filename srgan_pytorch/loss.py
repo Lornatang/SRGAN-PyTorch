@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import torch
 from torch import nn
 from torchvision.models import vgg19
 
@@ -51,3 +52,25 @@ class ContentLoss_VGG54(nn.Module):
 
     def forward(self, x):
         return self.features(x)
+
+
+class TVLoss(nn.Module):
+    """Regularization loss based on Li FeiFei."""
+
+    def __init__(self, tv_loss_weight=1):
+        super(TVLoss, self).__init__()
+        self.tv_loss_weight = tv_loss_weight
+
+    def forward(self, input):
+        batch_size = input.size()[0]
+        h_x = input.size()[2]
+        w_x = input.size()[3]
+        count_h = self.tensor_size(input[:, :, 1:, :])
+        count_w = self.tensor_size(input[:, :, :, 1:])
+        h_tv = torch.pow((input[:, :, 1:, :] - input[:, :, :h_x - 1, :]), 2).sum()
+        w_tv = torch.pow((input[:, :, :, 1:] - input[:, :, :, :w_x - 1]), 2).sum()
+        return self.tv_loss_weight * 2 * (h_tv / count_h + w_tv / count_w) / batch_size
+
+    @staticmethod
+    def tensor_size(t):
+        return t.size()[1] * t.size()[2] * t.size()[3]

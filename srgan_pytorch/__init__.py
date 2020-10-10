@@ -15,6 +15,7 @@ from .calculate_niqe import cal_niqe
 from .dataset import DatasetFromFolder
 from .loss import ContentLoss_VGG22
 from .loss import ContentLoss_VGG54
+from .loss import TVLoss
 from .model import Discriminator
 from .model import Generator
 from .utils import img2tensor
@@ -25,6 +26,7 @@ __all__ = [
     "DatasetFromFolder",
     "ContentLoss_VGG22",
     "ContentLoss_VGG54",
+    "TVLoss",
     "Discriminator",
     "Generator",
     "img2tensor",
