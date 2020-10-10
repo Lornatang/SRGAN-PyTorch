@@ -20,8 +20,8 @@ from torch import nn
 class Generator(nn.Module):
     r"""The main architecture of the generator."""
 
-    def __init__(self, scale_factor):
-        upsample_block_num = int(math.log(scale_factor, 2))
+    def __init__(self, upscale_factor):
+        upsample_block_num = int(math.log(upscale_factor, 2))
 
         super(Generator, self).__init__()
         # First layer

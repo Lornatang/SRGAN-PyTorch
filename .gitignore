@@ -129,14 +129,17 @@ dmypy.json
 .DS_Store
 
 data/DIV2K
-data/video
-result.png
-target.png
+data/91-images
+data/2x
+data/4x
 
 output
 result
+logs
 
 weights/*.pth
 weights/*.zip
 *.mp4
 *.zip
+
+srgan_*x.png
