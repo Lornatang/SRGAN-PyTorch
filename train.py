@@ -142,8 +142,8 @@ else:
             # Set generator gradients to zero
             netG.zero_grad()
             # Generate data
-            input = input[0].to(device)
-            target = target[1].to(device)
+            input = input.to(device)
+            target = target.to(device)
 
             # Generating fake high resolution images from real low resolution images.
             output = netG(input)
@@ -202,8 +202,8 @@ for epoch in range(0, srgan_epochs):
     total_vif_value = 0.0
     progress_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader))
     for i, (input, target) in progress_bar:
-        input = input[0].to(device)
-        target = target[1].to(device)
+        input = input.to(device)
+        target = target.to(device)
 
         ##############################################
         # (1) Update D network
