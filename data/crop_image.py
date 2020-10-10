@@ -1,0 +1,148 @@
+# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+"""Making training data set quickly."""
+import glob
+import os
+import shutil
+
+import cv2
+import torchvision.transforms as transforms
+from PIL import Image
+
+raw_dir_10x = "./raw_data/10x"  # The processed image address is 10x.
+raw_dir_20x = "./raw_data/20x"  # The processed image address is 20x.
+raw_dir_40x = "./raw_data/40x"  # The processed image address is 40x.
+
+new_dir_10x = "./10x"  # Path saved after 10x image processing.
+new_dir_20x = "./20x"  # Path saved after 20x image processing.
+new_dir_40x = "./40x"  # Path saved after 40x image processing.
+
+input_dir_2x = "./2x/train/input"  # Low resolution image at 2x.
+input_dir_4x = "./4x/train/input"  # Low resolution image at 4x.
+target_dir_2x = "./2x/train/target"  # High resolution image at 2x.
+target_dir_4x = "./4x/train/target"  # High resolution image at 4x.
+
+crop_img_size = 1944  # The size of the image after clipping.
+img_size_2x = int(crop_img_size // 2)  # The size of low resolution image under 2x.
+img_size_4x = int(crop_img_size // 4)  # The size of low resolution image under 4.
+
+
+def center_crop(raw_img_dir=None, dst_img_dir=None, crop_img_size: int = None) -> None:
+    """ Center crop image with torchvision Library.
+
+    Args:
+        raw_img_dir (str): The address of the original folder that needs to be processed.
+        dst_img_dir (str): Destination folder address after processing.
+        crop_img_size (int): The length and width of the central interception area are consistent.
+    """
+    for filename in glob.glob(f"{raw_img_dir}/*"):
+        img = Image.open(filename)
+        # Call pytorch function to intercept the intermediate region directly.
+        img = transforms.CenterCrop(crop_img_size)(img)
+        img.save(f"{dst_img_dir}/{filename.split('/')[-1]}")
+
+
+def create_folder(path: str = "./output") -> None:
+    """ Ensure that the folder is successfully created and that the folder is empty.
+
+    Args:
+        path (str, optional): The folder path address can be absolute or relative.
+            (Default: ``./output``)
+
+    Returns:
+        If it cannot be created successfully, an error is thrown.
+    """
+    try:
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        os.makedirs(path)
+    except OSError:
+        pass
+
+
+def crop_candidate_region(raw_img_dir: str = None, dst_img_dir: str = None,
+                          input_dir: str = None, target_dir: str = None,
+                          input_img_size: int = None, target_img_size: int = crop_img_size,
+                          scale_factor: int = 2, candidate_box: list = None) -> None:
+    """ The region corresponding to HR image is extracted from LR image.
+
+    Args:
+        raw_img_dir (str):
+        dst_img_dir (str):
+        input_dir (str):
+        target_dir (str):
+        input_img_size (str):
+        target_img_size (str):
+        scale_factor (str):
+        candidate_box (str):
+
+    Returns:
+
+    """
+    if target_img_size is None or target_img_size < 4:
+        raise (
+            "The target image size cannot be empty, it must be a number "
+            "greater than 4."
+        )
+    if input_img_size is None:
+        input_img_size = int(target_img_size // scale_factor)
+
+    if candidate_box is None:
+        raise (
+            "An candidate matrix range must be specified!"
+        )
+    # Start width, end width, start height, end height.
+    w1, w2, h1, h2 = candidate_box
+
+    for filename in glob.glob(f"{raw_img_dir}/*"):
+        img = cv2.imread(filename)
+        candidate_img = img[w1:w2, h1:h2]  # Intercept the location of the default area, do not change!
+        # Ensure that the size of the image is consistent with that of the target image.
+        new_candidate_img = cv2.resize(candidate_img, (input_img_size, input_img_size), interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(f"{input_dir}/{filename.split('/')[-1]}", new_candidate_img)
+        # Move the target image to the specified directory.
+        shutil.copyfile(f"{dst_img_dir}/{filename.split('/')[-1]}",
+                        f"{target_dir}/{filename.split('/')[-1]}")
+
+
+if __name__ == "__main__":
+    # Create the necessary folders.
+    print("Step 1: Create the necessary folders.")
+    create_folder(new_dir_10x)
+    create_folder(new_dir_20x)
+    create_folder(new_dir_40x)
+    create_folder(input_dir_2x)
+    create_folder(input_dir_4x)
+    create_folder(target_dir_2x)
+    create_folder(target_dir_4x)
+
+    # Traverse all '.bmp' suffix images in all folder.
+    print("Step 2: Traverse all '.bmp' suffix images in all folder.")
+    center_crop(raw_dir_10x, new_dir_10x, crop_img_size)
+    center_crop(raw_dir_20x, new_dir_20x, crop_img_size)
+    center_crop(raw_dir_40x, new_dir_40x, crop_img_size)
+
+    print("Step 3: Similar regions of HR image are extracted from LR image for 2x.")
+    # Similar regions of HR image are extracted from LR image for 2x.
+    crop_candidate_region(raw_img_dir=new_dir_10x, dst_img_dir=new_dir_20x,
+                          input_dir=input_dir_2x, target_dir=target_dir_2x,
+                          input_img_size=img_size_2x, target_img_size=crop_img_size,
+                          scale_factor=2, candidate_box=[507, 1443, 524, 1454])
+    # print("Step 4: Similar regions of HR image are extracted from LR image for 4x.")
+    # Similar regions of HR image are extracted from LR image for 4x.
+    # crop_candidate_region(raw_img_dir=new_dir_10x, dst_img_dir=new_dir_40x,
+    #                       input_dir=input_dir_4x, target_dir=target_dir_4x,
+    #                       input_img_size=img_size_4x, target_img_size=crop_img_size,
+    #                       scale_factor=4, candidate_box=[507, 1443, 524, 1454])
