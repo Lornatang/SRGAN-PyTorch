@@ -13,22 +13,28 @@
 # ==============================================================================
 from .calculate_niqe import cal_niqe
 from .dataset import DatasetFromFolder
-from .loss import ContentLoss_VGG22
-from .loss import ContentLoss_VGG54
 from .loss import TVLoss
 from .model import Discriminator
+from .model import FeatureExtractorVGG22
+from .model import FeatureExtractorVGG54
 from .model import Generator
 from .utils import img2tensor
+from .utils import init_torch_seeds
+from .utils import load_checkpoint
+from .utils import select_device
 from .utils import tensor2img
 
 __all__ = [
     "cal_niqe",
     "DatasetFromFolder",
-    "ContentLoss_VGG22",
-    "ContentLoss_VGG54",
     "TVLoss",
     "Discriminator",
+    "FeatureExtractorVGG22",
+    "FeatureExtractorVGG54",
     "Generator",
     "img2tensor",
+    "init_torch_seeds",
+    "load_checkpoint",
+    "select_device",
     "tensor2img"
 ]
