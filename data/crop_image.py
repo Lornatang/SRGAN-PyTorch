@@ -79,17 +79,14 @@ def crop_candidate_region(raw_img_dir: str = None, dst_img_dir: str = None,
     """ The region corresponding to HR image is extracted from LR image.
 
     Args:
-        raw_img_dir (str):
-        dst_img_dir (str):
-        input_dir (str):
-        target_dir (str):
-        input_img_size (str):
-        target_img_size (str):
-        scale_factor (str):
-        candidate_box (str):
-
-    Returns:
-
+        raw_img_dir (str): Original picture folder path.
+        dst_img_dir (str): Target picture folder path.
+        input_dir (str): Low resolution image folder path.
+        target_dir (str): High resolution image folder path.
+        input_img_size (str): Low resolution image size.
+        target_img_size (str): High resolution image size.
+        scale_factor (str): Image magnification. (Default: 2).
+        candidate_box (str): Low resolution image candidate region.
     """
     if target_img_size is None or target_img_size < 4:
         raise (

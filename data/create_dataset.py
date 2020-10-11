@@ -66,6 +66,14 @@ os.makedirs(hr_val_dir_4x)
 
 def split_dataset(input_dir: str = None, target_dir: str = None,
                   lr_val_dir: str = None, hr_val_dir: str = None) -> None:
+    """ Make training data set and validation data set.
+
+    Args:
+        input_dir (str): Low resolution train image folder path.
+        target_dir (str): High resolution train image folder path.
+        lr_val_dir (str): Low resolution val image folder path.
+        hr_val_dir (str): High resolution val image folder path.
+    """
     # The original data set is divided into 9:1 (train:val)
     for _, _, files in os.walk(input_dir):
         # The size of the number of files in the total dataset.
