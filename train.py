@@ -12,6 +12,7 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
+import math
 import os
 import random
 
@@ -25,6 +26,7 @@ from srgan_pytorch import DatasetFromFolder
 from srgan_pytorch import Discriminator
 from srgan_pytorch import FeatureExtractorVGG54
 from srgan_pytorch import Generator
+from srgan_pytorch import cal_ssim
 from srgan_pytorch import init_torch_seeds
 from srgan_pytorch import load_checkpoint
 from srgan_pytorch import select_device
@@ -147,10 +149,15 @@ else:
             # Update generator weights
             optimizer.step()
 
-            progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(train_dataloader)}] "
-                                         f"MSE loss: {loss.item():.6f}")
+            psnr_value = 10 * math.log10((hr.max() ** 2) / loss)
+            ssim_value = cal_ssim(sr, hr).item()
 
-            # The image is saved every 500 iterations and at the same time eval.
+            progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(train_dataloader)}] "
+                                         f"MSE: {loss.item():.4f} "
+                                         f"PSNR: {psnr_value:.2f}dB "
+                                         f"SSIM: {ssim_value:.4f}.")
+
+            # The image is saved every 500 iterations.
             if (len(train_dataloader) * epoch + i + 1) % 500 == 0:
                 vutils.save_image(sr, f"{args.outf}/sr_epoch_{epoch}.png", normalize=True)
                 vutils.save_image(hr, f"{args.outf}/hr_epoch_{epoch}.png", normalize=True)
@@ -236,9 +243,14 @@ for epoch in range(args.start_epoch, srgan_epochs):
         schedulerG.step()
         schedulerD.step()
 
+        psnr_value = 10 * math.log10((hr.max() ** 2) / content_loss)
+        ssim_value = cal_ssim(sr, hr).item()
+
         progress_bar.set_description(f"[{epoch + 1}/{args.epochs}][{i + 1}/{len(train_dataloader)}] "
                                      f"Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} "
-                                     f"D(x): {D_x:.4f} D(G(real_lr)): {D_G_z1:.4f}/{D_G_z2:.4f}.")
+                                     f"D(x): {D_x:.4f} D(G(lr)): {D_G_z1:.4f}/{D_G_z2:.4f} "
+                                     f"PSNR: {psnr_value:.2f}dB "
+                                     f"SSIM: {ssim_value:.4f}.")
 
         # The image is saved every 500 iterations.
         if (len(train_dataloader) * epoch + i + 1) % 500 == 0:
