@@ -155,7 +155,7 @@ else:
             progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(train_dataloader)}] "
                                          f"MSE: {loss.item():.4f} "
                                          f"PSNR: {psnr_value:.2f}dB "
-                                         f"SSIM: {ssim_value:.4f}.")
+                                         f"SSIM: {ssim_value:.4f}")
 
             # The image is saved every 500 iterations.
             if (len(train_dataloader) * epoch + i + 1) % 500 == 0:
@@ -250,7 +250,7 @@ for epoch in range(args.start_epoch, srgan_epochs):
                                      f"Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} "
                                      f"D(x): {D_x:.4f} D(G(lr)): {D_G_z1:.4f}/{D_G_z2:.4f} "
                                      f"PSNR: {psnr_value:.2f}dB "
-                                     f"SSIM: {ssim_value:.4f}.")
+                                     f"SSIM: {ssim_value:.4f}")
 
         # The image is saved every 500 iterations.
         if (len(train_dataloader) * epoch + i + 1) % 500 == 0:
@@ -268,5 +268,5 @@ for epoch in range(args.start_epoch, srgan_epochs):
                         "state_dict": netD.state_dict()
                         }, f"./weights/netD_{args.upscale_factor}x_checkpoint.pth")
 
-    torch.save(netG.state_dict(), f"./weights/SRResNet_{args.upscale_factor}x.pth")
-    print(f"[*] Training PSNR model done! Saving PSNR model weight to `./weights/SRResNet_{args.upscale_factor}x.pth`.")
+    torch.save(netG.state_dict(), f"./weights/SRGAN_{args.upscale_factor}x.pth")
+    print(f"[*] Training SRGAN model done! Saving SRGAN model weight to `./weights/SRGAN_{args.upscale_factor}x.pth`.")
