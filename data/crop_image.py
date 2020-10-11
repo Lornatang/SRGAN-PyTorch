@@ -29,10 +29,10 @@ new_dir_10x = "./10x"  # Path saved after 10x image processing.
 new_dir_20x = "./20x"  # Path saved after 20x image processing.
 new_dir_40x = "./40x"  # Path saved after 40x image processing.
 
-input_dir_2x = "./2x/train/input"  # Low resolution image at 2x.
-input_dir_4x = "./4x/train/input"  # Low resolution image at 4x.
-target_dir_2x = "./2x/train/target"  # High resolution image at 2x.
-target_dir_4x = "./4x/train/target"  # High resolution image at 4x.
+lr_dir_2x = "./2x/train/input"  # Low resolution image at 2x.
+lr_dir_4x = "./4x/train/input"  # Low resolution image at 4x.
+hr_dir_2x = "./2x/train/target"  # High resolution image at 2x.
+hr_dir_4x = "./4x/train/target"  # High resolution image at 4x.
 
 crop_img_size = 1944  # The size of the image after clipping.
 img_size_2x = int(crop_img_size // 2)  # The size of low resolution image under 2x.
@@ -73,28 +73,28 @@ def create_folder(path: str = "./output") -> None:
 
 
 def crop_candidate_region(raw_img_dir: str = None, dst_img_dir: str = None,
-                          input_dir: str = None, target_dir: str = None,
-                          input_img_size: int = None, target_img_size: int = crop_img_size,
+                          lr_dir: str = None, hr_dir: str = None,
+                          lr_img_size: int = None, hr_img_size: int = crop_img_size,
                           scale_factor: int = 2, candidate_box: list = None) -> None:
     """ The region corresponding to HR image is extracted from LR image.
 
     Args:
         raw_img_dir (str): Original picture folder path.
         dst_img_dir (str): Target picture folder path.
-        input_dir (str): Low resolution image folder path.
-        target_dir (str): High resolution image folder path.
-        input_img_size (str): Low resolution image size.
-        target_img_size (str): High resolution image size.
+        lr_dir (str): Low resolution image folder path.
+        hr_dir (str): High resolution image folder path.
+        lr_img_size (str): Low resolution image size.
+        hr_img_size (str): High resolution image size.
         scale_factor (str): Image magnification. (Default: 2).
         candidate_box (str): Low resolution image candidate region.
     """
-    if target_img_size is None or target_img_size < 4:
+    if hr_img_size is None or hr_img_size < 4:
         raise (
             "The target image size cannot be empty, it must be a number "
             "greater than 4."
         )
-    if input_img_size is None:
-        input_img_size = int(target_img_size // scale_factor)
+    if lr_img_size is None:
+        lr_img_size = int(hr_img_size // scale_factor)
 
     if candidate_box is None:
         raise (
@@ -107,11 +107,11 @@ def crop_candidate_region(raw_img_dir: str = None, dst_img_dir: str = None,
         img = cv2.imread(filename)
         candidate_img = img[w1:w2, h1:h2]  # Intercept the location of the default area, do not change!
         # Ensure that the size of the image is consistent with that of the target image.
-        new_candidate_img = cv2.resize(candidate_img, (input_img_size, input_img_size), interpolation=cv2.INTER_CUBIC)
-        cv2.imwrite(f"{input_dir}/{filename.split('/')[-1]}", new_candidate_img)
+        new_candidate_img = cv2.resize(candidate_img, (lr_img_size, lr_img_size), interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(f"{lr_dir}/{filename.split('/')[-1]}", new_candidate_img)
         # Move the target image to the specified directory.
         shutil.copyfile(f"{dst_img_dir}/{filename.split('/')[-1]}",
-                        f"{target_dir}/{filename.split('/')[-1]}")
+                        f"{hr_dir}/{filename.split('/')[-1]}")
 
 
 if __name__ == "__main__":
@@ -120,10 +120,10 @@ if __name__ == "__main__":
     create_folder(new_dir_10x)
     create_folder(new_dir_20x)
     create_folder(new_dir_40x)
-    create_folder(input_dir_2x)
-    create_folder(input_dir_4x)
-    create_folder(target_dir_2x)
-    create_folder(target_dir_4x)
+    create_folder(lr_dir_2x)
+    create_folder(lr_dir_4x)
+    create_folder(hr_dir_2x)
+    create_folder(hr_dir_4x)
 
     # Traverse all '.bmp' suffix images in all folder.
     print("Step 2: Traverse all '.bmp' suffix images in all folder.")
@@ -134,8 +134,8 @@ if __name__ == "__main__":
     print("Step 3: Similar regions of HR image are extracted from LR image for 2x.")
     # Similar regions of HR image are extracted from LR image for 2x.
     crop_candidate_region(raw_img_dir=new_dir_10x, dst_img_dir=new_dir_20x,
-                          input_dir=input_dir_2x, target_dir=target_dir_2x,
-                          input_img_size=img_size_2x, target_img_size=crop_img_size,
+                          lr_dir=lr_dir_2x, hr_dir=hr_dir_2x,
+                          lr_img_size=img_size_2x, hr_img_size=crop_img_size,
                           scale_factor=2, candidate_box=[507, 1443, 524, 1454])
     # print("Step 4: Similar regions of HR image are extracted from LR image for 4x.")
     # Similar regions of HR image are extracted from LR image for 4x.
