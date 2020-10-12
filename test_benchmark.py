@@ -13,11 +13,7 @@
 # ==============================================================================
 import argparse
 import os
-import random
 
-import cv2
-import torch.autograd.profiler as profiler
-import torch.backends.cudnn as cudnn
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.utils as vutils
@@ -28,70 +24,50 @@ from sewar.full_ref import rmse
 from sewar.full_ref import sam
 from sewar.full_ref import ssim
 from sewar.full_ref import vifp
+from tqdm import tqdm
 
+from srgan_pytorch import DatasetFromFolder
 from srgan_pytorch import Generator
-from srgan_pytorch import ValDatasetFromFolder
 from srgan_pytorch import cal_niqe
-from srgan_pytorch import calculate_valid_crop_size
+from srgan_pytorch import select_device
 
-parser = argparse.ArgumentParser(description="PyTorch Super Resolution GAN.")
-parser.add_argument("--dataroot", type=str, default="./data/DIV2K",
-                    help="Path to datasets. (default:`./data/DIV2K`)")
-parser.add_argument("-j", "--workers", default=0, type=int, metavar="N",
-                    help="Number of data loading workers. (default:0)")
-parser.add_argument("--image-size", type=int, default=96,
-                    help="Size of the data crop (squared assumed). (default:96)")
-parser.add_argument("--scale-factor", type=int, default=4, choices=[4],
+parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution Using "
+                                             "a Generative Adversarial Network.")
+parser.add_argument("--dataroot", type=str, default="./data",
+                    help="Path to datasets. (default:`./data`)")
+parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
+                    help="Number of data loading workers. (default:4)")
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
                     help="Low to high resolution scaling factor. (default:4).")
-parser.add_argument("--cuda", action="store_true",
-                    help="Enables cuda")
-parser.add_argument("--weights", default="./weights/SRGAN_4x.pth",
-                    help="Path to weights. (default:`./weights/SRGAN_4x.pth`).")
-parser.add_argument("--outf", default="./result",
-                    help="folder to output images. (default:`./result`).")
-parser.add_argument("--manualSeed", type=int, default=0,
-                    help="Seed for initializing training. (default:0)")
+parser.add_argument("--model-path", default="./weights/SRGAN_4x.pth", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model. (default: ``./weights/SRGAN_4x.pth``).")
+parser.add_argument("--device", default="0",
+                    help="device id i.e. `0` or `0,1` or `cpu`. (default: ``CUDA:0``).")
 
 args = parser.parse_args()
 
 try:
-    os.makedirs(args.outf)
+    os.makedirs("benchmark")
 except OSError:
     pass
 
-if args.manualSeed is None:
-    args.manualSeed = random.randint(1, 10000)
-print("Random Seed: ", args.manualSeed)
-random.seed(args.manualSeed)
-torch.manual_seed(args.manualSeed)
+# Selection of appropriate treatment equipment
+device = select_device(args.device, batch_size=args.batch_size)
 
-cudnn.benchmark = True
+dataset = DatasetFromFolder(input_dir=f"{args.dataroot}/{args.upscale_factor}x/train/input",
+                            target_dir=f"{args.dataroot}/{args.upscale_factor}x/train/target")
 
-if torch.cuda.is_available() and not args.cuda:
-    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+dataloader = torch.utils.data.DataLoader(dataset,
+                                         batch_size=args.batch_size,
+                                         pin_memory=True,
+                                         num_workers=int(args.workers))
 
-dataset = ValDatasetFromFolder(dataset_dir=f"{args.dataroot}/val",
-                               image_size=args.image_size,
-                               scale_factor=args.scale_factor)
-dataloader = torch.utils.data.DataLoader(dataset=dataset,
-                                         batch_size=1,
-                                         shuffle=True,
-                                         num_workers=int(args.workers),
-                                         pin_memory=True)
-
-device = torch.device("cuda:0" if args.cuda else "cpu")
-
-model = Generator(upscale_factor=args.scale_factor).to(device)
-
+# Construct SRGAN model.
+model = Generator(upscale_factor=args.upscale_factor).to(device)
 model.load_state_dict(torch.load(args.weights, map_location=device))
 
-# Memory call of analysis model
-lr_image_size = calculate_valid_crop_size(args.image_size, args.scale_factor)
-
-with profiler.profile(profile_memory=True, record_shapes=True) as prof:
-    model(torch.randn(1, 3, lr_image_size, lr_image_size, device=device))
-print(" # Generator # ")
-print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10))
+# Set model eval mode
+model.eval()
 
 # Evaluate algorithm performance
 total_mse_value = 0.0
@@ -105,29 +81,26 @@ total_vif_value = 0.0
 
 # Start evaluate model performance
 with torch.no_grad():
-    model.eval()
-    for i, data in enumerate(dataloader):
-        lr_real_image = data[0].to(device)
-        hr_restore_image = data[1].to(device)
-        hr_real_image = data[2].to(device)
+    progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+    for iteration, (input, target) in progress_bar:
+        # Set model gradients to zero
+        lr = input.to(device)
+        hr = target.to(device)
 
-        hr_fake_image = model(lr_real_image)
+        sr = model(lr)
 
-        vutils.save_image(hr_real_image, f"{args.outf}/hr_real_{i}.png", normalize=True)
-        vutils.save_image(hr_restore_image, f"{args.outf}/hr_restore_{i}.png", normalize=True)
-        vutils.save_image(hr_fake_image, f"{args.outf}/hr_fake_epoch_{i}.png", normalize=True)
+        vutils.save_image(lr, f"./benchmark/lr_{iteration}.bmp", normalize=True)
+        vutils.save_image(sr, f"./benchmark/sr_{iteration}.bmp", normalize=True)
+        vutils.save_image(hr, f"./benchmark/hr_{iteration}.bmp", normalize=True)
 
-        src_img = cv2.imread(f"{args.outf}/hr_fake_{i}.png")
-        dst_img = cv2.imread(f"{args.outf}/hr_real_{i}.png")
-
-        mse_value = mse(src_img, dst_img)
-        rmse_value = rmse(src_img, dst_img)
-        psnr_value = psnr(src_img, dst_img)
-        ssim_value = ssim(src_img, dst_img)
-        ms_ssim_value = msssim(src_img, dst_img)
-        niqe_value = cal_niqe(f"{args.outf}/hr_fake_{i}.png")
-        sam_value = sam(src_img, dst_img)
-        vif_value = vifp(src_img, dst_img)
+        mse_value = mse(sr, hr)
+        rmse_value = rmse(sr, hr)
+        psnr_value = psnr(sr, hr)
+        ssim_value = ssim(sr, hr)
+        ms_ssim_value = msssim(sr, hr)
+        niqe_value = cal_niqe(f"./output/sr_{iteration}.bmp")
+        sam_value = sam(sr, hr)
+        vif_value = vifp(sr, hr)
 
         total_mse_value += mse_value
         total_rmse_value += rmse_value
@@ -137,6 +110,9 @@ with torch.no_grad():
         total_niqe_value += niqe_value
         total_sam_value += sam_value
         total_vif_value += vif_value
+
+        progress_bar.set_description(f"[{iteration + 1}/{len(dataloader)}] "
+                                     f"PSNR: {psnr_value:.2f}dB SSIM: {ssim_value:.4f}")
 
     avg_mse_value = total_mse_value / len(dataloader)
     avg_rmse_value = total_rmse_value / len(dataloader)
