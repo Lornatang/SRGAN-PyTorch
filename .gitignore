@@ -142,4 +142,5 @@ weights/*.zip
 *.mp4
 *.zip
 
+*.csv
 srgan_*x.png
