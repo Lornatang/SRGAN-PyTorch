@@ -121,7 +121,7 @@ logger.info(f"[*] Searching PSNR pretrained model weights.")
 
 # Writer train PSNR model log.
 if args.start_epoch == 0:
-    with open("PSNR_Loss.csv", "w+") as f:
+    with open(f"PSNR_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
         writer.writerow(["Epoch", "MSE Loss"])
 
@@ -168,7 +168,7 @@ else:
                     }, f"./weight/SRResNet_{args.upscale_factor}x_checkpoint.pth")
 
         # Writer training log
-        with open("PSNR_Loss.csv", "a+") as f:
+        with open(f"PSNR_{args.upscale_factor}x_Loss.csv", "a+") as f:
             writer = csv.writer(f)
             writer.writerow([epoch + 1, avg_loss / len(dataloader)])
 
@@ -194,7 +194,7 @@ logger.info(f"[*] Staring training SRGAN model!")
 logger.info(f"[*] Training for {srgan_epochs} epochs.")
 # Writer train PSNR model log.
 if args.start_epoch == 0:
-    with open("SRGAN_Loss.csv", "w+") as f:
+    with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
         writer.writerow(["Epoch", "D Loss", "G Loss"])
 
@@ -281,7 +281,7 @@ for epoch in range(args.start_epoch, srgan_epochs):
                     }, f"./weight/netG_{args.upscale_factor}x_checkpoint.pth")
 
         # Writer training log
-        with open("SRGAN_Loss.csv", "a+") as f:
+        with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "a+") as f:
             writer = csv.writer(f)
             writer.writerow([epoch + 1, d_avg_loss / len(dataloader), g_avg_loss / len(dataloader)])
 
