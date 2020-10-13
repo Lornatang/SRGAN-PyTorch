@@ -151,10 +151,10 @@ else:
             progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(dataloader)}] "
                                          f"MSE: {loss.item():.4f}")
 
-            # The image is saved every 500 iterations.
-            if (len(dataloader) * epoch + i + 1) % 500 == 0:
-                vutils.save_image(sr, f"./output/sr_epoch_{epoch}.bmp", normalize=True)
-                vutils.save_image(hr, f"./output/hr_epoch_{epoch}.bmp", normalize=True)
+            # The image is saved every 5000 iterations.
+            if (len(dataloader) * epoch + i + 1) % 5000 == 0:
+                vutils.save_image(sr, f"./output/sr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+                vutils.save_image(hr, f"./output/hr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
@@ -263,9 +263,9 @@ for epoch in range(args.start_epoch, epochs):
                                      f"D(x): {D_x:.4f} D(G(lr)): {D_G_z1:.4f}/{D_G_z2:.4f}")
 
         # The image is saved every 500 iterations.
-        if (len(dataloader) * epoch + i + 1) % 500 == 0:
-            vutils.save_image(sr, f"./output/sr_epoch_{epoch}.bmp", normalize=True)
-            vutils.save_image(hr, f"./output/hr_epoch_{epoch}.bmp", normalize=True)
+        if (len(dataloader) * epoch + i + 1) % 5000 == 0:
+            vutils.save_image(sr, f"./output/sr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+            vutils.save_image(hr, f"./output/hr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
