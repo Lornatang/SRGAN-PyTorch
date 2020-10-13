@@ -43,7 +43,7 @@ parser.add_argument("--start-epoch", default=0, type=int, metavar="N",
                     help="manual epoch number (useful on restarts)")
 parser.add_argument("--psnr_iters", default=1e6, type=int, metavar="N",
                     help="The number of iterations is needed in the training of PSNR model. (default:1e6)")
-parser.add_argument("--srgan_iters", default=2e5, type=int, metavar="N",
+parser.add_argument("--iters", default=2e5, type=int, metavar="N",
                     help="The training of srgan model requires the number of iterations. (default:2e5)")
 parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
                     help="mini-batch size (default: 16), this is the total "
@@ -95,11 +95,12 @@ netG = Generator(upscale_factor=args.upscale_factor).to(device)
 netD = Discriminator().to(device)
 
 # Define PSNR model optimizers
+psnr_epochs = int(args.psnr_iters // len(dataloader))
 optimizer = torch.optim.Adam(netG.parameters(), lr=args.lr)
 
 # Loading PSNR pre training model
 if args.resume_PSNR:
-    args.start_epoch = load_checkpoint(netG, optimizer, f"./weights/SRResNet_{args.upscale_factor}x_checkpoint.pth")
+    args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/SRResNet_{args.upscale_factor}x_checkpoint.pth")
 
 # We use vgg54 as our feature extraction method by default.
 feature_extractor = FeatureExtractorVGG54().to(device)
@@ -113,8 +114,6 @@ netD.train()
 feature_extractor.train()
 
 # Pre-train generator using raw MSE loss
-psnr_epochs = int(args.psnr_iters // len(dataloader))
-save_interval = int(psnr_epochs // 5)
 logger.info("[*] Start training PSNR model based on MSE loss.")
 logger.info(f"[*] Generator pre-training for {psnr_epochs} epochs.")
 logger.info(f"[*] Searching PSNR pretrained model weights.")
@@ -126,9 +125,9 @@ if args.start_epoch == 0:
         writer.writerow(["Epoch", "MSE Loss"])
 
 # Save the generator model based on MSE pre training to speed up the training time
-if os.path.exists(f"./weights/SRResNet_{args.upscale_factor}x.pth"):
+if os.path.exists(f"./weight/SRResNet_{args.upscale_factor}x.pth"):
     logger.info("[*] Found PSNR pretrained model weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weights/SRResNet_{args.upscale_factor}x.pth", map_location=device))
+    netG.load_state_dict(torch.load(f"./weight/SRResNet_{args.upscale_factor}x.pth", map_location=device))
 else:
     logger.warning("[!] Not found pretrained weights. Start training PSNR model.")
     for epoch in range(args.start_epoch, psnr_epochs):
@@ -177,12 +176,11 @@ else:
         f"[*] Training PSNR model done! Saving PSNR model weight to `./weight/SRResNet_{args.upscale_factor}x.pth`.")
 
 # Alternating training SRGAN network.
-srgan_epochs = int(args.srgan_iters // len(dataloader))
-save_interval = int(srgan_epochs // 5)
+epochs = int(args.iters // len(dataloader))
 optimizerD = torch.optim.Adam(netD.parameters(), lr=args.lr)
 optimizerG = torch.optim.Adam(netG.parameters(), lr=args.lr)
-schedulerD = torch.optim.lr_scheduler.StepLR(optimizerD, step_size=srgan_epochs // 2, gamma=0.1)
-schedulerG = torch.optim.lr_scheduler.StepLR(optimizerG, step_size=srgan_epochs // 2, gamma=0.1)
+schedulerD = torch.optim.lr_scheduler.StepLR(optimizerD, step_size=epochs // 2, gamma=0.1)
+schedulerG = torch.optim.lr_scheduler.StepLR(optimizerG, step_size=epochs // 2, gamma=0.1)
 
 # Loading SRGAN checkpoint
 if args.resume:
@@ -191,14 +189,14 @@ if args.resume:
 
 # Train SRGAN model.
 logger.info(f"[*] Staring training SRGAN model!")
-logger.info(f"[*] Training for {srgan_epochs} epochs.")
+logger.info(f"[*] Training for {epochs} epochs.")
 # Writer train PSNR model log.
 if args.start_epoch == 0:
     with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
         writer.writerow(["Epoch", "D Loss", "G Loss"])
 
-for epoch in range(args.start_epoch, srgan_epochs):
+for epoch in range(args.start_epoch, epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     g_avg_loss = 0.
     d_avg_loss = 0.
