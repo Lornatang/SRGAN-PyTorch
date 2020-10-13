@@ -114,22 +114,19 @@ netD.train()
 feature_extractor.train()
 
 # Pre-train generator using raw MSE loss
-logger.info("[*] Start training PSNR model based on MSE loss.")
-logger.info(f"[*] Generator pre-training for {psnr_epochs} epochs.")
-logger.info(f"[*] Searching PSNR pretrained model weights.")
-
+print("[*] Start training PSNR model based on MSE loss.")
 # Writer train PSNR model log.
 if args.start_epoch == 0:
-    with open(f"PSNR_{args.upscale_factor}x_Loss.csv", "w+") as f:
+    with open(f"SRResNet_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
         writer.writerow(["Epoch", "MSE Loss"])
 
 # Save the generator model based on MSE pre training to speed up the training time
 if os.path.exists(f"./weight/SRResNet_{args.upscale_factor}x.pth"):
-    logger.info("[*] Found PSNR pretrained model weights. Skip pre-train.")
+    print("[*] Found PSNR pretrained model weights. Skip pre-train.")
     netG.load_state_dict(torch.load(f"./weight/SRResNet_{args.upscale_factor}x.pth", map_location=device))
 else:
-    logger.warning("[!] Not found pretrained weights. Start training PSNR model.")
+    print("[!] Not found pretrained weights. Start training PSNR model.")
     for epoch in range(args.start_epoch, psnr_epochs):
         progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
         avg_loss = 0.
@@ -156,7 +153,6 @@ else:
 
             # The image is saved every 500 iterations.
             if (len(dataloader) * epoch + i + 1) % 500 == 0:
-                vutils.save_image(lr, f"./output/lr_epoch_{epoch}.bmp", normalize=True)
                 vutils.save_image(sr, f"./output/sr_epoch_{epoch}.bmp", normalize=True)
                 vutils.save_image(hr, f"./output/hr_epoch_{epoch}.bmp", normalize=True)
 
@@ -167,13 +163,13 @@ else:
                     }, f"./weight/SRResNet_{args.upscale_factor}x_checkpoint.pth")
 
         # Writer training log
-        with open(f"PSNR_{args.upscale_factor}x_Loss.csv", "a+") as f:
+        with open(f"SRResNet_{args.upscale_factor}x_Loss.csv", "a+") as f:
             writer = csv.writer(f)
             writer.writerow([epoch + 1, avg_loss / len(dataloader)])
 
     torch.save(netG.state_dict(), f"./weight/SRResNet_{args.upscale_factor}x.pth")
-    logger.info(
-        f"[*] Training PSNR model done! Saving PSNR model weight to `./weight/SRResNet_{args.upscale_factor}x.pth`.")
+    print(f"[*] Training PSNR model done! Saving PSNR model weight to "
+                f"`./weight/SRResNet_{args.upscale_factor}x.pth`.")
 
 # Alternating training SRGAN network.
 epochs = int(args.iters // len(dataloader))
@@ -188,8 +184,8 @@ if args.resume:
     args.start_epoch = load_checkpoint(netG, optimizerG, f"./weight/netG_{args.upscale_factor}x_checkpoint.pth")
 
 # Train SRGAN model.
-logger.info(f"[*] Staring training SRGAN model!")
-logger.info(f"[*] Training for {epochs} epochs.")
+print(f"[*] Staring training SRGAN model!")
+print(f"[*] Training for {epochs} epochs.")
 # Writer train PSNR model log.
 if args.start_epoch == 0:
     with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
@@ -257,8 +253,8 @@ for epoch in range(args.start_epoch, epochs):
         optimizerG.step()
 
         # Dynamic adjustment of learning rate
-        schedulerG.step()
         schedulerD.step()
+        schedulerG.step()
 
         g_avg_loss += errG.item()
 
@@ -268,7 +264,6 @@ for epoch in range(args.start_epoch, epochs):
 
         # The image is saved every 500 iterations.
         if (len(dataloader) * epoch + i + 1) % 500 == 0:
-            vutils.save_image(lr, f"./output/lr_epoch_{epoch}.bmp", normalize=True)
             vutils.save_image(sr, f"./output/sr_epoch_{epoch}.bmp", normalize=True)
             vutils.save_image(hr, f"./output/hr_epoch_{epoch}.bmp", normalize=True)
 
