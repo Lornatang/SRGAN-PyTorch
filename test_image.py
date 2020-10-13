@@ -52,15 +52,7 @@ except OSError:
     pass
 
 # Selection of appropriate treatment equipment
-device = select_device(args.device, batch_size=args.batch_size)
-
-dataset = DatasetFromFolder(input_dir=f"{args.dataroot}/{args.upscale_factor}x/train/input",
-                            target_dir=f"{args.dataroot}/{args.upscale_factor}x/train/target")
-
-dataloader = torch.utils.data.DataLoader(dataset,
-                                         batch_size=args.batch_size,
-                                         pin_memory=True,
-                                         num_workers=int(args.workers))
+device = select_device(args.device, batch_size=1)
 
 # Construct SRGAN model.
 model = Generator(upscale_factor=args.upscale_factor).to(device)

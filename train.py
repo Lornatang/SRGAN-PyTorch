@@ -66,7 +66,9 @@ args = parser.parse_args()
 print(args)
 
 try:
-    os.makedirs("output")
+    os.makedirs("output/lr")
+    os.makedirs("output/hr")
+    os.makedirs("output/sr")
     os.makedirs("weight")
 except OSError:
     logger.error("[!] Failed to create folder because the folder already exists!")
@@ -153,8 +155,9 @@ else:
 
             # The image is saved every 5000 iterations.
             if (len(dataloader) * epoch + i + 1) % 5000 == 0:
-                vutils.save_image(sr, f"./output/sr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
-                vutils.save_image(hr, f"./output/hr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+                vutils.save_image(lr, f"./output/lr/SRResNet_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+                vutils.save_image(hr, f"./output/hr/SRResNet_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+                vutils.save_image(sr, f"./output/sr/SRResNet_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
@@ -262,10 +265,11 @@ for epoch in range(args.start_epoch, epochs):
                                      f"Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} "
                                      f"D(x): {D_x:.4f} D(G(lr)): {D_G_z1:.4f}/{D_G_z2:.4f}")
 
-        # The image is saved every 500 iterations.
+        # The image is saved every 5000 iterations.
         if (len(dataloader) * epoch + i + 1) % 5000 == 0:
-            vutils.save_image(sr, f"./output/sr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
-            vutils.save_image(hr, f"./output/hr_epoch_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+            vutils.save_image(lr, f"./output/lr/SRGAN_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+            vutils.save_image(hr, f"./output/hr/SRGAN_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+            vutils.save_image(sr, f"./output/sr/SRGAN_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
