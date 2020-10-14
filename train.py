@@ -154,7 +154,7 @@ else:
             avg_loss += mse_loss.item()
 
             progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(dataloader)}] "
-                                         f"MSE loss: {mse_loss.item():.4f}")
+                                         f"MSE loss: {mse_loss.item():.6f}")
 
             # record iter.
             total_iter = len(dataloader) * epoch + i
@@ -272,8 +272,8 @@ for epoch in range(args.start_epoch, epochs):
         g_avg_loss += errG.item()
 
         progress_bar.set_description(f"[{epoch + 1}/{args.epochs}][{i + 1}/{len(dataloader)}] "
-                                     f"Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} "
-                                     f"D(HR): {D_x:.4f} D(G(LR)): {D_G_z1:.4f}/{D_G_z2:.4f}")
+                                     f"Loss_D: {errD.item():.6f} Loss_G: {errG.item():.6f} "
+                                     f"D(HR): {D_x:.6f} D(G(LR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
 
         # record iter.
         total_iter = len(dataloader) * epoch + i
