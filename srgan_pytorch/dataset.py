@@ -50,7 +50,10 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
         super(DatasetFromFolder, self).__init__()
         self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
         self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
+        # We use random left-right flip and random 90 degree rotation to enhance our dataset.
         self.transforms = transforms.Compose([
+            transforms.RandomRotation(degrees=90),
+            transforms.RandomHorizontalFlip(p=0.5),
             img2tensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
