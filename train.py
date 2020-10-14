@@ -236,8 +236,6 @@ for epoch in range(args.start_epoch, epochs):
         errD = errD_hr + errD_sr
         optimizerD.step()
 
-        d_avg_loss += errD.item()
-
         ##############################################
         # (2) Update G network: maximize log(D(G(z)))
         ##############################################
@@ -268,6 +266,7 @@ for epoch in range(args.start_epoch, epochs):
         schedulerD.step()
         schedulerG.step()
 
+        d_avg_loss += errD.item()
         g_avg_loss += errG.item()
 
         progress_bar.set_description(f"[{epoch + 1}/{epochs}][{i + 1}/{len(dataloader)}] "
@@ -298,6 +297,6 @@ for epoch in range(args.start_epoch, epochs):
         writer = csv.writer(f)
         writer.writerow([epoch + 1, d_avg_loss / len(dataloader), g_avg_loss / len(dataloader)])
 
-    torch.save(netG.state_dict(), f"./weight/SRGAN_{args.upscale_factor}x.pth")
-    logger.info(f"[*] Training SRGAN model done! Saving SRGAN model weight "
-                f"to `./weight/SRGAN_{args.upscale_factor}x.pth`.")
+torch.save(netG.state_dict(), f"./weight/SRGAN_{args.upscale_factor}x.pth")
+logger.info(f"[*] Training SRGAN model done! Saving SRGAN model weight "
+            f"to `./weight/SRGAN_{args.upscale_factor}x.pth`.")
