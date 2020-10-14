@@ -65,13 +65,16 @@ parser.add_argument("--device", default="",
 args = parser.parse_args()
 print(args)
 
+output_lr_dir = f"./output/{args.upscale_factor}x/lr"
+output_hr_dir = f"./output/{args.upscale_factor}x/hr"
+output_sr_dir = f"./output/{args.upscale_factor}x/sr"
+
 try:
-    os.makedirs("output/lr")
-    os.makedirs("output/hr")
-    os.makedirs("output/sr")
+    os.makedirs(output_lr_dir)
+    os.makedirs(output_hr_dir)
+    os.makedirs(output_sr_dir)
     os.makedirs("weight")
 except OSError:
-    logger.error("[!] Failed to create folder because the folder already exists!")
     pass
 
 # Set random initialization seed, easy to reproduce.
@@ -142,22 +145,25 @@ else:
             # Generating fake high resolution images from real low resolution images.
             sr = netG(lr)
             # The MSE of the generated fake high-resolution image and real high-resolution image is calculated.
-            loss = content_criterion(sr, hr)
+            mse_loss = content_criterion(sr, hr)
             # Calculate gradients for generator
-            loss.backward()
+            mse_loss.backward()
             # Update generator weights
             optimizer.step()
 
-            avg_loss += loss.item()
+            avg_loss += mse_loss.item()
 
             progress_bar.set_description(f"[{epoch + 1}/{psnr_epochs}][{i + 1}/{len(dataloader)}] "
-                                         f"MSE: {loss.item():.4f}")
+                                         f"MSE loss: {mse_loss.item():.4f}")
+
+            # record iter.
+            total_iter = len(dataloader) * epoch + i
 
             # The image is saved every 5000 iterations.
-            if (len(dataloader) * epoch + i + 1) % 5000 == 0:
-                vutils.save_image(lr, f"./output/lr/SRResNet_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
-                vutils.save_image(hr, f"./output/hr/SRResNet_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
-                vutils.save_image(sr, f"./output/sr/SRResNet_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+            if (total_iter + 1) % 5000 == 0:
+                vutils.save_image(lr, os.path.join(output_lr_dir, f"SRResNet_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(hr, os.path.join(output_hr_dir, f"SRResNet_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(sr, os.path.join(output_sr_dir, f"SRResNet_{total_iter + 1}.bmp"), normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
@@ -172,7 +178,10 @@ else:
 
     torch.save(netG.state_dict(), f"./weight/SRResNet_{args.upscale_factor}x.pth")
     print(f"[*] Training PSNR model done! Saving PSNR model weight to "
-                f"`./weight/SRResNet_{args.upscale_factor}x.pth`.")
+          f"`./weight/SRResNet_{args.upscale_factor}x.pth`.")
+
+# After training the PSNR model, set the initial iteration to 0.
+args.start_epoch = 0
 
 # Alternating training SRGAN network.
 epochs = int(args.iters // len(dataloader))
@@ -189,7 +198,7 @@ if args.resume:
 # Train SRGAN model.
 print(f"[*] Staring training SRGAN model!")
 print(f"[*] Training for {epochs} epochs.")
-# Writer train PSNR model log.
+# Writer train SRGAN model log.
 if args.start_epoch == 0:
     with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
@@ -236,20 +245,21 @@ for epoch in range(args.start_epoch, epochs):
         # Set generator gradients to zero
         netG.zero_grad()
 
-        # Pixel level loss between two images.
+        # The pixel-wise MSE loss is calculated as:
         mse_loss = content_criterion(sr, lr)
-
-        # According to the feature map, the root mean square error is regarded as the content loss.
+        # We then define the VGG loss as the euclidean distance between the feature representations of
+        # a reconstructed image G(LR) and the reference image LR:
         vgg_loss = content_criterion(feature_extractor(sr), feature_extractor(hr))
-
         # Second train with fake high resolution image.
         sr_output = netD(sr)
+        #  The generative loss is defined based on the probabilities of the discriminator
+        #  D(G(LR)) over all training samples as:
         adversarial_loss = adversarial_criterion(sr_output, real_label)
 
-        # The original content loss in this paper consists of MSE loss and VGG loss.
-        content_loss = mse_loss + 6e-3 * vgg_loss
+        # Therefore, according to the content of the paper, the loss should be defined as:
+        content_loss = mse_loss + 2e-6 * vgg_loss
 
-        # # The original perceptual loss in this paper consists of VGG loss, MSE loss and adversarial loss.
+        # We formulate the perceptual loss as the weighted sum of a content loss and an adversarial loss component as:
         errG = content_loss + 1e-3 * adversarial_loss
         errG.backward()
         D_G_z2 = sr_output.mean().item()
@@ -263,13 +273,16 @@ for epoch in range(args.start_epoch, epochs):
 
         progress_bar.set_description(f"[{epoch + 1}/{args.epochs}][{i + 1}/{len(dataloader)}] "
                                      f"Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} "
-                                     f"D(x): {D_x:.4f} D(G(lr)): {D_G_z1:.4f}/{D_G_z2:.4f}")
+                                     f"D(HR): {D_x:.4f} D(G(LR)): {D_G_z1:.4f}/{D_G_z2:.4f}")
+
+        # record iter.
+        total_iter = len(dataloader) * epoch + i
 
         # The image is saved every 5000 iterations.
-        if (len(dataloader) * epoch + i + 1) % 5000 == 0:
-            vutils.save_image(lr, f"./output/lr/SRGAN_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
-            vutils.save_image(hr, f"./output/hr/SRGAN_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
-            vutils.save_image(sr, f"./output/sr/SRGAN_{len(dataloader) * epoch + i + 1}.bmp", normalize=True)
+        if (total_iter + 1) % 5000 == 0:
+            vutils.save_image(lr, os.path.join(output_lr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=True)
+            vutils.save_image(hr, os.path.join(output_hr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=True)
+            vutils.save_image(sr, os.path.join(output_sr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
