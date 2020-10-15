@@ -18,16 +18,25 @@ import cv2
 import numpy as np
 from PIL import Image
 
-input_dir_2x = "./2x/train/input"  # Low resolution image at 2x.
-input_dir_4x = "./4x/train/input"  # Low resolution image at 4x.
-target_dir_2x = "./2x/train/target"  # High resolution image at 2x.
-target_dir_4x = "./4x/train/target"  # High resolution image at 4x.
-row_number = 4  # How many rows an image split into
-col_number = 4  # How many cols an image split into
 
+def split_for_slicling(image: np.array, row_number: int = 4, col_number: int = 4) -> list:
+    r""" Use the simple numpy slicing function.
 
-def split_for_slicling(image, row_number, col_number):
-    r"""Use the simple numpy slicing function."""
+    Args:
+        image (cv2.imread): Image format read by opencv.
+        row_number (int): Split along the width of the image. (Default: 4).
+        col_number (int): Split along the height of the image. (Default: 4).
+
+    Shape:
+        image: :math:`(N, *)` where :math:`*` means, any number of additional dimensions
+
+    Returns:
+       Split an array into multiple sub-arrays.
+    """
+    __constant__ = ["row_number", "col_number"]
+    row_number: int
+    col_number: int
+
     # Cut picture vertically, get a lot of horizontal strips
     block_row = np.array_split(image, row_number, axis=0)
     image_blocks = []
@@ -39,7 +48,18 @@ def split_for_slicling(image, row_number, col_number):
     return image_blocks
 
 
-def save_split_image(img_dir: str = None) -> None:
+def save_split_image(img_dir: str, row_number: int = 4, col_number: int = 4, delete: bool = True) -> None:
+    r""" Save the split image.
+
+    Args:
+        img_dir (str): Original image folder to be processed.
+        row_number (int): Split along the width of the image. (Default: 4).
+        col_number (int): Split along the height of the image. (Default: 4).
+        delete (optional, bool): Do you want to delete the original image after processing. (Default:``True``).
+    """
+    __constant__ = ["delete"]
+    delete: bool
+
     for filename in glob.glob(f"{img_dir}/*"):
         img = cv2.imread(filename)
         image_blocks = split_for_slicling(img, row_number=row_number, col_number=col_number)
@@ -47,9 +67,9 @@ def save_split_image(img_dir: str = None) -> None:
             for col in range(col_number):
                 image_blocks[row][col] = Image.fromarray(cv2.cvtColor(image_blocks[row][col], cv2.COLOR_BGR2RGB))
                 image_blocks[row][col].save(f"{img_dir}/{filename.split('/')[-1].split('.')[0]}_{row}_{col}.bmp")
-        os.remove(filename)
+        if delete:
+            os.remove(filename)
 
 
 if __name__ == "__main__":
-    save_split_image(input_dir_2x)
-    save_split_image(target_dir_2x)
+    save_split_image("./2x/train/input")

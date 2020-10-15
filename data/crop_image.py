@@ -39,7 +39,7 @@ img_size_2x = int(crop_img_size // 2)  # The size of low resolution image under 
 img_size_4x = int(crop_img_size // 4)  # The size of low resolution image under 4.
 
 
-def center_crop(raw_img_dir=None, dst_img_dir=None, crop_img_size: int = None) -> None:
+def center_crop(raw_img_dir=None, dst_img_dir=None, crop_img_size: int = 1944) -> None:
     """ Center crop image with torchvision Library.
 
     Args:
