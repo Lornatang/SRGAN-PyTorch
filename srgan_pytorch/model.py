@@ -63,12 +63,12 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
 
         self.classifier = nn.Sequential(
-            nn.Linear(512, 1024),
+            nn.Linear(512 * 7 * 7, 100),
             nn.LeakyReLU(0.2),
-            nn.Linear(1024, 1)
+            nn.Linear(100, 1)
         )
 
     def forward(self, input: Tensor = None) -> Tensor:
@@ -174,11 +174,11 @@ class FeatureExtractorVGG54(nn.Module):
     as SRGAN in the following.
     """
 
-    def __init__(self, feature_layer: int = 31) -> None:
+    def __init__(self, feature_layer: int = 36) -> None:
         """ Constructing characteristic loss function of VGG network. For VGG5.4.
 
         Args:
-            feature_layer (int): How many layers in VGG19. (Default:30).
+            feature_layer (int): How many layers in VGG19. (Default:36).
 
         Notes:
             features(
@@ -213,6 +213,11 @@ class FeatureExtractorVGG54(nn.Module):
               (28): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
               (29): ReLU(inplace=True)
               (30): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (31): ReLU(inplace=True)
+              (32): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (33): ReLU(inplace=True)
+              (34): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (35): ReLU(inplace=True)
             )
 
         """
@@ -220,7 +225,7 @@ class FeatureExtractorVGG54(nn.Module):
         model = vgg19(pretrained=True)
         self.features = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
 
-    def forward(self, input: Tensor = None) -> Tensor:
+    def forward(self, input: Tensor) -> Tensor:
         out = self.features(input)
 
         return out
@@ -234,7 +239,6 @@ class ResidualBlock(nn.Module):
 
         Args:
             channels (int): Number of channels in the input image.
-
         """
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)

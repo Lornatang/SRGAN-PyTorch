@@ -41,7 +41,7 @@ parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
                     help="Number of data loading workers. (default:4)")
 parser.add_argument("--start-epoch", default=0, type=int, metavar="N",
                     help="manual epoch number (useful on restarts)")
-parser.add_argument("--psnr_iters", default=1e6, type=int, metavar="N",
+parser.add_argument("--psnr-iters", default=1e6, type=int, metavar="N",
                     help="The number of iterations is needed in the training of PSNR model. (default:1e6)")
 parser.add_argument("--iters", default=2e5, type=int, metavar="N",
                     help="The training of srgan model requires the number of iterations. (default:2e5)")
@@ -114,9 +114,8 @@ content_criterion = nn.MSELoss().to(device)
 adversarial_criterion = nn.BCELoss().to(device)
 
 # Set the all model to training mode
-netG.train()
 netD.train()
-feature_extractor.train()
+netG.train()
 
 # Pre-train generator using raw MSE loss
 print("[*] Start training PSNR model based on MSE loss.")
@@ -220,18 +219,19 @@ for epoch in range(args.start_epoch, epochs):
         # Set discriminator gradients to zero.
         netD.zero_grad()
 
+        # Generate a super-resolution image
+        sr = netG(lr)
+
         # Train with real high resolution image.
         hr_output = netD(hr)
         errD_hr = adversarial_criterion(hr_output, real_label)
         errD_hr.backward()
         D_x = hr_output.mean().item()
 
-        # First train with fake high resolution image.
-        sr = netG(lr)
+        # Train with fake high resolution image.
         sr_output = netD(sr.detach())
         errD_sr = adversarial_criterion(sr_output, fake_label)
         errD_sr.backward()
-        # Score of generator's first high resolution image.
         D_G_z1 = sr_output.mean().item()
         errD = errD_hr + errD_sr
         optimizerD.step()
