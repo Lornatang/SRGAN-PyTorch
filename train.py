@@ -200,12 +200,13 @@ print(f"[*] Training for {epochs} epochs.")
 if args.start_epoch == 0:
     with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
-        writer.writerow(["Epoch", "D Loss", "G Loss"])
+        writer.writerow(["Epoch", "D Loss", "G Loss", "MSE Loss"])
 
 for epoch in range(args.start_epoch, epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     g_avg_loss = 0.
     d_avg_loss = 0.
+    avg_mse_loss = 0.
     for i, (input, target) in progress_bar:
         lr = input.to(device)
         hr = target.to(device)
@@ -265,6 +266,7 @@ for epoch in range(args.start_epoch, epochs):
 
         d_avg_loss += errD.item()
         g_avg_loss += errG.item()
+        avg_mse_loss += mse_loss.item()
 
         progress_bar.set_description(f"[{epoch + 1}/{epochs}][{i + 1}/{len(dataloader)}] "
                                      f"Loss_D: {errD.item():.6f} Loss_G: {errG.item():.6f} "
@@ -292,7 +294,10 @@ for epoch in range(args.start_epoch, epochs):
     # Writer training log
     with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "a+") as f:
         writer = csv.writer(f)
-        writer.writerow([epoch + 1, d_avg_loss / len(dataloader), g_avg_loss / len(dataloader)])
+        writer.writerow([epoch + 1,
+                         d_avg_loss / len(dataloader),
+                         g_avg_loss / len(dataloader),
+                         avg_mse_loss / len(dataloader)])
 
 torch.save(netG.state_dict(), f"./weight/SRGAN_{args.upscale_factor}x.pth")
 logger.info(f"[*] Training SRGAN model done! Saving SRGAN model weight "
