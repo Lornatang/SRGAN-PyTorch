@@ -253,11 +253,8 @@ for epoch in range(args.start_epoch, epochs):
         #  D(G(LR)) over all training samples as:
         adversarial_loss = adversarial_criterion(sr_output, real_label)
 
-        # Therefore, according to the content of the paper, the loss should be defined as:
-        content_loss = mse_loss + 2e-6 * vgg_loss
-
         # We formulate the perceptual loss as the weighted sum of a content loss and an adversarial loss component as:
-        errG = content_loss + 1e-3 * adversarial_loss
+        errG = mse_loss + 2e-6 * vgg_loss + 1e-3 * adversarial_loss
         errG.backward()
         D_G_z2 = sr_output.mean().item()
         optimizerG.step()
