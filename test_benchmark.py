@@ -98,7 +98,7 @@ with torch.no_grad():
         psnr_value = psnr(sr, hr)
         ssim_value = ssim(sr, hr)
         ms_ssim_value = msssim(sr, hr)
-        niqe_value = cal_niqe(f"./output/sr_{iteration}.bmp")
+        niqe_value = cal_niqe(f"./benchmark/sr_{iteration}.bmp")
         sam_value = sam(sr, hr)
         vif_value = vifp(sr, hr)
 
