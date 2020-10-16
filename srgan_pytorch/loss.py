@@ -107,7 +107,7 @@ class ContentLoss(nn.Module):
         """
         super(ContentLoss, self).__init__()
         model = vgg19(pretrained=True)
-        self.feature_extractor = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
+        self.features = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
         # Freeze parameters. Don't train.
         for name, param in self.features.named_parameters():
             param.requires_grad = False
