@@ -19,7 +19,7 @@ from torch import Tensor
 from torchvision.models import vgg19
 
 __all__ = [
-    "TVLoss", "VGGLoss"
+    "ContentLoss", "TVLoss"
 ]
 
 
@@ -51,7 +51,7 @@ class TVLoss(nn.Module):
         return t.size()[1] * t.size()[2] * t.size()[3]
 
 
-class VGGLoss(nn.Module):
+class ContentLoss(nn.Module):
     r""" Where VGG5.4 represents the feature map of 34th layer in pretrained VGG19 model.
 
     `"Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network" <https://arxiv.org/pdf/1609.04802.pdf>`_
@@ -105,7 +105,7 @@ class VGGLoss(nn.Module):
               (33): ReLU(inplace=True)
             )
         """
-        super(VGGLoss, self).__init__()
+        super(ContentLoss, self).__init__()
         model = vgg19(pretrained=True)
         self.feature_extractor = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
         # Freeze parameters. Don't train.

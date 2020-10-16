@@ -25,7 +25,7 @@ from tqdm import tqdm
 
 from srgan_pytorch import DatasetFromFolder
 from srgan_pytorch import Discriminator
-from srgan_pytorch import FeatureExtractorVGG54
+from srgan_pytorch import ContentLoss
 from srgan_pytorch import Generator
 from srgan_pytorch import init_torch_seeds
 from srgan_pytorch import load_checkpoint
@@ -108,9 +108,9 @@ if args.resume_PSNR:
     args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/SRResNet_{args.upscale_factor}x_checkpoint.pth")
 
 # We use vgg54 as our feature extraction method by default.
-feature_extractor = FeatureExtractorVGG54().to(device)
+content_criterion = ContentLoss().to(device)
 # Perceptual loss = mse_loss + 2e-6 * content_loss + 1e-3 * adversarial_loss
-content_criterion = nn.MSELoss().to(device)
+mse_criterion = nn.MSELoss().to(device)
 adversarial_criterion = nn.BCELoss().to(device)
 
 # Set the all model to training mode
@@ -143,7 +143,7 @@ else:
             # Generating fake high resolution images from real low resolution images.
             sr = netG(lr)
             # The MSE of the generated fake high-resolution image and real high-resolution image is calculated.
-            mse_loss = content_criterion(sr, hr)
+            mse_loss = mse_criterion(sr, hr)
             # Calculate gradients for generator
             mse_loss.backward()
             # Update generator weights
@@ -244,10 +244,10 @@ for epoch in range(args.start_epoch, epochs):
         netG.zero_grad()
 
         # The pixel-wise MSE loss is calculated as:
-        mse_loss = content_criterion(sr, hr)
+        mse_loss = mse_criterion(sr, hr)
         # We then define the VGG loss as the euclidean distance between the feature representations of
         # a reconstructed image G(LR) and the reference image LR:
-        vgg_loss = content_criterion(feature_extractor(sr), feature_extractor(hr))
+        vgg_loss = content_criterion(sr, hr)
         # Second train with fake high resolution image.
         sr_output = netD(sr)
         #  The generative loss is defined based on the probabilities of the discriminator
