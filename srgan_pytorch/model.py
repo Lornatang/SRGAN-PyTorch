@@ -15,30 +15,28 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
-from torchvision.models import vgg19
 
 __all__ = [
-    "Discriminator", "Generator",
-    "FeatureExtractorVGG22", "FeatureExtractorVGG54",
-    "ResidualBlock",
+    "Discriminator", "Generator", "ResidualBlock"
 ]
 
 
 class Discriminator(nn.Module):
-    r"""The main architecture of the discriminator."""
+    r"""The main architecture of the discriminator. Similar to VGG structure."""
 
     def __init__(self):
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -46,7 +44,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -54,7 +52,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -67,7 +65,7 @@ class Discriminator(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Linear(512 * 7 * 7, 100),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Linear(100, 1)
         )
 
@@ -76,7 +74,8 @@ class Discriminator(nn.Module):
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
         out = self.classifier(out)
-        return torch.sigmoid(out)
+
+        return F.sigmoid(out)
 
 
 class Generator(nn.Module):
@@ -92,7 +91,7 @@ class Generator(nn.Module):
             nn.PReLU()
         )
 
-        # Residual blocks
+        # 16 Residual blocks
         residual_blocks = []
         for _ in range(16):
             residual_blocks.append(ResidualBlock(64))
@@ -101,7 +100,7 @@ class Generator(nn.Module):
         # Second conv layer post residual blocks
         self.conv2 = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64, 0.8)
+            nn.BatchNorm2d(64)
         )
 
         # Upsampling layers
@@ -116,10 +115,7 @@ class Generator(nn.Module):
         self.upsampling = nn.Sequential(*upsampling)
 
         # Final output layer
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4),
-            nn.Tanh()
-        )
+        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
     def forward(self, input: Tensor = None) -> Tensor:
         out1 = self.conv1(input)
@@ -128,106 +124,6 @@ class Generator(nn.Module):
         out = torch.add(out1, out2)
         out = self.upsampling(out)
         out = self.conv3(out)
-        return out
-
-
-class FeatureExtractorVGG22(nn.Module):
-    r"""A loss defined on feature maps representing lower-level features.
-    `"Perceptual Losses for Real-Time Style Transfer and Super-Resolution" <https://arxiv.org/pdf/1603.08155.pdf>`_
-    """
-
-    def __init__(self, feature_layer: int = 9) -> None:
-        """ Constructing characteristic loss function of VGG network. For VGG2.2.
-
-        Args:
-            feature_layer (int): How many layers in VGG19. (Default:8).
-
-        Notes:
-            features(
-              (0): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (1): ReLU(inplace=True)
-              (2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (3): ReLU(inplace=True)
-              (4): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
-              (5): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (6): ReLU(inplace=True)
-              (7): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (8): ReLU(inplace=True)
-            )
-        """
-        super(FeatureExtractorVGG22, self).__init__()
-        model = vgg19(pretrained=True)
-        self.features = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
-
-    def forward(self, input: Tensor = None) -> Tensor:
-        out = self.features(input)
-
-        return out
-
-
-class FeatureExtractorVGG54(nn.Module):
-    r"""A loss defined on feature maps representing lower-level features.
-    `"Perceptual Losses for Real-Time Style Transfer and Super-Resolution" <https://arxiv.org/pdf/1603.08155.pdf>`_
-
-    A loss defined on feature maps of higher level features from deeper network layers
-    with more potential to focus on the content of the images. We refer to this network
-    as SRGAN in the following.
-    """
-
-    def __init__(self, feature_layer: int = 36) -> None:
-        """ Constructing characteristic loss function of VGG network. For VGG5.4.
-
-        Args:
-            feature_layer (int): How many layers in VGG19. (Default:36).
-
-        Notes:
-            features(
-              (0): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (1): ReLU(inplace=True)
-              (2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (3): ReLU(inplace=True)
-              (4): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
-              (5): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (6): ReLU(inplace=True)
-              (7): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (8): ReLU(inplace=True)
-              (9): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
-              (10): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (11): ReLU(inplace=True)
-              (12): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (13): ReLU(inplace=True)
-              (14): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (15): ReLU(inplace=True)
-              (16): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (17): ReLU(inplace=True)
-              (18): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
-              (19): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (20): ReLU(inplace=True)
-              (21): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (22): ReLU(inplace=True)
-              (23): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (24): ReLU(inplace=True)
-              (25): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (26): ReLU(inplace=True)
-              (27): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
-              (28): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (29): ReLU(inplace=True)
-              (30): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (31): ReLU(inplace=True)
-              (32): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (33): ReLU(inplace=True)
-              (34): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-              (35): ReLU(inplace=True)
-            )
-
-        """
-        super(FeatureExtractorVGG54, self).__init__()
-        model = vgg19(pretrained=True)
-        self.features = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
-
-    def forward(self, input: Tensor) -> Tensor:
-        out = self.features(input)
-
         return out
 
 

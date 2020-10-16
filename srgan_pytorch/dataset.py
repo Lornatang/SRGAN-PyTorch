@@ -18,7 +18,6 @@ import torchvision.transforms as transforms
 from PIL import Image
 
 from .utils import img2tensor
-from .utils import tensor2img
 
 
 def check_image_file(filename):

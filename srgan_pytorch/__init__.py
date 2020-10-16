@@ -12,12 +12,10 @@
 # limitations under the License.
 # ==============================================================================
 from .calculate_niqe import cal_niqe
-from .calculate_ssim import cal_ssim
 from .dataset import DatasetFromFolder
 from .loss import TVLoss
+from .loss import VGGLoss
 from .model import Discriminator
-from .model import FeatureExtractorVGG22
-from .model import FeatureExtractorVGG54
 from .model import Generator
 from .utils import img2tensor
 from .utils import init_torch_seeds
@@ -27,12 +25,10 @@ from .utils import tensor2img
 
 __all__ = [
     "cal_niqe",
-    "cal_ssim",
     "DatasetFromFolder",
     "TVLoss",
+    "VGGLoss",
     "Discriminator",
-    "FeatureExtractorVGG22",
-    "FeatureExtractorVGG54",
     "Generator",
     "img2tensor",
     "init_torch_seeds",
