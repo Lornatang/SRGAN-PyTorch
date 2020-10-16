@@ -13,13 +13,14 @@
 # ==============================================================================
 import argparse
 import os
+import time
 
 import cv2
+import lpips
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
-import lpips
 from sewar.full_ref import mse
 from sewar.full_ref import msssim
 from sewar.full_ref import psnr
@@ -42,7 +43,7 @@ parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--model-path", default="./weight/SRGAN_4x.pth", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model. (default: ``./weight/SRGAN_4x.pth``).")
-parser.add_argument("--device", default="0",
+parser.add_argument("--device", default="cpu",
                     help="device id i.e. `0` or `0,1` or `cpu`. (default: ``CUDA:0``).")
 
 args = parser.parse_args()
@@ -73,11 +74,15 @@ hr = pil2tensor(hr).unsqueeze(0)
 lr = lr.to(device)
 hr = hr.to(device)
 
-with torch.no_grad():
-    sr = model(lr)
+start_time = time.time()
+for i in range(81):
+    with torch.no_grad():
+        sr = model(lr)
+end_time = time.time()
 
-vutils.save_image(sr, "sr.png", normalize=False)
-vutils.save_image(hr, "hr.png", normalize=False)
+vutils.save_image(lr, "lr.png", normalize=True)
+vutils.save_image(sr, "sr.png", normalize=True)
+vutils.save_image(hr, "hr.png", normalize=True)
 
 # Evaluate performance
 src_img = cv2.imread("sr.png")
@@ -96,6 +101,7 @@ sam_value = sam(src_img, dst_img)
 vif_value = vifp(src_img, dst_img)
 lpips_value = lpips_loss(sr, hr)
 
+print(f"Use time: {(end_time - start_time) / 81 * 1000:.2f}ms")
 print("\n")
 print("====================== Performance summary ======================")
 print(f"MSE: {mse_value:.2f}\n"
