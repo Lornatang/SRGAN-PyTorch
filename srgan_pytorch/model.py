@@ -81,8 +81,8 @@ class Discriminator(nn.Module):
 class Generator(nn.Module):
     r"""The main architecture of the generator."""
 
-    def __init__(self, upscale_factor):
-        upsample_block_num = int(math.log(upscale_factor, 2))
+    def __init__(self, upscale_factor, num_residual_block=16):
+        num_upsample_block = int(math.log(upscale_factor, 2))
 
         super(Generator, self).__init__()
         # First layer
@@ -93,7 +93,7 @@ class Generator(nn.Module):
 
         # 16 Residual blocks
         residual_blocks = []
-        for _ in range(16):
+        for _ in range(num_depth_wise_conv_block):
             residual_blocks.append(ResidualBlock(64))
         self.residual_blocks = nn.Sequential(*residual_blocks)
 
@@ -105,7 +105,7 @@ class Generator(nn.Module):
 
         # Upsampling layers
         upsampling = []
-        for out_features in range(upsample_block_num):
+        for out_features in range(num_upsample_block):
             upsampling += [
                 nn.Conv2d(64, 256, 3, 1, 1),
                 nn.BatchNorm2d(256),
@@ -119,11 +119,15 @@ class Generator(nn.Module):
 
     def forward(self, input: Tensor = None) -> Tensor:
         out1 = self.conv1(input)
+
         out = self.residual_blocks(out1)
         out2 = self.conv2(out)
-        out = torch.add(out1, out2)
+
+        out = out1 + out2
+
         out = self.upsampling(out)
         out = self.conv3(out)
+        
         return out
 
 
