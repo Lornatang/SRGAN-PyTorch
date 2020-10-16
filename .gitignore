@@ -137,8 +137,7 @@ output
 result
 logs
 
-weight/*.pth
-
+*.pth
 *.mp4
 *.zip
 *.csv

@@ -64,20 +64,22 @@ model.load_state_dict(torch.load(args.model_path, map_location=device))
 model.eval()
 
 # Just convert the data to Tensor format
-pil2tensor = transforms.ToTensor()
+pre_process = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+])
 
 # Load image
 lr = Image.open(args.lr)
 hr = Image.open(args.hr)
-lr = pil2tensor(lr).unsqueeze(0)
-hr = pil2tensor(hr).unsqueeze(0)
+lr = pre_process(lr).unsqueeze(0)
+hr = pre_process(hr).unsqueeze(0)
 lr = lr.to(device)
 hr = hr.to(device)
 
 start_time = time.time()
-for i in range(81):
-    with torch.no_grad():
-        sr = model(lr)
+with torch.no_grad():
+    sr = model(lr)
 end_time = time.time()
 
 vutils.save_image(lr, "lr.png", normalize=True)
@@ -101,7 +103,6 @@ sam_value = sam(src_img, dst_img)
 vif_value = vifp(src_img, dst_img)
 lpips_value = lpips_loss(sr, hr)
 
-print(f"Use time: {(end_time - start_time) / 81 * 1000:.2f}ms")
 print("\n")
 print("====================== Performance summary ======================")
 print(f"MSE: {mse_value:.2f}\n"
@@ -112,6 +113,7 @@ print(f"MSE: {mse_value:.2f}\n"
       f"NIQE: {niqe_value:.2f}\n"
       f"SAM: {sam_value:.4f}\n"
       f"VIF: {vif_value:.4f}\n"
-      f"LPIPS: {lpips_value.item():.4f}")
+      f"LPIPS: {lpips_value.item():.4f}"
+      f"Use time: {(end_time - start_time) * 1000:.2f}ms/{(end_time - start_time)}s.")
 print("============================== End ==============================")
 print("\n")
