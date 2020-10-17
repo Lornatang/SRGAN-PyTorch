@@ -26,7 +26,12 @@ __all__ = [
 class Discriminator(nn.Module):
     r"""The main architecture of the discriminator. Similar to VGG structure."""
 
-    def __init__(self):
+    def __init__(self, init_weights=True):
+        """
+
+        Args:
+            init_weights (optional, bool): Whether to initialize the initial neural network. (Default: ``True``).
+        """
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
@@ -60,14 +65,24 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
-
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-
         self.classifier = nn.Sequential(
             nn.Linear(512 * 7 * 7, 100),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Linear(100, 1)
         )
+
+        if init_weights:
+            self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            classname = m.__class__.__name__
+            if classname.find("Conv") != -1:
+                torch.nn.init.normal_(m.weight, 0.0, 0.02)
+            elif classname.find("BatchNorm") != -1:
+                torch.nn.init.normal_(m.weight, 1.0, 0.02)
+                torch.nn.init.zeros_(m.bias)
 
     def forward(self, input: Tensor = None) -> Tensor:
         out = self.features(input)
@@ -81,7 +96,17 @@ class Discriminator(nn.Module):
 class Generator(nn.Module):
     r"""The main architecture of the generator."""
 
-    def __init__(self, upscale_factor, num_residual_block=16):
+    def __init__(self, upscale_factor, num_residual_block=16, init_weights=True):
+        r""" This is an esrgan model defined by the author himself.
+
+        We use two settings for our generator – one of them contains 16 residual blocks, with a capacity similar
+        to that of SRGAN and the other is a deeper model with 23 RRDB blocks.
+
+        Args:
+            upscale_factor (int): Image magnification factor. (Default: 4).
+            num_residual_block (int): How many residual blocks are combined. (Default: 16).
+            init_weights (optional, bool): Whether to initialize the initial neural network. (Default: ``True``).
+        """
         num_upsample_block = int(math.log(upscale_factor, 2))
 
         super(Generator, self).__init__()
@@ -116,6 +141,18 @@ class Generator(nn.Module):
 
         # Final output layer
         self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
+
+        if init_weights:
+            self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            classname = m.__class__.__name__
+            if classname.find("Conv") != -1:
+                torch.nn.init.normal_(m.weight, 0.0, 0.02)
+            elif classname.find("BatchNorm") != -1:
+                torch.nn.init.normal_(m.weight, 1.0, 0.02)
+                torch.nn.init.zeros_(m.bias)
 
     def forward(self, input: Tensor = None) -> Tensor:
         out1 = self.conv1(input)
