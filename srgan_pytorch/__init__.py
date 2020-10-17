@@ -18,7 +18,10 @@ from .loss import ContentLoss
 from .loss import TVLoss
 from .model import Discriminator
 from .model import Generator
+from .utils import calculate_weights_indices
+from .utils import cubic
 from .utils import img2tensor
+from .utils import imresize
 from .utils import init_torch_seeds
 from .utils import load_checkpoint
 from .utils import select_device
@@ -32,7 +35,10 @@ __all__ = [
     "TVLoss",
     "Discriminator",
     "Generator",
+    "calculate_weights_indices",
+    "cubic",
     "img2tensor",
+    "imresize",
     "init_torch_seeds",
     "load_checkpoint",
     "select_device",

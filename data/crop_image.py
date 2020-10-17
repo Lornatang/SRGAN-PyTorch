@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 """Making training data set quickly."""
 import glob
 import os
@@ -20,6 +19,10 @@ import shutil
 import cv2
 import torchvision.transforms as transforms
 from PIL import Image
+
+__all__ = [
+    "center_crop", "create_folder", "crop_candidate_region"
+]
 
 raw_dir_10x = "./raw_data/10x"  # The processed image address is 10x.
 raw_dir_20x = "./raw_data/20x"  # The processed image address is 20x.
@@ -33,10 +36,6 @@ lr_dir_2x = "./2x/train/input"  # Low resolution image at 2x.
 lr_dir_4x = "./4x/train/input"  # Low resolution image at 4x.
 hr_dir_2x = "./2x/train/target"  # High resolution image at 2x.
 hr_dir_4x = "./4x/train/target"  # High resolution image at 4x.
-
-crop_img_size = 1944  # The size of the image after clipping.
-img_size_2x = int(crop_img_size // 2)  # The size of low resolution image under 2x.
-img_size_4x = int(crop_img_size // 4)  # The size of low resolution image under 4.
 
 
 def center_crop(raw_img_dir=None, dst_img_dir=None, crop_img_size: int = 1944) -> None:
@@ -74,7 +73,7 @@ def create_folder(path: str = "./output") -> None:
 
 def crop_candidate_region(raw_img_dir: str = None, dst_img_dir: str = None,
                           lr_dir: str = None, hr_dir: str = None,
-                          lr_img_size: int = None, hr_img_size: int = crop_img_size,
+                          lr_img_size: int = 972, hr_img_size: int = 1944,
                           scale_factor: int = 2, candidate_box: list = None) -> None:
     """ The region corresponding to HR image is extracted from LR image.
 
@@ -83,10 +82,10 @@ def crop_candidate_region(raw_img_dir: str = None, dst_img_dir: str = None,
         dst_img_dir (str): Target picture folder path.
         lr_dir (str): Low resolution image folder path.
         hr_dir (str): High resolution image folder path.
-        lr_img_size (str): Low resolution image size.
-        hr_img_size (str): High resolution image size.
-        scale_factor (str): Image magnification. (Default: 2).
-        candidate_box (str): Low resolution image candidate region.
+        lr_img_size (int): Low resolution image size. (default: 972).
+        hr_img_size (int): High resolution image size. (default: 1944).
+        scale_factor (int): Image magnification. (Default: 2).
+        candidate_box (list): Low resolution image candidate region.
     """
     if hr_img_size is None or hr_img_size < 4:
         raise (
@@ -127,15 +126,15 @@ if __name__ == "__main__":
 
     # Traverse all '.bmp' suffix images in all folder.
     print("Step 2: Traverse all '.bmp' suffix images in all folder.")
-    center_crop(raw_dir_10x, new_dir_10x, crop_img_size)
-    center_crop(raw_dir_20x, new_dir_20x, crop_img_size)
-    center_crop(raw_dir_40x, new_dir_40x, crop_img_size)
+    center_crop(raw_dir_10x, new_dir_10x, 1944)
+    center_crop(raw_dir_20x, new_dir_20x, 1944)
+    center_crop(raw_dir_40x, new_dir_40x, 1944)
 
     print("Step 3: Similar regions of HR image are extracted from LR image for 2x.")
     # Similar regions of HR image are extracted from LR image for 2x.
     crop_candidate_region(raw_img_dir=new_dir_10x, dst_img_dir=new_dir_20x,
                           lr_dir=lr_dir_2x, hr_dir=hr_dir_2x,
-                          lr_img_size=img_size_2x, hr_img_size=crop_img_size,
+                          lr_img_size=972, hr_img_size=1944,
                           scale_factor=2, candidate_box=[507, 1443, 524, 1454])
     # print("Step 4: Similar regions of HR image are extracted from LR image for 4x.")
     # Similar regions of HR image are extracted from LR image for 4x.
