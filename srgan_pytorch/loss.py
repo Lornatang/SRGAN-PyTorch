@@ -113,6 +113,6 @@ class ContentLoss(nn.Module):
             param.requires_grad = False
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        perception_loss = F.mse_loss(self.feature_extractor(input), self.feature_extractor(target))
+        perception_loss = F.mse_loss(self.features(input), self.features(target))
 
         return perception_loss
