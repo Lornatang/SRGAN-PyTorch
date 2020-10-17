@@ -13,6 +13,7 @@
 # ==============================================================================
 from .calculate_niqe import cal_niqe
 from .dataset import DatasetFromFolder
+from .dataset import check_image_file
 from .loss import ContentLoss
 from .loss import TVLoss
 from .model import Discriminator
@@ -26,6 +27,7 @@ from .utils import tensor2img
 __all__ = [
     "cal_niqe",
     "DatasetFromFolder",
+    "check_image_file",
     "ContentLoss",
     "TVLoss",
     "Discriminator",
