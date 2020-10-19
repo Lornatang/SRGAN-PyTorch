@@ -90,7 +90,7 @@ class Discriminator(nn.Module):
         out = torch.flatten(out, 1)
         out = self.classifier(out)
 
-        return F.sigmoid(out)
+        return torch.sigmoid(out)
 
 
 class Generator(nn.Module):
