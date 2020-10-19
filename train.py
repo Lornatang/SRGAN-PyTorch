@@ -51,7 +51,7 @@ parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
                          "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--lr", type=float, default=1e-4,
                     help="Learning rate. (default:1e-4)")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--resume_PSNR", action="store_true",
                     help="Path to latest checkpoint for PSNR model.")
