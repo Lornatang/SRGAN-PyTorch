@@ -84,7 +84,7 @@ class Discriminator(nn.Module):
                 torch.nn.init.normal_(m.weight, 1.0, 0.02)
                 torch.nn.init.zeros_(m.bias)
 
-    def forward(self, input: Tensor = None) -> Tensor:
+    def forward(self, input: Tensor) -> Tensor:
         out = self.features(input)
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
@@ -154,7 +154,7 @@ class Generator(nn.Module):
                 torch.nn.init.normal_(m.weight, 1.0, 0.02)
                 torch.nn.init.zeros_(m.bias)
 
-    def forward(self, input: Tensor = None) -> Tensor:
+    def forward(self, input: Tensor) -> Tensor:
         out1 = self.conv1(input)
 
         out = self.residual_blocks(out1)
@@ -184,7 +184,7 @@ class ResidualBlock(nn.Module):
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
 
-    def forward(self, input: Tensor = None) -> Tensor:
+    def forward(self, input: Tensor) -> Tensor:
         out = self.conv1(input)
         out = self.bn1(out)
         out = self.prelu(out)
