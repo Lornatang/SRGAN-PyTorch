@@ -27,48 +27,47 @@ class Discriminator(nn.Module):
 
     def __init__(self, init_weights=True):
         """
-
         Args:
             init_weights (optional, bool): Whether to initialize the initial neural network. (Default: ``True``).
         """
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),  # input is 3 x 216 x 216
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),  # state size. (64) x 108 x 108
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),  # state size. 128 x 64 x 64
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),  # state size. 256 x 32 x 32
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),  # state size. 512 x 16 x 16
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True)
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.avgpool = nn.AdaptiveAvgPool2d((16, 16))
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 100),
+            nn.Linear(512 * 16 * 16, 1024),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Linear(100, 1)
+            nn.Linear(1024, 1)
         )
 
         if init_weights:
@@ -83,7 +82,7 @@ class Discriminator(nn.Module):
                 torch.nn.init.normal_(m.weight, 1.0, 0.02)
                 torch.nn.init.zeros_(m.bias)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor = None) -> Tensor:
         out = self.features(input)
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
