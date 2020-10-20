@@ -61,11 +61,12 @@ class ContentLoss(nn.Module):
     as SRGAN in the following.
     """
 
-    def __init__(self, feature_layer: int = 34) -> None:
+    def __init__(self, feature_layer: int = 36) -> None:
         """ Constructing characteristic loss function of VGG network. For VGG5.4 layer.
+        For VGG2.2 use 9th layer.
 
         Args:
-            feature_layer (int): How many layers in VGG19. (Default:34).
+            feature_layer (int): How many layers in VGG19. (Default:36).
 
         Notes:
             features(
@@ -103,6 +104,8 @@ class ContentLoss(nn.Module):
               (31): ReLU(inplace=True)
               (32): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
               (33): ReLU(inplace=True)
+              (34): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (35): ReLU(inplace=True)
             )
         """
         super(ContentLoss, self).__init__()
@@ -113,6 +116,8 @@ class ContentLoss(nn.Module):
             param.requires_grad = False
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        perception_loss = F.mse_loss(self.features(input), self.features(target))
+        # We then define the VGG loss as the euclidean distance between the feature representations of a
+        # reconstructed image G(LR) and the reference image I(HR):
+        perception_loss = F.pairwise_distance(self.features(input), self.features(target))
 
         return perception_loss
