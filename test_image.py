@@ -48,11 +48,6 @@ parser.add_argument("--device", default="cpu",
 
 args = parser.parse_args()
 
-try:
-    os.makedirs("benchmark")
-except OSError:
-    pass
-
 # Selection of appropriate treatment equipment
 device = select_device(args.device, batch_size=1)
 
