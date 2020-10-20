@@ -103,7 +103,7 @@ class Generator(nn.Module):
         residual_blocks = []
         for _ in range(num_residual_block):
             residual_blocks.append(ResidualBlock(64))
-        self.residual_blocks = nn.Sequential(*residual_blocks)
+        self.Trunk = nn.Sequential(*residual_blocks)
 
         # Second conv layer post residual blocks
         self.conv2 = nn.Sequential(
@@ -130,12 +130,9 @@ class Generator(nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         out1 = self.conv1(input)
-
-        out = self.residual_blocks(out1)
+        out = self.Trunk(out1)
         out2 = self.conv2(out)
-
         out = torch.add(out1, out2)
-
         out = self.upsampling(out)
         out = self.conv3(out)
 
