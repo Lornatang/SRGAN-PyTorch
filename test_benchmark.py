@@ -17,10 +17,7 @@ import os
 import cv2
 import lpips
 import torch.utils.data
-import torch.utils.data.distributed
-import torchvision.transforms as transforms
 import torchvision.utils as vutils
-from PIL import Image
 from sewar.full_ref import mse
 from sewar.full_ref import msssim
 from sewar.full_ref import psnr
@@ -87,63 +84,58 @@ total_sam_value = 0.0
 total_vif_value = 0.0
 total_lpips_value = 0.0
 
-pre_process = transforms.Compose([
-    transforms.Resize((216, 216), interpolation=Image.BICUBIC),
-    transforms.ToTensor()
-])
-
 # Start evaluate model performance
-with torch.no_grad():
-    progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    for iteration, (input, target) in progress_bar:
-        # Set model gradients to zero
-        lr = input.to(device)
-        hr = target.to(device)
+progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+for iteration, (input, target) in progress_bar:
+    # Set model gradients to zero
+    lr = input.to(device)
+    hr = target.to(device)
 
+    with torch.no_grad():
         sr = model(lr)
 
-        vutils.save_image(lr, f"./benchmark/lr_{iteration}.bmp", normalize=True)
-        vutils.save_image(sr, f"./benchmark/sr_{iteration}.bmp", normalize=True)
-        vutils.save_image(hr, f"./benchmark/hr_{iteration}.bmp", normalize=True)
+    vutils.save_image(lr, f"./benchmark/lr_{iteration}.bmp", normalize=True)
+    vutils.save_image(sr, f"./benchmark/sr_{iteration}.bmp", normalize=True)
+    vutils.save_image(hr, f"./benchmark/hr_{iteration}.bmp", normalize=True)
 
-        # Evaluate performance
-        src_img = cv2.imread(f"./benchmark/sr_{iteration}.bmp")
-        dst_img = cv2.imread(f"./benchmark/hr_{iteration}.bmp")
+    # Evaluate performance
+    src_img = cv2.imread(f"./benchmark/sr_{iteration}.bmp")
+    dst_img = cv2.imread(f"./benchmark/hr_{iteration}.bmp")
 
-        mse_value = mse(src_img, dst_img)
-        rmse_value = rmse(src_img, dst_img)
-        psnr_value = psnr(src_img, dst_img)
-        ssim_value = ssim(src_img, dst_img)
-        ms_ssim_value = msssim(src_img, dst_img)
-        niqe_value = cal_niqe(f"./benchmark/sr_{iteration}.bmp")
-        sam_value = sam(src_img, dst_img)
-        vif_value = vifp(src_img, dst_img)
-        lpips_value = lpips_loss(sr, hr)
+    mse_value = mse(src_img, dst_img)
+    rmse_value = rmse(src_img, dst_img)
+    psnr_value = psnr(src_img, dst_img)
+    ssim_value = ssim(src_img, dst_img)
+    ms_ssim_value = msssim(src_img, dst_img)
+    niqe_value = cal_niqe(f"./benchmark/sr_{iteration}.bmp")
+    sam_value = sam(src_img, dst_img)
+    vif_value = vifp(src_img, dst_img)
+    lpips_value = lpips_loss(sr, hr)
 
-        total_mse_value += mse_value
-        total_rmse_value += rmse_value
-        total_psnr_value += psnr_value
-        total_ssim_value += ssim_value[0]
-        total_ms_ssim_value += ms_ssim_value.real
-        total_niqe_value += niqe_value
-        total_sam_value += sam_value
-        total_vif_value += vif_value
-        total_lpips_value += lpips_value.item()
+    total_mse_value += mse_value
+    total_rmse_value += rmse_value
+    total_psnr_value += psnr_value
+    total_ssim_value += ssim_value[0]
+    total_ms_ssim_value += ms_ssim_value.real
+    total_niqe_value += niqe_value
+    total_sam_value += sam_value
+    total_vif_value += vif_value
+    total_lpips_value += lpips_value.item()
 
-        progress_bar.set_description(f"[{iteration + 1}/{len(dataloader)}] "
-                                     f"PSNR: {psnr_value:.2f}dB "
-                                     f"SSIM: {ssim_value[0]:.4f} "
-                                     f"LPIPS: {lpips_value.item():.4f}")
+    progress_bar.set_description(f"[{iteration + 1}/{len(dataloader)}] "
+                                 f"PSNR: {psnr_value:.2f}dB "
+                                 f"SSIM: {ssim_value[0]:.4f} "
+                                 f"LPIPS: {lpips_value.item():.4f}")
 
-    avg_mse_value = total_mse_value / len(dataloader)
-    avg_rmse_value = total_rmse_value / len(dataloader)
-    avg_psnr_value = total_psnr_value / len(dataloader)
-    avg_ssim_value = total_ssim_value / len(dataloader)
-    avg_ms_ssim_value = total_ms_ssim_value / len(dataloader)
-    avg_niqe_value = total_niqe_value / len(dataloader)
-    avg_sam_value = total_sam_value / len(dataloader)
-    avg_vif_value = total_vif_value / len(dataloader)
-    avg_lpips_value = total_lpips_value / len(dataloader)
+avg_mse_value = total_mse_value / len(dataloader)
+avg_rmse_value = total_rmse_value / len(dataloader)
+avg_psnr_value = total_psnr_value / len(dataloader)
+avg_ssim_value = total_ssim_value / len(dataloader)
+avg_ms_ssim_value = total_ms_ssim_value / len(dataloader)
+avg_niqe_value = total_niqe_value / len(dataloader)
+avg_sam_value = total_sam_value / len(dataloader)
+avg_vif_value = total_vif_value / len(dataloader)
+avg_lpips_value = total_lpips_value / len(dataloader)
 
 print("\n")
 print("====================== Performance summary ======================")
