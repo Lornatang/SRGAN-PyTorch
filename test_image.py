@@ -113,7 +113,7 @@ print(f"MSE: {mse_value:.2f}\n"
       f"NIQE: {niqe_value:.2f}\n"
       f"SAM: {sam_value:.4f}\n"
       f"VIF: {vif_value:.4f}\n"
-      f"LPIPS: {lpips_value.item():.4f}"
-      f"Use time: {(end_time - start_time) * 1000:.2f}ms/{(end_time - start_time)}s.")
+      f"LPIPS: {lpips_value.item():.4f}\n"
+      f"Use time: {(end_time - start_time) * 1000:.2f}ms/{(end_time - start_time):.4f}s.")
 print("============================== End ==============================")
 print("\n")
