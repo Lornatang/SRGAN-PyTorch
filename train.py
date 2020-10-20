@@ -107,9 +107,9 @@ optimizer = torch.optim.Adam(netG.parameters(), lr=args.lr)
 if args.resume_PSNR:
     args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/SRResNet_{args.upscale_factor}x_checkpoint.pth")
 
-# We use vgg54 as our feature extraction method by default.
+# We use VGG5.4 as our feature extraction method by default.
 content_criterion = ContentLoss().to(device)
-# Perceptual loss = mse_loss + 2e-6 * content_loss + 1e-3 * adversarial_loss
+# Perceptual loss = content_loss + 1e-3 * adversarial_loss
 mse_criterion = nn.MSELoss().to(device)
 adversarial_criterion = nn.BCELoss().to(device)
 
@@ -200,13 +200,12 @@ print(f"[*] Training for {epochs} epochs.")
 if args.start_epoch == 0:
     with open(f"SRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
-        writer.writerow(["Epoch", "D Loss", "G Loss", "MSE Loss"])
+        writer.writerow(["Epoch", "D Loss", "G Loss"])
 
 for epoch in range(args.start_epoch, epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     g_avg_loss = 0.
     d_avg_loss = 0.
-    avg_mse_loss = 0.
     for i, (input, target) in progress_bar:
         lr = input.to(device)
         hr = target.to(device)
@@ -243,11 +242,9 @@ for epoch in range(args.start_epoch, epochs):
         # Set generator gradients to zero
         netG.zero_grad()
 
-        # The pixel-wise MSE loss is calculated as:
-        mse_loss = mse_criterion(sr, hr)
         # We then define the VGG loss as the euclidean distance between the feature representations of
         # a reconstructed image G(LR) and the reference image LR:
-        vgg_loss = content_criterion(sr, hr)
+        content_loss = content_criterion(sr, hr)
         # Second train with fake high resolution image.
         sr_output = netD(sr)
         #  The generative loss is defined based on the probabilities of the discriminator
@@ -255,7 +252,7 @@ for epoch in range(args.start_epoch, epochs):
         adversarial_loss = adversarial_criterion(sr_output, real_label)
 
         # We formulate the perceptual loss as the weighted sum of a content loss and an adversarial loss component as:
-        errG = mse_loss + 2e-6 * vgg_loss + 1e-3 * adversarial_loss
+        errG = content_loss + 1e-3 * adversarial_loss
         errG.backward()
         D_G_z2 = sr_output.mean().item()
         optimizerG.step()
@@ -266,7 +263,6 @@ for epoch in range(args.start_epoch, epochs):
 
         d_avg_loss += errD.item()
         g_avg_loss += errG.item()
-        avg_mse_loss += mse_loss.item()
 
         progress_bar.set_description(f"[{epoch + 1}/{epochs}][{i + 1}/{len(dataloader)}] "
                                      f"Loss_D: {errD.item():.6f} Loss_G: {errG.item():.6f} "
@@ -296,8 +292,7 @@ for epoch in range(args.start_epoch, epochs):
         writer = csv.writer(f)
         writer.writerow([epoch + 1,
                          d_avg_loss / len(dataloader),
-                         g_avg_loss / len(dataloader),
-                         avg_mse_loss / len(dataloader)])
+                         g_avg_loss / len(dataloader)])
 
 torch.save(netG.state_dict(), f"./weight/SRGAN_{args.upscale_factor}x.pth")
 logger.info(f"[*] Training SRGAN model done! Saving SRGAN model weight "
