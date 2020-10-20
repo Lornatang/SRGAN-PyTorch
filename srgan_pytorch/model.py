@@ -27,7 +27,7 @@ class Discriminator(nn.Module):
 
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.main = nn.Sequential(
+        self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),  # input is 3 x 216 x 216
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -57,16 +57,22 @@ class Discriminator(nn.Module):
 
             nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),  # state size. 512 x 14 x 14
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        )
 
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(512, 1024, kernel_size=1),
+        self.avgpool = nn.AdaptiveAvgPool2d(14)
+
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 14 * 14, 1024),
             nn.LeakyReLU(0.2),
-            nn.Conv2d(1024, 1, kernel_size=1)
+            nn.Linear(1024, 1)
         )
 
     def forward(self, input: Tensor) -> Tensor:
-        out = self.main(input)
+        out = self.features(input)
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        out = self.classifier(out)
 
         return torch.sigmoid(out)
 
@@ -89,7 +95,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         # First layer
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=9, padding=4, bias=False),
+            nn.Conv2d(3, 64, kernel_size=9, padding=4),
             nn.PReLU()
         )
 
@@ -101,7 +107,7 @@ class Generator(nn.Module):
 
         # Second conv layer post residual blocks
         self.conv2 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64)
         )
 
@@ -109,7 +115,7 @@ class Generator(nn.Module):
         upsampling = []
         for out_features in range(num_upsample_block):
             upsampling += [
-                nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1, bias=False),
+                nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1),
                 nn.BatchNorm2d(256),
                 nn.PixelShuffle(upscale_factor=2),
                 nn.PReLU(),
@@ -118,7 +124,7 @@ class Generator(nn.Module):
 
         # Final output layer
         self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4, bias=False),
+            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4),
             nn.Tanh()
         )
 
@@ -146,10 +152,10 @@ class ResidualBlock(nn.Module):
             channels (int): Number of channels in the input image.
         """
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(channels)
         self.prelu = nn.PReLU()
-        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm2d(channels)
 
     def forward(self, input: Tensor) -> Tensor:

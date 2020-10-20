@@ -39,7 +39,6 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
         self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
         self.transforms = transforms.Compose([
             img2tensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
     def __getitem__(self, index):
