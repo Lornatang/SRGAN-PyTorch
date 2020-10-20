@@ -113,7 +113,7 @@ class Generator(nn.Module):
 
         # Upsampling layers
         upsampling = []
-        for out_features in range(num_upsample_block):
+        for _ in range(num_upsample_block):
             upsampling += [
                 nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1),
                 nn.BatchNorm2d(256),
