@@ -68,6 +68,20 @@ class Discriminator(nn.Module):
             nn.Linear(1024, 1)
         )
 
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                m.weight.data *= 0.1
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                m.weight.data *= 0.1
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
     def forward(self, input: Tensor) -> Tensor:
         out = self.features(input)
         out = self.avgpool(out)
@@ -154,6 +168,20 @@ class ResidualBlock(nn.Module):
         self.prelu = nn.PReLU()
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                m.weight.data *= 0.1
+                if m.bias is not None:
+                    m.bias.data.fill_(0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                m.weight.data *= 0.1
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, input: Tensor) -> Tensor:
         out = self.conv1(input)
