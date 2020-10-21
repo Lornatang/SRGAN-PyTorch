@@ -273,9 +273,9 @@ for epoch in range(args.start_epoch, epochs):
 
         # The image is saved every 5000 iterations.
         if (total_iter + 1) % 5000 == 0:
-            vutils.save_image(lr, os.path.join(output_lr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=True)
-            vutils.save_image(hr, os.path.join(output_hr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=True)
-            vutils.save_image(sr, os.path.join(output_sr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=True)
+            vutils.save_image(lr, os.path.join(output_lr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=False)
+            vutils.save_image(hr, os.path.join(output_hr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=False)
+            vutils.save_image(sr, os.path.join(output_sr_dir, f"SRGAN_{total_iter + 1}.bmp"), normalize=False)
 
     # The model is saved every 1 epoch.
     torch.save({"epoch": epoch + 1,

@@ -74,9 +74,9 @@ with torch.no_grad():
     sr = model(lr)
 end_time = time.time()
 
-vutils.save_image(lr, "lr.png", normalize=True)
-vutils.save_image(sr, "sr.png", normalize=True)
-vutils.save_image(hr, "hr.png", normalize=True)
+vutils.save_image(lr, "lr.png", normalize=False)
+vutils.save_image(sr, "sr.png", normalize=False)
+vutils.save_image(hr, "hr.png", normalize=False)
 
 # Evaluate performance
 src_img = cv2.imread("sr.png")
