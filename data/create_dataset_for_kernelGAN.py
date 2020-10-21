@@ -28,9 +28,9 @@ from srgan_pytorch import utils
 
 parser = argparse.ArgumentParser(description="Using the image distribution algorithm learned in kernelgan to "
                                              "construct pairwise hyperspectral data.")
-parser.add_argument("input-dir", type=str, required=True,
+parser.add_argument("--input-dir", type=str, required=True,
                     help="Folder for low resolution images.")
-parser.add_argument("target-dir", type=str, required=True,
+parser.add_argument("--target-dir", type=str, required=True,
                     help="Folder for high resolution images.")
 parser.add_argument("--cleanup-factor", default=2, type=int,
                     help="downscaling factor for image cleanup. (default: 2).")
@@ -44,10 +44,6 @@ lr_dir = f"./{args.upscale_factor}x/input"
 hr_dir = f"./{args.upscale_factor}x/target"
 lr_files = [os.path.join(args.input_dir, x) for x in os.listdir(args.input_dir) if check_image_file(x)]
 hr_files = [os.path.join(args.target_dir, x) for x in os.listdir(args.target_dir) if check_image_file(x)]
-
-# Make sure the folder is empty.
-assert not os.path.exists(lr_dir)
-assert not os.path.exists(hr_dir)
 
 try:
     os.makedirs(lr_dir)
@@ -78,7 +74,7 @@ def process_for_lr():
 
         # Save high resolution img
         img = tensor2pil(img)
-        img.save(os.path.join(args.hr_dir, os.path.basename(filename)), "bmp")
+        img.save(os.path.join(hr_dir, os.path.basename(filename)), "bmp")
 
         # The noise distribution obtained in kernelGAN is used to adjust the image.
         kernel_path = kernel_paths[np.random.randint(0, len(kernel_paths))]
@@ -88,7 +84,7 @@ def process_for_lr():
 
         # Save low resolution img
         img = tensor2pil(img)
-        img.save(os.path.join(args.lr_dir, os.path.basename(filename)), "bmp")
+        img.save(os.path.join(lr_dir, os.path.basename(filename)), "bmp")
 
 
 def process_for_hr():
@@ -100,7 +96,7 @@ def process_for_hr():
 
         # Save high resolution img
         img = tensor2pil(img)
-        img.save(os.path.join(args.hr_dir, os.path.basename(filename)), "bmp")
+        img.save(os.path.join(hr_dir, os.path.basename(filename)), "bmp")
 
         # The noise distribution obtained in kernelGAN is used to adjust the image.
         kernel_path = kernel_paths[np.random.randint(0, len(kernel_paths))]
@@ -110,7 +106,7 @@ def process_for_hr():
 
         # Save low resolution img
         img = tensor2pil(img)
-        img.save(os.path.join(args.lr_dir, os.path.basename(filename)), "bmp")
+        img.save(os.path.join(lr_dir, os.path.basename(filename)), "bmp")
 
 
 if __name__ == "__main__":

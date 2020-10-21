@@ -19,13 +19,13 @@ import numpy as np
 from PIL import Image
 
 
-def split_for_slicling(image: np.array, row_number: int = 4, col_number: int = 4) -> list:
+def split_for_slicling(image: np.array, row_number: int = 9, col_number: int = 9) -> list:
     r""" Use the simple numpy slicing function.
 
     Args:
         image (cv2.imread): Image format read by opencv.
-        row_number (int): Split along the width of the image. (Default: 4).
-        col_number (int): Split along the height of the image. (Default: 4).
+        row_number (int): Split along the width of the image. (Default: 9).
+        col_number (int): Split along the height of the image. (Default: 9).
 
     Shape:
         image: :math:`(N, *)` where :math:`*` means, any number of additional dimensions
@@ -48,13 +48,13 @@ def split_for_slicling(image: np.array, row_number: int = 4, col_number: int = 4
     return image_blocks
 
 
-def save_split_image(img_dir: str, row_number: int = 4, col_number: int = 4, delete: bool = True) -> None:
+def save_split_image(img_dir: str, row_number: int = 9, col_number: int = 9, delete: bool = True) -> None:
     r""" Save the split image.
 
     Args:
         img_dir (str): Original image folder to be processed.
-        row_number (int): Split along the width of the image. (Default: 4).
-        col_number (int): Split along the height of the image. (Default: 4).
+        row_number (int): Split along the width of the image. (Default: 9).
+        col_number (int): Split along the height of the image. (Default: 9).
         delete (optional, bool): Do you want to delete the original image after processing. (Default:``True``).
     """
     __constant__ = ["delete"]
@@ -72,4 +72,4 @@ def save_split_image(img_dir: str, row_number: int = 4, col_number: int = 4, del
 
 
 if __name__ == "__main__":
-    save_split_image("./2x/train/input")
+    save_split_image("./4x/train/input")

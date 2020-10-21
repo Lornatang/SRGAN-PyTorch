@@ -15,67 +15,19 @@ import os
 import random
 import shutil
 
-# Define raw directory
-lr_train_dir_2x = "./2x/train/input"  # Low resolution image at 2x.
-lr_train_dir_4x = "./4x/train/input"  # Low resolution image at 4x.
-hr_train_dir_2x = "./2x/train/target"  # High resolution image at 2x.
-hr_train_dir_4x = "./4x/train/target"  # High resolution image at 4x.
-# Define the directory address of the dataset
-lr_val_dir_2x = "./2x/val/input"
-hr_val_dir_2x = "./2x/val/target"
-lr_val_dir_4x = "./4x/val/input"
-hr_val_dir_4x = "./4x/val/target"
-
 # Ratio of val set in total dataset.
 rate = 0.1
 
-# Check all the file directory exists.
-if not os.path.exists(lr_train_dir_2x):
-    raise FileExistsError(
-        "Low resolution image address does not exist, "
-        "please make the original dataset.")
-if not os.path.exists(hr_train_dir_2x):
-    raise FileExistsError(
-        "High resolution image address does not exist, "
-        "please make the original dataset.")
-if not os.path.exists(lr_train_dir_4x):
-    raise FileExistsError(
-        "Low resolution image address does not exist, "
-        "please make the original dataset.")
-if not os.path.exists(hr_train_dir_4x):
-    raise FileExistsError(
-        "High resolution image address does not exist, "
-        "please make the original dataset.")
 
-# Delete old folder
-if os.path.exists(lr_val_dir_2x):
-    shutil.rmtree(lr_val_dir_2x)
-if os.path.exists(hr_val_dir_2x):
-    shutil.rmtree(hr_val_dir_2x)
-if os.path.exists(lr_val_dir_4x):
-    shutil.rmtree(lr_val_dir_4x)
-if os.path.exists(hr_val_dir_4x):
-    shutil.rmtree(hr_val_dir_4x)
-
-# Create new folder
-os.makedirs(lr_val_dir_2x)
-os.makedirs(hr_val_dir_2x)
-os.makedirs(lr_val_dir_4x)
-os.makedirs(hr_val_dir_4x)
-
-
-def split_dataset(lr_train_dir: str = None, hr_train_dir: str = None,
-                  lr_val_dir: str = None, hr_val_dir: str = None) -> None:
+def split_dataset(train_dir: str = None, val_dir: str = None) -> None:
     """ Make training data set and validation data set.
 
     Args:
-        lr_train_dir (str): Low resolution train image folder path.
-        hr_train_dir (str): High resolution train image folder path.
-        lr_val_dir (str): Low resolution val image folder path.
-        hr_val_dir (str): High resolution val image folder path.
+        train_dir (str): Train image folder path.
+        val_dir (str): Val image folder path.
     """
     # The original data set is divided into 9:1 (train:val)
-    for _, _, files in os.walk(lr_train_dir):
+    for _, _, files in os.walk(train_dir):
         # The size of the number of files in the total dataset.
         total_file_number = len(files)
         # Number of files in val set
@@ -85,10 +37,9 @@ def split_dataset(lr_train_dir: str = None, hr_train_dir: str = None,
         # Move the validation set to the specified location.
         for filename in samples:
             # Making low resolution image data set.
-            shutil.copyfile(os.path.join(lr_train_dir, filename), os.path.join(lr_val_dir, filename))
-            shutil.copyfile(os.path.join(hr_train_dir, filename), os.path.join(hr_val_dir, filename))
+            shutil.move(os.path.join("train", "input", filename), os.path.join("test", "input", filename))
+            shutil.move(os.path.join("train", "target", filename), os.path.join("test", "target", filename))
 
 
 if __name__ == "__main__":
-    split_dataset(lr_train_dir=lr_train_dir_2x, hr_train_dir=hr_train_dir_2x,
-                  lr_val_dir=lr_val_dir_2x, hr_val_dir=hr_val_dir_2x)
+    split_dataset(train_dir="./train/input", val_dir="./test/input")
