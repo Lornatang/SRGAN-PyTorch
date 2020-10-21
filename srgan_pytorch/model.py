@@ -70,7 +70,7 @@ class Discriminator(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight)
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
                 m.weight.data *= 0.1
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)

@@ -12,12 +12,11 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
-import os
 import time
 
 import cv2
 import lpips
-import torch.utils.data.distributed
+import torch
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
@@ -35,9 +34,9 @@ from srgan_pytorch import select_device
 
 parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution Using "
                                              "a Generative Adversarial Network.")
-parser.add_argument("--lr", type=str,
+parser.add_argument("--lr", type=str, required=True,
                     help="Test low resolution image name.")
-parser.add_argument("--hr", type=str,
+parser.add_argument("--hr", type=str, required=True,
                     help="Raw high resolution image name.")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                     help="Low to high resolution scaling factor. (default:4).")
