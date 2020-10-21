@@ -118,6 +118,6 @@ class ContentLoss(nn.Module):
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         # We then define the VGG loss as the euclidean distance between the feature representations of a
         # reconstructed image G(LR) and the reference image I(HR):
-        vgg_loss = F.mse_loss(self.features(input), self.features(target))
+        content_loss = F.mse_loss(self.features(input), self.features(target))
 
-        return vgg_loss
+        return content_loss

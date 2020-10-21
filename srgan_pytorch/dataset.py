@@ -35,7 +35,10 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
         super(DatasetFromFolder, self).__init__()
         self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
         self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
-        self.transforms = transforms.ToTensor()
+        self.transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -48,6 +51,7 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
         """
         input = self.transforms(Image.open(self.input_filenames[index]))
         target = self.transforms(Image.open(self.target_filenames[index]))
+
         return input, target
 
     def __len__(self):
