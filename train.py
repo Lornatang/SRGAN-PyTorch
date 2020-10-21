@@ -23,9 +23,9 @@ import torch.utils.data.distributed
 import torchvision.utils as vutils
 from tqdm import tqdm
 
+from srgan_pytorch import ContentLoss
 from srgan_pytorch import DatasetFromFolder
 from srgan_pytorch import Discriminator
-from srgan_pytorch import ContentLoss
 from srgan_pytorch import Generator
 from srgan_pytorch import init_torch_seeds
 from srgan_pytorch import load_checkpoint
