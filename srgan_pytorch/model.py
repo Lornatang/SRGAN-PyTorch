@@ -60,35 +60,22 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-        self.avgpool = nn.AdaptiveAvgPool2d(14)
+        self.avgpool = nn.AdaptiveAvgPool2d((14, 14))
 
-        self.classifier = nn.Sequential(
+        self.fc = nn.Sequential(
             nn.Linear(512 * 14 * 14, 1024),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Linear(1024, 1)
+            nn.Linear(1024, 1),
+            nn.Sigmoid()
         )
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
-                m.weight.data *= 0.1
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight)
-                m.weight.data *= 0.1
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, input: Tensor) -> Tensor:
         out = self.features(input)
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
-        out = self.classifier(out)
+        out = self.fc(out)
 
-        return torch.sigmoid(out)
+        return out
 
 
 class Generator(nn.Module):
@@ -163,25 +150,26 @@ class ResidualBlock(nn.Module):
             channels (int): Number of channels in the input image.
         """
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(channels)
         self.prelu = nn.PReLU()
-        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
                 if m.bias is not None:
-                    m.bias.data.fill_(0)
+                    m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
-                nn.init.constant_(m.bias, 0)
+                if m.bias is not None:
+                    m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.bias.data, 0.0)
 
     def forward(self, input: Tensor) -> Tensor:
         out = self.conv1(input)
