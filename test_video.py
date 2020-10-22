@@ -50,7 +50,10 @@ model.load_state_dict(torch.load(args.model_path, map_location=device))
 model.eval()
 
 # Image preprocessing operation
-pil2tensor = transforms.ToTensor()
+pil2tensor = pre_process = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+])
 tensor2pil = transforms.ToPILImage()
 
 # Open video file
