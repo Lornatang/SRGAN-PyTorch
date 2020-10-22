@@ -94,9 +94,9 @@ for i, (input, target) in progress_bar:
     with torch.no_grad():
         sr = model(lr)
 
-    vutils.save_image(lr, f"./benchmark/lr_{i}.bmp", normalize=True)
-    vutils.save_image(sr, f"./benchmark/sr_{i}.bmp", normalize=True)
-    vutils.save_image(hr, f"./benchmark/hr_{i}.bmp", normalize=True)
+    vutils.save_image(lr, f"./benchmark/lr_{i}.bmp")
+    vutils.save_image(sr, f"./benchmark/sr_{i}.bmp")
+    vutils.save_image(hr, f"./benchmark/hr_{i}.bmp")
 
     # Evaluate performance
     src_img = cv2.imread(f"./benchmark/sr_{i}.bmp")

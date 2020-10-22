@@ -58,10 +58,7 @@ model.load_state_dict(torch.load(args.model_path, map_location=device))
 model.eval()
 
 # Just convert the data to Tensor format
-pre_process = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-])
+pre_process = transforms.ToTensor()
 
 # Load image
 lr = Image.open(args.lr)
@@ -76,9 +73,9 @@ with torch.no_grad():
     sr = model(lr)
 end_time = time.time()
 
-vutils.save_image(lr, "lr.png", normalize=True)
-vutils.save_image(sr, "sr.png", normalize=True)
-vutils.save_image(hr, "hr.png", normalize=True)
+vutils.save_image(lr, "lr.png")
+vutils.save_image(sr, "sr.png")
+vutils.save_image(hr, "hr.png")
 
 # Evaluate performance
 src_img = cv2.imread("sr.png")
