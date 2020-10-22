@@ -155,13 +155,13 @@ else:
                                          f"MSE loss: {mse_loss.item():.6f}")
 
             # record iter.
-            iters = len(dataloader) * epoch + i
+            total_iter = len(dataloader) * epoch + i
 
             # The image is saved every 5000 iterations.
-            if (iters + 1) % 5000 == 0:
-                vutils.save_image(lr, os.path.join(output_lr_dir, f"SRResNet_{iters + 1}.bmp"))
-                vutils.save_image(hr, os.path.join(output_hr_dir, f"SRResNet_{iters + 1}.bmp"))
-                vutils.save_image(sr, os.path.join(output_sr_dir, f"SRResNet_{iters + 1}.bmp"))
+            if (total_iter + 1) % 5000 == 0:
+                vutils.save_image(lr, os.path.join(output_lr_dir, f"SRResNet_{total_iter + 1}.bmp"))
+                vutils.save_image(hr, os.path.join(output_hr_dir, f"SRResNet_{total_iter + 1}.bmp"))
+                vutils.save_image(sr, os.path.join(output_sr_dir, f"SRResNet_{total_iter + 1}.bmp"))
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
@@ -269,13 +269,13 @@ for epoch in range(args.start_epoch, epochs):
                                      f"D(HR): {D_x:.6f} D(G(LR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
 
         # record iter.
-        iters = len(dataloader) * epoch + i
+        total_iter = len(dataloader) * epoch + i
 
         # The image is saved every 5000 iterations.
-        if (iters + 1) % 5000 == 0:
-            vutils.save_image(lr, os.path.join(output_lr_dir, f"SRGAN_{iters + 1}.bmp"))
-            vutils.save_image(hr, os.path.join(output_hr_dir, f"SRGAN_{iters + 1}.bmp"))
-            vutils.save_image(sr, os.path.join(output_sr_dir, f"SRGAN_{iters + 1}.bmp"))
+        if (total_iter + 1) % 5000 == 0:
+            vutils.save_image(lr, os.path.join(output_lr_dir, f"SRGAN_{total_iter + 1}.bmp"))
+            vutils.save_image(hr, os.path.join(output_hr_dir, f"SRGAN_{total_iter + 1}.bmp"))
+            vutils.save_image(sr, os.path.join(output_sr_dir, f"SRGAN_{total_iter + 1}.bmp"))
 
     # The model is saved every 1 epoch.
     torch.save({"epoch": epoch + 1,
