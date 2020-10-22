@@ -119,7 +119,7 @@ class Generator(nn.Module):
                 nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1, bias=False),
                 nn.BatchNorm2d(256),
                 nn.PixelShuffle(upscale_factor=2),
-                nn.PReLU(),
+                nn.PReLU()
             ]
         self.upsampling = nn.Sequential(*upsampling)
 
