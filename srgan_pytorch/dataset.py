@@ -54,11 +54,12 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 
         self.input_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize(image_size // upscale_factor, interpolation=Image.BICUBIC),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor),
+                              interpolation=Image.BICUBIC),
             transforms.ToTensor()
         ])
         self.target_transforms = transforms.Compose([
-            transforms.RandomCrop((image_size, image_size)),
+            transforms.RandomResizedCrop((image_size, image_size)),
             transforms.ToTensor()
         ])
 
@@ -95,16 +96,17 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
 
         self.input_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize(image_size // upscale_factor, interpolation=Image.BICUBIC),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor),
+                              interpolation=Image.BICUBIC),
             transforms.ToTensor()
         ])
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize(image_size, interpolation=Image.BICUBIC),
+            transforms.Resize((image_size, image_size), interpolation=Image.BICUBIC),
             transforms.ToTensor()
         ])
         self.target_transforms = transforms.Compose([
-            transforms.RandomCrop((image_size, image_size)),
+            transforms.RandomResizedCrop((image_size, image_size)),
             transforms.ToTensor()
         ])
 
