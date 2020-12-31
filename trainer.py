@@ -37,7 +37,6 @@ from srgan_pytorch.utils.estimate import test_psnr
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
                      and callable(models.__dict__[name]))
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 

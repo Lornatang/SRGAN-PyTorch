@@ -73,7 +73,7 @@ if __name__ == "__main__":
                              "batch size of all GPUs on the current node when "
                              "using Data Parallel or Distributed Data Parallel.")
     parser.add_argument("--lr", type=float, default=0.0001,
-                        help="Learning rate. (default:1e-4)")
+                        help="Learning rate. (default:0.0001)")
     args = parser.parse_args()
 
     print("##################################################\n")
