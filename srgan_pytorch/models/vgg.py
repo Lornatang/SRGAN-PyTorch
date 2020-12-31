@@ -21,10 +21,10 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),  # input is (3) x 384 x 384
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),  # input is (3) x 96 x 96
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (64) x 192 x 192
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (64) x 48 x 48
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -32,7 +32,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (128) x 96 x 96
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (128) x 24 x 24
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -40,7 +40,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (256) x 48 x 48
+            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (256) x 12 x 12
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -48,15 +48,15 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (512) x 24 x 24
+            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (512) x 6 x 6
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
 
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 1024),
+            nn.Linear(512 * 6 * 6, 1024),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Linear(1024, 1),
             nn.Sigmoid()
