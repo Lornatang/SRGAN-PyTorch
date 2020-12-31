@@ -150,10 +150,6 @@ def train_gan(epoch: int,
         errG.backward()
         generator_optimizer.step()
 
-        # Dynamic adjustment of learning rate
-        discriminator_scheduler.step()
-        generator_scheduler.step()
-
         progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
                                      f"Loss_D: {errD.item():.6f} Loss_G: {errG.item():.6f} "
                                      f"D(HR): {D_x:.6f} D(G(LR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
@@ -167,6 +163,10 @@ def train_gan(epoch: int,
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
+
+        # Dynamic adjustment of learning rate
+        discriminator_scheduler.step()
+        generator_scheduler.step()
 
 
 class Trainer(object):
@@ -293,28 +293,31 @@ class Trainer(object):
                        criterion=self.criterion,
                        optimizer=self.psnr_optimizer,
                        device=self.device)
-            # Test for every epoch.
-            psnr = test_psnr(self.generator, self.criterion, self.test_dataloader, self.device)
-            iters = (psnr_epoch + 1) * len(self.train_dataloader) + 1
 
-            # remember best psnr and save checkpoint
-            is_best = psnr > best_psnr
-            best_psnr = max(psnr, best_psnr)
+            # every 10 epoch test.
+            if (psnr_epoch + 1) % 10 == 0:
+                # Test for every epoch.
+                psnr = test_psnr(self.generator, self.criterion, self.test_dataloader, self.device)
+                iters = (psnr_epoch + 1) * len(self.train_dataloader)
 
-            # The model is saved every 1 epoch.
-            save_checkpoint(
-                {"iter": iters,
-                 "state_dict": self.generator.state_dict(),
-                 "best_psnr": best_psnr,
-                 "optimizer": self.psnr_optimizer.state_dict()
-                 }, is_best,
-                os.path.join("weights", f"ResNet_{args.arch}_iter_{iters}.pth"),
-                os.path.join("weights", f"ResNet_{args.arch}.pth"))
+                # remember best psnr and save checkpoint
+                is_best = psnr > best_psnr
+                best_psnr = max(psnr, best_psnr)
 
-            # Writer training log
-            with open(f"ResNet_{args.arch}.csv", "a+") as f:
-                writer = csv.writer(f)
-                writer.writerow([iters, psnr])
+                # The model is saved every 1 epoch.
+                save_checkpoint(
+                    {"iter": iters,
+                     "state_dict": self.generator.state_dict(),
+                     "best_psnr": best_psnr,
+                     "optimizer": self.psnr_optimizer.state_dict()
+                     }, is_best,
+                    os.path.join("weights", f"ResNet_{args.arch}_iter_{iters}.pth"),
+                    os.path.join("weights", f"ResNet_{args.arch}.pth"))
+
+                # Writer training log
+                with open(f"ResNet_{args.arch}.csv", "a+") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([iters, psnr])
 
         # Load best generator model weight.
         self.generator.load_state_dict(torch.load(os.path.join("weight", f"ResNet_{args.arch}.pth"), self.device))
@@ -349,7 +352,7 @@ class Trainer(object):
                       device=self.device)
             # Test for every epoch.
             lpips = test_lpips(self.generator, self.lpips_criterion, self.test_dataloader, self.device)
-            iters = (epoch + 1) * len(self.train_dataloader) + 1
+            iters = (epoch + 1) * len(self.train_dataloader)
 
             # remember best psnr and save checkpoint
             is_best = lpips > best_lpips
