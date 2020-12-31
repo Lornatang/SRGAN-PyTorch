@@ -22,7 +22,7 @@ import scipy.special
 from PIL import Image
 
 __all__ = [
-    "aggd_features", "cal_niqe", "compute_image_mscn_transform", "extract_on_patches", "get_patches_test_features",
+    "aggd_features", "niqe", "compute_image_mscn_transform", "extract_on_patches", "get_patches_test_features",
     "gen_gauss_window", "ggd_features", "paired_product"
 ]
 
@@ -78,7 +78,7 @@ def aggd_features(imdata):
     return alpha, N, bl, br, left_mean_sqrt, right_mean_sqrt
 
 
-def cal_niqe(filename):
+def niqe(filename):
     r"""Assessment of natural image quality
 
     Args:

@@ -18,23 +18,131 @@ import torchvision.transforms as transforms
 from PIL import Image
 
 __all__ = [
-    "DatasetFromFolder", "check_image_file"
+    "check_image_file",
+    "BaseTrainDataset", "BaseTestDataset",
+    "CustomTrainDataset", "CustomTestDataset"
 ]
 
 
-class DatasetFromFolder(torch.utils.data.dataset.Dataset):
-    r"""An abstract class representing a :class:`Dataset`."""
+def check_image_file(filename):
+    r"""Filter non image files in directory.
 
-    def __init__(self, input_dir, target_dir):
-        r"""
+    Args:
+        filename (str): File name under path.
+
+    Returns:
+        Return True if bool(x) is True for any x in the iterable.
+    """
+    return any(filename.endswith(extension) for extension in [".jpg", ".JPG",
+                                                              ".jpeg", ".jpeg",
+                                                              ".png", ".PNG",
+                                                              ".bmp", ".BMP"])
+
+
+class BaseTrainDataset(torch.utils.data.dataset.Dataset):
+    """An abstract class representing a :class:`Dataset`."""
+
+    def __init__(self, root: str, image_size: int = 384, upscale_factor: int = 4):
+        """
+        Args:
+            root (str): The directory address where the data image is stored.
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 384).
+            upscale_factor (optional, int): Image magnification. (Default: 4).
+        """
+        super(BaseTrainDataset, self).__init__()
+        self.filenames = [os.path.join(root, x) for x in os.listdir(root) if check_image_file(x)]
+
+        self.input_transforms = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor),
+                              interpolation=Image.BICUBIC),
+            transforms.ToTensor()
+        ])
+        self.target_transforms = transforms.Compose([
+            transforms.RandomCrop((image_size, image_size)),
+            transforms.ToTensor()
+        ])
+
+    def __getitem__(self, index):
+        r""" Get image source file.
 
         Args:
-            input_dir (str): The directory address where the data image is stored.
-            target_dir (str): The directory address where the target image is stored.
+            index (int): Index position in image list.
+
+        Returns:
+            Low resolution image, high resolution image.
         """
-        super(DatasetFromFolder, self).__init__()
+        target = self.target_transforms(Image.open(self.filenames[index]))
+        input = self.input_transforms(target)
+
+        return input, target
+
+    def __len__(self):
+        return len(self.filenames)
+
+
+class BaseTestDataset(torch.utils.data.dataset.Dataset):
+    """An abstract class representing a :class:`Dataset`."""
+
+    def __init__(self, root: str, image_size: int = 384, upscale_factor: int = 4):
+        """
+        Args:
+            root (str): The directory address where the data image is stored.
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 384).
+            upscale_factor (optional, int): Image magnification. (Default: 4).
+        """
+        super(BaseTestDataset, self).__init__()
+        self.filenames = [os.path.join(root, x) for x in os.listdir(root) if check_image_file(x)]
+
+        self.input_transforms = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor),
+                              interpolation=Image.BICUBIC),
+            transforms.ToTensor()
+        ])
+        self.bicubic_transforms = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((image_size, image_size), interpolation=Image.BICUBIC),
+            transforms.ToTensor()
+        ])
+        self.target_transforms = transforms.Compose([
+            transforms.RandomCrop((image_size, image_size)),
+            transforms.ToTensor()
+        ])
+
+    def __getitem__(self, index):
+        r""" Get image source file.
+
+        Args:
+            index (int): Index position in image list.
+
+        Returns:
+            Low resolution image, high resolution image.
+        """
+        target = self.target_transforms(Image.open(self.filenames[index]))
+        input = self.input_transforms(target)
+        bicubic = self.bicubic_transforms(input)
+
+        return input, bicubic, target
+
+    def __len__(self):
+        return len(self.filenames)
+
+
+class CustomTrainDataset(torch.utils.data.dataset.Dataset):
+    r"""An abstract class representing a :class:`Dataset`."""
+
+    def __init__(self, root: str):
+        """
+
+        Args:
+            root (str): The directory address where the data image is stored.
+        """
+        super(CustomTrainDataset, self).__init__()
+        input_dir = os.path.join(root, "input")
+        target_dir = os.path.join(root, "target")
         self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
-        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
+        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
         self.transforms = transforms.ToTensor()
 
     def __getitem__(self, index):
@@ -55,17 +163,43 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
         return len(self.input_filenames)
 
 
-def check_image_file(filename):
-    r"""Filter non image files in directory.
+class CustomTestDataset(torch.utils.data.dataset.Dataset):
+    r"""An abstract class representing a :class:`Dataset`."""
 
-    Args:
-        filename (str): File name under path.
+    def __init__(self, root: str, image_size: int = 216):
+        """
 
-    Returns:
-        Return True if bool(x) is True for any x in the iterable.
+        Args:
+            root (str): The directory address where the data image is stored.
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 216).
+        """
+        super(CustomTestDataset, self).__init__()
+        input_dir = os.path.join(root, "input")
+        target_dir = os.path.join(root, "target")
+        self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
+        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
 
-    """
-    return any(filename.endswith(extension) for extension in ["bmp", ".png",
-                                                              ".jpg", ".jpeg",
-                                                              ".png", ".PNG",
-                                                              ".jpeg", ".JPEG"])
+        self.transforms = transforms.ToTensor()
+        self.bicubic_transforms = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((image_size, image_size), interpolation=Image.BICUBIC),
+            transforms.ToTensor()
+        ])
+
+    def __getitem__(self, index):
+        r""" Get image source file.
+
+        Args:
+            index (int): Index position in image list.
+
+        Returns:
+            Low resolution image, high resolution image.
+        """
+        input = self.transforms(Image.open(self.input_filenames[index]))
+        bicubic = self.bicubic_transforms(input)
+        target = self.transforms(Image.open(self.target_filenames[index]))
+
+        return input, bicubic, target
+
+    def __len__(self):
+        return len(self.input_filenames)
