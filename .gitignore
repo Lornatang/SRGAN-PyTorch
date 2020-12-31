@@ -128,18 +128,19 @@ dmypy.json
 
 .DS_Store
 
-data/DIV2K
-data/91-images
 data/2x
 data/4x
+data/train
+data/test
+data/val
+KernelGAN
 
-output
 benchmark
-result
-logs
+output
 
-*.pth
+*.bmp
+*.png
 *.mp4
 *.zip
 *.csv
-*.png
+*.pth
