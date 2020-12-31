@@ -83,8 +83,10 @@ def test_psnr(model: nn.Module, criterion: nn.MSELoss, dataloader: torch.utils.d
         # Generating fake high resolution images from real low resolution images.
         sr = model(lr)
         # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-        loss = criterion(sr, hr)
-        total_psnr += 10 * math.log10(1. / loss.item())
+        psnr = 10 * math.log10(1. / criterion(sr, hr).item())
+        total_psnr += psnr
+
+        progress_bar.set_description(f"PSNR: {psnr:.2f}dB")
 
     return total_psnr // len(dataloader)
 
@@ -103,7 +105,9 @@ def test_lpips(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils
         # Generating fake high resolution images from real low resolution images.
         sr = model(lr)
         # The LPIPS of the generated fake high-resolution image and real high-resolution image is calculated.
-        loss = criterion(sr, hr)
-        total_lpips += torch.mean(loss).item()
+        lpips = torch.mean(criterion(sr, hr)).item()
+        total_lpips += lpips
+
+        progress_bar.set_description(f"LPIPS: {lpips:.4f}")
 
     return total_lpips // len(dataloader)
