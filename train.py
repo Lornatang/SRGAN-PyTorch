@@ -44,8 +44,8 @@ if __name__ == "__main__":
                         help="model architecture: " +
                              " | ".join(model_names) +
                              " (default: srgan_4x4_16)")
-    parser.add_argument("--image-size", type=int, default=384,
-                        help="Image size of real sample. (default:384).")
+    parser.add_argument("--image-size", type=int, default=96,
+                        help="Image size of real sample. (default:96).")
     parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 3, 4],
                         help="Low to high resolution scaling factor. (default:4).")
     parser.add_argument("--model-path", default="", type=str, metavar="PATH",
@@ -68,8 +68,8 @@ if __name__ == "__main__":
                         help="manual iter number (useful on restarts)")
     parser.add_argument("--iters", default=200000, type=int, metavar="N",
                         help="The training of srgan model requires the number of iterations. (default:200000)")
-    parser.add_argument("-b", "--batch-size", default=8, type=int, metavar="N",
-                        help="mini-batch size (default: 8), this is the total "
+    parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
+                        help="mini-batch size (default: 16), this is the total "
                              "batch size of all GPUs on the current node when "
                              "using Data Parallel or Distributed Data Parallel.")
     parser.add_argument("--lr", type=float, default=0.0001,
