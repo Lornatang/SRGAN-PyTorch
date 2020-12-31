@@ -54,8 +54,7 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 
         self.input_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor),
-                              interpolation=Image.BICUBIC),
+            transforms.Resize(image_size // upscale_factor, interpolation=Image.BICUBIC),
             transforms.ToTensor()
         ])
         self.target_transforms = transforms.Compose([
@@ -96,13 +95,12 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
 
         self.input_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor),
-                              interpolation=Image.BICUBIC),
+            transforms.Resize(image_size // upscale_factor, interpolation=Image.BICUBIC),
             transforms.ToTensor()
         ])
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size, image_size), interpolation=Image.BICUBIC),
+            transforms.Resize(image_size, interpolation=Image.BICUBIC),
             transforms.ToTensor()
         ])
         self.target_transforms = transforms.Compose([
@@ -166,12 +164,12 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
 class CustomTestDataset(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, image_size: int = 216):
+    def __init__(self, root: str, image_size: int):
         """
 
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 216).
+            image_size (optional, int): The size of image block is randomly cut out from the original image.
         """
         super(CustomTestDataset, self).__init__()
         input_dir = os.path.join(root, "input")
