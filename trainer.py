@@ -319,7 +319,7 @@ class Trainer(object):
                     writer.writerow([iters, psnr])
 
         # Load best generator model weight.
-        self.generator.load_state_dict(torch.load(os.path.join("weight", f"ResNet_{args.arch}.pth"), self.device))
+        self.generator.load_state_dict(torch.load(os.path.join("weights", f"ResNet_{args.arch}.pth"), self.device))
 
         # Loading SRGAN training model.
         if args.netG != "":
@@ -354,8 +354,8 @@ class Trainer(object):
             iters = (epoch + 1) * len(self.train_dataloader)
 
             # remember best psnr and save checkpoint
-            is_best = lpips > best_lpips
-            best_lpips = max(lpips, best_lpips)
+            is_best = lpips < best_lpips
+            best_lpips = min(lpips, best_lpips)
 
             # The model is saved every 1 epoch.
             save_checkpoint(

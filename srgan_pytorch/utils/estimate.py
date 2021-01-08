@@ -110,4 +110,4 @@ def test_lpips(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils
 
         progress_bar.set_description(f"LPIPS: {lpips:.4f}")
 
-    return total_lpips // len(dataloader)
+    return total_lpips / len(dataloader)
