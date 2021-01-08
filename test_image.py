@@ -12,99 +12,66 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
-import time
+import logging
 
-import cv2
-import lpips
-import torch
-import torchvision.transforms as transforms
-import torchvision.utils as vutils
-from PIL import Image
-from sewar.full_ref import mse
-from sewar.full_ref import msssim
-from sewar.full_ref import psnr
-from sewar.full_ref import rmse
-from sewar.full_ref import sam
-from sewar.full_ref import ssim
-from sewar.full_ref import vifp
+import srgan_pytorch.models as models
+from srgan_pytorch.utils.common import create_folder
+from tester import Estimate
 
-from srgan_pytorch import Generator
-from srgan_pytorch import cal_niqe
-from srgan_pytorch import select_device
+model_names = sorted(name for name in models.__dict__
+                     if name.islower() and not name.startswith("__")
+                     and callable(models.__dict__[name]))
 
-parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution Using "
-                                             "a Generative Adversarial Network.")
-parser.add_argument("--lr", type=str, required=True,
-                    help="Test low resolution image name.")
-parser.add_argument("--hr", type=str, required=True,
-                    help="Raw high resolution image name.")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
-                    help="Low to high resolution scaling factor. (default:4).")
-parser.add_argument("--model-path", default="./weight/SRGAN_4x.pth", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model. (default: ``./weight/SRGAN_4x.pth``).")
-parser.add_argument("--device", default="cpu",
-                    help="device id i.e. `0` or `0,1` or `cpu`. (default: ``CUDA:0``).")
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution Using a "
+                                                 "Generative Adversarial Network.")
+    # basic parameters
+    parser.add_argument("--lr", type=str, required=True,
+                        help="Test low resolution image name.")
+    parser.add_argument("--hr", type=str, required=True,
+                        help="Raw high resolution image name.")
+    parser.add_argument("--outf", default="test", type=str, metavar="PATH",
+                        help="The location of the image in the evaluation process. (default: ``test``).")
+    parser.add_argument("--device", default="0",
+                        help="device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).")
+    parser.add_argument("--detail", dest="detail", action="store_true",
+                        help="Use comprehensive assessment.")
 
-# Selection of appropriate treatment equipment
-device = select_device(args.device, batch_size=1)
+    # model parameters
+    parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan_4x4_16",
+                        choices=model_names,
+                        help="model architecture: " +
+                             " | ".join(model_names) +
+                             " (default: srgan_4x4_16)")
+    parser.add_argument("--image-size", type=int, default=96,
+                        help="Image size of real sample. (default:96).")
+    parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 3, 4],
+                        help="Low to high resolution scaling factor. (default:4).")
+    parser.add_argument("--model-path", default="", type=str, metavar="PATH",
+                        help="Path to latest checkpoint for model. (default: ````).")
+    parser.add_argument("--pretrained", dest="pretrained", action="store_true",
+                        help="Use pre-trained model.")
 
-# Construct SRGAN model.
-model = Generator(upscale_factor=args.upscale_factor).to(device)
-model.load_state_dict(torch.load(args.model_path, map_location=device))
+    args = parser.parse_args()
 
-# Set model eval mode
-model.eval()
+    print("##################################################\n")
+    print("Run Testing Engine.\n")
+    print(args)
 
-# Just convert the data to Tensor format
-pre_process = transforms.ToTensor()
+    create_folder(args.outf)
 
-# Load image
-lr = Image.open(args.lr)
-hr = Image.open(args.hr)
-lr = pre_process(lr).unsqueeze(0)
-hr = pre_process(hr).unsqueeze(0)
-lr = lr.to(device)
-hr = hr.to(device)
+    logger.info("TestEngine:")
+    print("\tAPI version .......... 0.1.1")
+    print("\tBuild ................ 2020.11.30-1116-0c5adc7e")
 
-start_time = time.time()
-with torch.no_grad():
-    sr = model(lr)
-end_time = time.time()
+    logger.info("Creating Testing Engine")
+    estimate = Estimate(args)
 
-vutils.save_image(lr, "lr.png")
-vutils.save_image(sr, "sr.png")
-vutils.save_image(hr, "hr.png")
+    logger.info("Staring testing model")
+    estimate.run()
+    print("##################################################\n")
 
-# Evaluate performance
-src_img = cv2.imread("sr.png")
-dst_img = cv2.imread("hr.png")
-
-# Reference sources from `https://github.com/richzhang/PerceptualSimilarity`
-lpips_loss = lpips.LPIPS(net="vgg").to(device)
-
-mse_value = mse(src_img, dst_img)
-rmse_value = rmse(src_img, dst_img)
-psnr_value = psnr(src_img, dst_img)
-ssim_value = ssim(src_img, dst_img)
-ms_ssim_value = msssim(src_img, dst_img)  # 30.00+000j
-niqe_value = cal_niqe("sr.png")
-sam_value = sam(src_img, dst_img)
-vif_value = vifp(src_img, dst_img)
-lpips_value = lpips_loss(sr, hr)
-
-print("\n")
-print("====================== Performance summary ======================")
-print(f"MSE: {mse_value:.2f}\n"
-      f"RMSE: {rmse_value:.2f}\n"
-      f"PSNR: {psnr_value:.2f}\n"
-      f"SSIM: {ssim_value[0]:.4f}\n"
-      f"MS-SSIM: {ms_ssim_value.real:.4f}\n"
-      f"NIQE: {niqe_value:.2f}\n"
-      f"SAM: {sam_value:.4f}\n"
-      f"VIF: {vif_value:.4f}\n"
-      f"LPIPS: {lpips_value.item():.4f}\n"
-      f"Use time: {(end_time - start_time) * 1000:.2f}ms/{(end_time - start_time):.4f}s.")
-print("============================== End ==============================")
-print("\n")
+    logger.info("Test single image performance evaluation completed successfully.\n")

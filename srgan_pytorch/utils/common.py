@@ -20,8 +20,11 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 
+import srgan_pytorch.models as models
+from .device import select_device
+
 __all__ = [
-    "create_folder", "inference", "init_torch_seeds", "save_checkpoint", "weights_init",
+    "create_folder", "configure", "inference", "init_torch_seeds", "save_checkpoint", "weights_init",
     "AverageMeter", "ProgressMeter"
 ]
 
@@ -36,6 +39,29 @@ def create_folder(folder):
     except OSError:
         logger.warning(f"Directory `{os.path.join(os.getcwd(), folder)}` already exists!")
         pass
+
+
+def configure(args):
+    """Global profile.
+
+    Args:
+        args (argparse.ArgumentParser.parse_args): Use argparse library parse command.
+    """
+    # Selection of appropriate treatment equipment
+    device = select_device(args.device, batch_size=1)
+
+    # Create model
+    if args.pretrained:
+        logger.info(f"Using pre-trained model `{args.arch}`")
+        model = models.__dict__[args.arch](pretrained=True, upscale_factor=args.upscale_factor).to(device)
+    else:
+        logger.info(f"Creating model `{args.arch}`")
+        model = models.__dict__[args.arch](upscale_factor=args.upscale_factor).to(device)
+        if args.model_path:
+            logger.info(f"You loaded the specified weight. Load weights from `{args.model_path}`")
+            model.load_state_dict(torch.load(args.model_path, map_location=device), strict=False)
+
+    return model, device
 
 
 def inference(model, lr, statistical_time=False):
