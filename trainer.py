@@ -263,7 +263,7 @@ class Trainer(object):
     def run(self):
         args = self.args
         best_psnr = 0.
-        best_lpips = 0.
+        best_lpips = 1.
 
         # Loading PSNR pre training model.
         if args.netP != "":
