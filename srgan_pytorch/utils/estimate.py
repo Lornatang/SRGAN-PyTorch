@@ -88,7 +88,7 @@ def test_psnr(model: nn.Module, criterion: nn.MSELoss, dataloader: torch.utils.d
 
         progress_bar.set_description(f"PSNR: {psnr:.2f}dB")
 
-    return total_psnr // len(dataloader)
+    return total_psnr / len(dataloader)
 
 
 def test_lpips(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils.data.DataLoader,
