@@ -59,7 +59,8 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
             transforms.ToTensor()
         ])
         self.target_transforms = transforms.Compose([
-            transforms.RandomResizedCrop((image_size, image_size)),
+            transforms.CenterCrop((384, 384)),
+            transforms.RandomCrop((image_size, image_size)),
             transforms.ToTensor()
         ])
 
@@ -106,7 +107,8 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
             transforms.ToTensor()
         ])
         self.target_transforms = transforms.Compose([
-            transforms.RandomResizedCrop((image_size, image_size)),
+            transforms.CenterCrop((384, 384)),
+            transforms.RandomCrop((image_size, image_size)),
             transforms.ToTensor()
         ])
 
