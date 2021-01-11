@@ -64,17 +64,13 @@ class Generator(nn.Module):
         for _ in range(num_upsample_block):
             upsampling += [
                 nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1, bias=False),
-                nn.BatchNorm2d(256),
                 nn.PixelShuffle(upscale_factor=2),
                 nn.PReLU()
             ]
         self.upsampling = nn.Sequential(*upsampling)
 
         # Final output layer
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4, bias=False),
-            nn.Tanh()
-        )
+        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4, bias=False)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         out1 = self.conv1(input)
