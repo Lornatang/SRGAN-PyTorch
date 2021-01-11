@@ -23,12 +23,10 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch import Generator
 
 model_urls = {
-    "srgan_2x2_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/mnist-5539a1a7.pth",
-    "srgan_3x3_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.2/mnist-5539a1a7.pth",
-    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.2/mnist-5539a1a7.pth",
-    "srgan_2x2_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.2/tfd-4e44e2ca.pth",
-    "srgan_3x3_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.2/tfd-4e44e2ca.pth",
-    "srgan_4x4_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.2/tfd-4e44e2ca.pth"
+    "srgan_2x2_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_2x2_16.pth",
+    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_2x2_23.pth",
+    "srgan_2x2_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth",
+    "srgan_4x4_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_23.pth"
 }
 
 dependencies = ["torch"]
