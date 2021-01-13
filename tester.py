@@ -223,8 +223,7 @@ class Video(object):
                 compare_img = transforms.Resize((self.sr_size[1], self.sr_size[0]),
                                                 interpolation=Image.BICUBIC)(self.tensor2pil(raw_frame))
                 crop_compare_imgs = transforms.FiveCrop(size=compare_img.width // 5 - 9)(compare_img)
-                crop_compare_imgs = [np.asarray(transforms.Pad(padding=(0, 5, 10, 0))(img)) for img in
-                                     crop_compare_imgs]
+                crop_compare_imgs = [np.asarray(transforms.Pad((0, 5, 10, 0))(img)) for img in crop_compare_imgs]
                 compare_img = transforms.Pad(padding=(0, 0, 5, 5))(compare_img)
                 # concatenate all the pictures to one single picture
                 # 1. Mosaic the left and right images of the video.
