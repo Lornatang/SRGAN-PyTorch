@@ -208,7 +208,7 @@ optional arguments:
                         Parallel or Distributed Data Parallel.
   --lr LR               Learning rate. (default:0.0001)
   --image-size IMAGE_SIZE
-                        Image size of real sample. (default:384).
+                        Image size of real sample. (default:96).
   --upscale-factor {2,4}
                         Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).

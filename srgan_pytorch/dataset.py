@@ -42,11 +42,11 @@ def check_image_file(filename):
 class BaseTrainDataset(torch.utils.data.dataset.Dataset):
     """An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, image_size: int = 384, upscale_factor: int = 4):
+    def __init__(self, root: str, image_size: int = 96, upscale_factor: int = 4):
         """
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 384).
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 96).
             upscale_factor (optional, int): Image magnification. (Default: 4).
         """
         super(BaseTrainDataset, self).__init__()
@@ -84,11 +84,11 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 class BaseTestDataset(torch.utils.data.dataset.Dataset):
     """An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, image_size: int = 384, upscale_factor: int = 4):
+    def __init__(self, root: str, image_size: int = 96, upscale_factor: int = 4):
         """
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 384).
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 96).
             upscale_factor (optional, int): Image magnification. (Default: 4).
         """
         super(BaseTestDataset, self).__init__()
