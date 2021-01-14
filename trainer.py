@@ -177,10 +177,10 @@ class Trainer(object):
 
         logger.info("Load training dataset")
         # Selection of appropriate treatment equipment.
-        train_dataset = BaseTrainDataset(root=f"{args.dataroot}/train",
+        train_dataset = BaseTrainDataset(root=f"{args.data}/train",
                                          image_size=args.image_size,
                                          upscale_factor=args.upscale_factor)
-        test_dataset = BaseTestDataset(root=f"{args.dataroot}/test",
+        test_dataset = BaseTestDataset(root=f"{args.data}/test",
                                        image_size=args.image_size,
                                        upscale_factor=args.upscale_factor)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
@@ -193,12 +193,12 @@ class Trainer(object):
                                                            num_workers=int(args.workers))
 
         logger.info(f"Train Dataset information:\n"
-                    f"\tTrain Dataset dir is `{os.getcwd()}/{args.dataroot}/train`\n"
+                    f"\tTrain Dataset dir is `{os.getcwd()}/{args.data}/train`\n"
                     f"\tBatch size is {args.batch_size}\n"
                     f"\tWorkers is {int(args.workers)}\n"
                     f"\tLoad dataset to CUDA")
         logger.info(f"Test Dataset information:\n"
-                    f"\tTest Dataset dir is `{os.getcwd()}/{args.dataroot}/test`\n"
+                    f"\tTest Dataset dir is `{os.getcwd()}/{args.data}/test`\n"
                     f"\tBatch size is {args.batch_size}\n"
                     f"\tWorkers is {int(args.workers)}\n"
                     f"\tLoad dataset to CUDA")

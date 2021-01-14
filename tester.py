@@ -40,7 +40,7 @@ class Test(object):
         self.model, self.device = configure(args)
 
         logger.info("Load testing dataset")
-        dataset = BaseTestDataset(root=f"{args.dataroot}/test",
+        dataset = BaseTestDataset(root=f"{args.data}/test",
                                   image_size=args.image_size,
                                   upscale_factor=args.upscale_factor)
         self.dataloader = torch.utils.data.DataLoader(dataset,
@@ -49,7 +49,7 @@ class Test(object):
                                                       num_workers=int(args.workers))
 
         logger.info(f"Dataset information\n"
-                    f"\tDataset dir is `{os.getcwd()}/{args.dataroot}/test`\n"
+                    f"\tDataset dir is `{os.getcwd()}/{args.data}/test`\n"
                     f"\tBatch size is {args.batch_size}\n"
                     f"\tWorkers is {int(args.workers)}\n"
                     f"\tLoad dataset to CUDA")

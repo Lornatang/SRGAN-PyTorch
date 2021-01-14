@@ -28,38 +28,15 @@ logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.DEBUG)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution Using a "
                                                  "Generative Adversarial Network.")
-    # basic parameters
-    parser.add_argument("--dataroot", type=str, default="data",
-                        help="Path to datasets. (default:`data`)")
-    parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
-                        help="Number of data loading workers. (default:4)")
-    parser.add_argument("--manualSeed", type=int, default=1111,
-                        help="Seed for initializing training. (default:1111)")
-    parser.add_argument("--device", default="",
-                        help="device id i.e. `0` or `0,1` or `cpu`. (default: ````).")
-
-    # model parameters
+    parser.add_argument("data", metavar="DIR",
+                        help="path to dataset")
     parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan_4x4_16",
                         choices=model_names,
                         help="model architecture: " +
                              " | ".join(model_names) +
                              " (default: srgan_4x4_16)")
-    parser.add_argument("--image-size", type=int, default=96,
-                        help="Image size of real sample. (default:96).")
-    parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
-                        help="Low to high resolution scaling factor. (default:4).")
-    parser.add_argument("--model-path", default="", type=str, metavar="PATH",
-                        help="Path to latest checkpoint for model. (default: ````).")
-    parser.add_argument("--pretrained", dest="pretrained", action="store_true",
-                        help="Use pre-trained model.")
-    parser.add_argument("--netP", default="", type=str, metavar="PATH",
-                        help="Path to latest psnr checkpoint. (default: ````).")
-    parser.add_argument("--netD", default="", type=str, metavar="PATH",
-                        help="Path to latest discriminator checkpoint. (default: ````).")
-    parser.add_argument("--netG", default="", type=str, metavar="PATH",
-                        help="Path to latest generator checkpoint. (default: ````).")
-
-    # training parameters
+    parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
+                        help="Number of data loading workers. (default:4)")
     parser.add_argument("--start-psnr-iter", default=0, type=int, metavar="N",
                         help="manual iter number (useful on restarts)")
     parser.add_argument("--psnr-iters", default=1000000, type=int, metavar="N",
@@ -74,6 +51,24 @@ if __name__ == "__main__":
                              "using Data Parallel or Distributed Data Parallel.")
     parser.add_argument("--lr", type=float, default=0.0001,
                         help="Learning rate. (default:0.0001)")
+    parser.add_argument("--image-size", type=int, default=384,
+                        help="Image size of real sample. (default:384).")
+    parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
+                        help="Low to high resolution scaling factor. (default:4).")
+    parser.add_argument("--model-path", default="", type=str, metavar="PATH",
+                        help="Path to latest checkpoint for model. (default: ````).")
+    parser.add_argument("--pretrained", dest="pretrained", action="store_true",
+                        help="Use pre-trained model.")
+    parser.add_argument("--netP", default="", type=str, metavar="PATH",
+                        help="Path to latest psnr checkpoint. (default: ````).")
+    parser.add_argument("--netD", default="", type=str, metavar="PATH",
+                        help="Path to latest discriminator checkpoint. (default: ````).")
+    parser.add_argument("--netG", default="", type=str, metavar="PATH",
+                        help="Path to latest generator checkpoint. (default: ````).")
+    parser.add_argument("--manualSeed", type=int, default=1111,
+                        help="Seed for initializing training. (default:1111)")
+    parser.add_argument("--device", default="",
+                        help="device id i.e. `0` or `0,1` or `cpu`. (default: ````).")
     args = parser.parse_args()
 
     print("##################################################\n")

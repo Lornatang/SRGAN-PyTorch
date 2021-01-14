@@ -28,18 +28,8 @@ logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution Using a "
                                                  "Generative Adversarial Network.")
-
-    # basic parameters
     parser.add_argument("--file", type=str, required=True,
                         help="Test low resolution video name.")
-    parser.add_argument("--outf", default="video", type=str, metavar="PATH",
-                        help="The location of the image in the evaluation process. (default: ``video``).")
-    parser.add_argument("--device", default="0",
-                        help="device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).")
-    parser.add_argument("--view", action="store_true",
-                        help="Super resolution real time to show.")
-
-    # model parameters
     parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan_4x4_16",
                         choices=model_names,
                         help="model architecture: " +
@@ -51,7 +41,14 @@ if __name__ == "__main__":
                         help="Path to latest checkpoint for model. (default: ````).")
     parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                         help="Use pre-trained model.")
-
+    parser.add_argument("--detail", dest="detail", action="store_true",
+                        help="Evaluate all indicators. It is very slow.")
+    parser.add_argument("--view", dest="view", action="store_true",
+                        help="Super resolution real time to show.")
+    parser.add_argument("--outf", default="test", type=str, metavar="PATH",
+                        help="The location of the image in the evaluation process. (default: ``test``).")
+    parser.add_argument("--device", default="0",
+                        help="device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).")
     args = parser.parse_args()
 
     print("##################################################\n")
