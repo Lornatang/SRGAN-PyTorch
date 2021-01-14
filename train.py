@@ -35,8 +35,8 @@ if __name__ == "__main__":
                         help="model architecture: " +
                              " | ".join(model_names) +
                              " (default: srgan_4x4_16)")
-    parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
-                        help="Number of data loading workers. (default:4)")
+    parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
+                        help="Number of data loading workers. (default:8)")
     parser.add_argument("--start-psnr-iter", default=0, type=int, metavar="N",
                         help="manual iter number (useful on restarts)")
     parser.add_argument("--psnr-iters", default=1000000, type=int, metavar="N",
