@@ -163,9 +163,9 @@ def train_gan(epoch: int,
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
 
-        # Dynamic adjustment of learning rate
-        discriminator_scheduler.step()
-        generator_scheduler.step()
+    # Dynamic adjustment of learning rate
+    discriminator_scheduler.step()
+    generator_scheduler.step()
 
 
 class Trainer(object):
