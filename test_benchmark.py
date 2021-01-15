@@ -35,8 +35,8 @@ if __name__ == "__main__":
                         help="model architecture: " +
                              " | ".join(model_names) +
                              " (default: srgan_4x4_16)")
-    parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
-                        help="Number of data loading workers. (default:4)")
+    parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
+                        help="Number of data loading workers. (default:8)")
     parser.add_argument("-b", "--batch-size", default=16, type=int, metavar="N",
                         help="mini-batch size (default: 16), this is the total "
                              "batch size of all GPUs on the current node when "
