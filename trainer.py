@@ -258,7 +258,7 @@ class Trainer(object):
         logger.info(f"Loss function:\n"
                     f"\tVGG loss is VGGLoss\n"
                     f"\tPixel loss is MSELoss\n"
-                    f"\tAdversarial loss is BCEWithLogitsLoss")
+                    f"\tAdversarial loss is BCELoss")
 
     def run(self):
         args = self.args
