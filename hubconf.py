@@ -24,28 +24,25 @@ from srgan_pytorch import Generator
 
 model_urls = {
     "srgan_2x2_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_2x2_16.pth",
-    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_2x2_23.pth",
-    "srgan_2x2_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth",
-    "srgan_4x4_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_23.pth"
+    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth",
 }
 
 dependencies = ["torch"]
 
 
-def create(arch, upscale_factor, num_residual_block, pretrained, progress):
+def create(arch, upscale_factor, pretrained, progress):
     """ Creates a specified GAN model
 
     Args:
         arch (str): Arch name of model.
         upscale_factor (int): Image magnification factor.
-        num_residual_block (int): How many residual blocks are combined.
         pretrained (bool): Load pretrained weights into the model.
         progress (bool): Show progress bar when downloading weights.
 
     Returns:
         PyTorch model.
     """
-    model = Generator(upscale_factor, num_residual_block)
+    model = Generator(upscale_factor)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
@@ -60,18 +57,7 @@ def srgan_2x2_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("srgan_2x2_16", 2, 16, pretrained, progress)
-
-
-def srgan_3x3_16(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return create("srgan_3x3_16", 3, 16, pretrained, progress)
+    return create("srgan_2x2_16", 2, pretrained, progress)
 
 
 def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -82,37 +68,4 @@ def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("srgan_4x4_16", 4, 16, pretrained, progress)
-
-
-def srgan_2x2_23(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return create("srgan_2x2_23", 2, 23, pretrained, progress)
-
-
-def srgan_3x3_23(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return create("srgan_3x3_23", 3, 23, pretrained, progress)
-
-
-def srgan_4x4_23(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return create("srgan_4x4_23", 4, 23, pretrained, progress)
+    return create("srgan_4x4_16", 4, pretrained, progress)

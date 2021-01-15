@@ -28,7 +28,7 @@ model_urls = {
 class Generator(nn.Module):
     r"""The main architecture of the generator."""
 
-    def __init__(self, upscale_factor=4, num_residual_block=16):
+    def __init__(self, upscale_factor=4):
         r""" This is an esrgan model defined by the author himself.
 
         We use two settings for our generator – one of them contains 16 residual blocks, with a capacity similar
@@ -36,7 +36,6 @@ class Generator(nn.Module):
 
         Args:
             upscale_factor (int): Image magnification factor. (Default: 4).
-            num_residual_block (int): How many residual blocks are combined. (Default: 16).
         """
         num_upsample_block = int(math.log(upscale_factor, 2))
 
@@ -49,7 +48,7 @@ class Generator(nn.Module):
 
         # 16 Residual blocks
         residual_blocks = []
-        for _ in range(num_residual_block):
+        for _ in range(16):
             residual_blocks.append(ResidualBlock(64))
         self.Trunk = nn.Sequential(*residual_blocks)
 
@@ -109,8 +108,8 @@ class ResidualBlock(nn.Module):
         return out + input
 
 
-def _srgan(arch, upscale_factor, num_residual_block, pretrained, progress):
-    model = Generator(upscale_factor, num_residual_block)
+def _srgan(arch, upscale_factor, pretrained, progress):
+    model = Generator(upscale_factor)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
         model.load_state_dict(state_dict)
@@ -125,18 +124,7 @@ def srgan_2x2_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _srgan("srgan_2x2_16", 2, 16, pretrained, progress)
-
-
-def srgan_3x3_16(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _srgan("srgan_3x3_16", 3, 16, pretrained, progress)
+    return _srgan("srgan_2x2_16", 2, pretrained, progress)
 
 
 def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -147,37 +135,4 @@ def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _srgan("srgan_4x4_16", 4, 16, pretrained, progress)
-
-
-def srgan_2x2_23(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _srgan("srgan_2x2_23", 2, 23, pretrained, progress)
-
-
-def srgan_3x3_23(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _srgan("srgan_3x3_23", 3, 23, pretrained, progress)
-
-
-def srgan_4x4_23(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _srgan("srgan_4x4_23", 4, 23, pretrained, progress)
+    return _srgan("srgan_4x4_16", 4, pretrained, progress)
