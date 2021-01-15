@@ -26,7 +26,7 @@ import srgan_pytorch.models as models
 from srgan_pytorch.dataset import BaseTestDataset
 from srgan_pytorch.dataset import BaseTrainDataset
 from srgan_pytorch.loss import VGGLoss
-from srgan_pytorch.models.vgg import discriminator
+from srgan_pytorch.models.discriminator import discriminator
 from srgan_pytorch.utils.common import init_torch_seeds
 from srgan_pytorch.utils.common import save_checkpoint
 from srgan_pytorch.utils.common import weights_init
@@ -46,7 +46,7 @@ def train_psnr(epoch: int,
                total_iters: int,
                dataloader: torch.utils.data.DataLoader,
                model: nn.Module,
-               criterion: nn.MSELoss,
+               content_criterion: nn.MSELoss,
                optimizer: torch.optim.Adam,
                device: torch.device):
     # switch train mode.
@@ -60,7 +60,7 @@ def train_psnr(epoch: int,
         # Generating fake high resolution images from real low resolution images.
         sr = model(lr)
         # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-        loss = criterion(sr, hr)
+        loss = content_criterion(sr, hr)
 
         # compute gradient and do Adam step
         optimizer.zero_grad()
@@ -88,7 +88,7 @@ def train_gan(epoch: int,
               dataloader: torch.utils.data.DataLoader,
               discriminator: nn.Module,
               generator: nn.Module,
-              content_criterion: VGGLoss,
+              perceptual_criterion: VGGLoss,
               adversarial_criterion: nn.BCELoss,
               discriminator_optimizer: torch.optim.Adam,
               generator_optimizer: torch.optim.Adam,
@@ -139,13 +139,13 @@ def train_gan(epoch: int,
         generator.zero_grad()
 
         # According to the feature map, the root mean square error is regarded as the content loss.
-        content_loss = content_criterion(sr, hr)
+        perceptual_loss = perceptual_criterion(sr, hr)
         # Train with fake high resolution image.
         output = discriminator(sr)  # Train fake image.
         D_G_z2 = output.mean().item()
         # Adversarial loss.
         adversarial_loss = adversarial_criterion(output, real_label)
-        errG = content_loss + 0.001 * adversarial_loss
+        errG = perceptual_loss + 0.001 * adversarial_loss
         errG.backward()
         generator_optimizer.step()
 
@@ -249,15 +249,15 @@ class Trainer(object):
                     f"\tScheduler is StepLR")
 
         # We use VGG5.4 as our feature extraction method by default.
-        self.content_criterion = VGGLoss().to(self.device)
-        # Loss = vgg loss + 0.001 * adversarial loss
-        self.criterion = nn.MSELoss().to(self.device)
+        self.perceptual_criterion = VGGLoss().to(self.device)
+        # Loss = perceptual loss + 0.001 * adversarial loss
+        self.content_criterion = nn.MSELoss().to(self.device)
         self.adversarial_criterion = nn.BCELoss().to(self.device)
         # LPIPS Evaluating.
         self.lpips_criterion = lpips.LPIPS(net="vgg", verbose=False).to(self.device)
         logger.info(f"Loss function:\n"
-                    f"\tVGG loss is VGGLoss\n"
-                    f"\tPixel loss is MSELoss\n"
+                    f"\tPerceptual loss is VGGLoss\n"
+                    f"\tContent loss is MSELoss\n"
                     f"\tAdversarial loss is BCELoss")
 
     def run(self):
@@ -289,14 +289,14 @@ class Trainer(object):
                        total_iters=args.psnr_iters,
                        dataloader=self.train_dataloader,
                        model=self.generator,
-                       criterion=self.criterion,
+                       content_criterion=self.content_criterion,
                        optimizer=self.psnr_optimizer,
                        device=self.device)
 
             # every 10 epoch test.
             if (psnr_epoch + 1) % 10 == 0:
                 # Test for every epoch.
-                psnr = test_psnr(self.generator, self.criterion, self.test_dataloader, self.device)
+                psnr = test_psnr(self.generator, self.content_criterion, self.test_dataloader, self.device)
                 iters = (psnr_epoch + 1) * len(self.train_dataloader)
 
                 # remember best psnr and save checkpoint
@@ -342,7 +342,7 @@ class Trainer(object):
                       dataloader=self.train_dataloader,
                       discriminator=self.discriminator,
                       generator=self.generator,
-                      content_criterion=self.content_criterion,
+                      perceptual_criterion=self.perceptual_criterion,
                       adversarial_criterion=self.adversarial_criterion,
                       discriminator_optimizer=self.discriminator_optimizer,
                       generator_optimizer=self.generator_optimizer,

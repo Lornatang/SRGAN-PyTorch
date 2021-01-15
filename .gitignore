@@ -128,14 +128,12 @@ dmypy.json
 
 .DS_Store
 
-data/2x
-data/4x
-data/train
-data/test
-data/val
+data/DIV2K
+data/DF2K
 KernelGAN
 
 benchmark
+test
 output
 
 *.bmp
