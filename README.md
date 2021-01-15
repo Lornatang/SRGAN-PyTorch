@@ -222,7 +222,7 @@ optional arguments:
   --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ````).
 
 # Example (e.g DIV2K)
-$ python train.py data/DIV2K -a srgan_4x4_16
+$ python train.py data/DIV2K -a srgan_4x4_16 --device 0
 ```
 
 If you want to load weights that you've trained before, run the following command.
