@@ -142,8 +142,8 @@ $ python test_image.py --lr lr.png --hr hr.png -a srgan_4x4_16 --upscale-factor 
 
 ```text
 usage: test_video.py [-h] --file FILE [-a ARCH] [--upscale-factor {2,4}]
-                     [--model-path PATH] [--pretrained] [--detail] [--view]
-                     [--outf PATH] [--device DEVICE]
+                     [--model-path PATH] [--pretrained] [--view] [--outf PATH]
+                     [--device DEVICE]
 
 Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 Network.
@@ -152,21 +152,20 @@ optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
   -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan_2x2_16 | srgan_2x2_23
-                        | srgan_3x3_16 | srgan_3x3_23 | srgan_4x4_16 |
-                        srgan_4x4_23 (default: srgan_4x4_16)
+                        load_state_dict_from_url | srgan_2x2_16 | srgan_4x4_16
+                        (default: srgan_4x4_16)
   --upscale-factor {2,4}
                         Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
-  --detail              Evaluate all indicators. It is very slow.
   --view                Super resolution real time to show.
   --outf PATH           The location of the image in the evaluation process.
                         (default: ``test``).
   --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
                         ``0``).
+                        
 # Example
-$ python test_video.py --file lr.mp4 --upscale-factor 4 --pretrained --device 0
+$ python test_video.py --file lr.mp4 --arch srgan_4x4_16 --upscale-factor 4 --pretrained --device 0
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
