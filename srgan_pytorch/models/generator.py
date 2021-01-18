@@ -18,8 +18,7 @@ import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
-    "srgan_2x2_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_2x2_16.pth",
-    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth",
+    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth"
 }
 
 

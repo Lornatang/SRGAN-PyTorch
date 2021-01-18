@@ -43,7 +43,7 @@ if __name__ == "__main__":
                              "using Data Parallel or Distributed Data Parallel.")
     parser.add_argument("--image-size", type=int, default=96, choices=[96],
                         help="Image size of real sample. (default:96).")
-    parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
+    parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                         help="Low to high resolution scaling factor. (default:4).")
     parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                         help="Path to latest checkpoint for model. (default: ````).")
