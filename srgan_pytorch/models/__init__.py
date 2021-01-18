@@ -11,5 +11,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from .srgan import *
-from .vgg import *
+from .generator import *
+from .discriminator import *

@@ -18,10 +18,7 @@ import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
-    "srgan_2x2_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_2x2_16.pth",
-    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_2x2_23.pth",
-    "srgan_2x2_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth",
-    "srgan_4x4_23": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_23.pth"
+    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth"
 }
 
 
@@ -42,7 +39,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         # First layer
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4, bias=False),
+            nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4),
             nn.PReLU()
         )
 
@@ -62,14 +59,14 @@ class Generator(nn.Module):
         upsampling = []
         for _ in range(num_upsample_block):
             upsampling += [
-                nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1, bias=False),
+                nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1),
                 nn.PixelShuffle(upscale_factor=2),
                 nn.PReLU()
             ]
         self.upsampling = nn.Sequential(*upsampling)
 
         # Final output layer
-        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4, bias=False)
+        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         out1 = self.conv1(input)

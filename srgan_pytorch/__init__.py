@@ -13,6 +13,6 @@
 # ==============================================================================
 from .dataset import *
 from .loss import *
-from srgan_pytorch.models.srgan import *
+from .models.generator import *
 
 __version__ = "0.1.0"

@@ -71,7 +71,7 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N] [--upscale-factor {2,4}]
+usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N] [--upscale-factor {4}]
                          [--model-path PATH] [--pretrained] [--detail]
                          [--outf PATH] [--device DEVICE]
                          DIR
@@ -92,7 +92,7 @@ optional arguments:
   -b N, --batch-size N  mini-batch size (default: 16), this is the total batch
                         size of all GPUs on the current node when using Data
                         Parallel or Distributed Data Parallel.
-  --upscale-factor {2,4}
+  --upscale-factor {4}
                         Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
@@ -124,7 +124,7 @@ optional arguments:
                         load_state_dict_from_url | srgan_2x2_16 | srgan_2x2_23
                         | srgan_3x3_16 | srgan_3x3_23 | srgan_4x4_16 |
                         srgan_4x4_23 (default: srgan_4x4_16)
-  --upscale-factor {2,4}
+  --upscale-factor {4}
                         Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
@@ -152,9 +152,16 @@ optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
   -a ARCH, --arch ARCH  model architecture: discriminator |
+<<<<<<< HEAD
                         load_state_dict_from_url | srgan_2x2_16 | srgan_4x4_16
                         (default: srgan_4x4_16)
   --upscale-factor {2,4}
+=======
+                        load_state_dict_from_url | srgan_2x2_16 | srgan_2x2_23
+                        | srgan_3x3_16 | srgan_3x3_23 | srgan_4x4_16 |
+                        srgan_4x4_23 (default: srgan_4x4_16)
+  --upscale-factor {4}
+>>>>>>> master
                         Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
@@ -178,7 +185,7 @@ Low resolution / Recovered High Resolution / Ground Truth
 ```text
 usage: train.py [-h] [-a ARCH] [-j N] [--start-psnr-iter N] [--psnr-iters N]
                 [--start-iter N] [--iters N] [-b N] [--lr LR]
-                [--image-size IMAGE_SIZE] [--upscale-factor {2,4}]
+                [--image-size IMAGE_SIZE] [--upscale-factor {4}]
                 [--model-path PATH] [--pretrained] [--netP PATH] [--netD PATH]
                 [--netG PATH] [--manualSeed MANUALSEED] [--device DEVICE]
                 DIR
@@ -208,7 +215,7 @@ optional arguments:
   --lr LR               Learning rate. (default:0.0001)
   --image-size IMAGE_SIZE
                         Image size of real sample. (default:96).
-  --upscale-factor {2,4}
+  --upscale-factor {4}
                         Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.

@@ -35,7 +35,7 @@ if __name__ == "__main__":
                         help="model architecture: " +
                              " | ".join(model_names) +
                              " (default: srgan_4x4_16)")
-    parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
+    parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                         help="Low to high resolution scaling factor. (default:4).")
     parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                         help="Path to latest checkpoint for model. (default: ````).")
