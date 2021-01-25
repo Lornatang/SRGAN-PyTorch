@@ -152,16 +152,9 @@ optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
   -a ARCH, --arch ARCH  model architecture: discriminator |
-<<<<<<< HEAD
                         load_state_dict_from_url | srgan_2x2_16 | srgan_4x4_16
                         (default: srgan_4x4_16)
-  --upscale-factor {2,4}
-=======
-                        load_state_dict_from_url | srgan_2x2_16 | srgan_2x2_23
-                        | srgan_3x3_16 | srgan_3x3_23 | srgan_4x4_16 |
-                        srgan_4x4_23 (default: srgan_4x4_16)
   --upscale-factor {4}
->>>>>>> master
                         Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
