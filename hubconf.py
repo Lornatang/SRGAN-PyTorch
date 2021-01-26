@@ -15,7 +15,7 @@
 """File for accessing GAN via PyTorch Hub https://pytorch.org/hub/
 Usage:
     import torch
-    model = torch.hub.load("Lornatang/SRGAN-PyTorch", upscale_factor=4, num_residual_block=16)
+    model = torch.hub.load("Lornatang/SRGAN-PyTorch", pretrained=True, progress=True, verbose=False)
 """
 import torch
 from torch.hub import load_state_dict_from_url
@@ -23,32 +23,34 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch import Generator
 
 model_urls = {
-    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth"
+    "SRResNet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth",
+    "SRGAN": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-0380a7e1.pth"
 }
 
 dependencies = ["torch"]
 
 
-def create(arch, upscale_factor, pretrained, progress):
+def create(arch, pretrained, progress):
     """ Creates a specified GAN model
 
     Args:
         arch (str): Arch name of model.
-        upscale_factor (int): Image magnification factor.
         pretrained (bool): Load pretrained weights into the model.
         progress (bool): Show progress bar when downloading weights.
 
     Returns:
         PyTorch model.
     """
-    model = Generator(upscale_factor)
+    model = Generator()
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
+        state_dict = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress,
+                                              map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
 
 
-def srgan_2x2_16(pretrained: bool = False, progress: bool = True) -> Generator:
+def srresnet(pretrained: bool = False, progress: bool = True) -> Generator:
     r"""GAN model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
 
@@ -56,10 +58,10 @@ def srgan_2x2_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("srgan_2x2_16", 2, pretrained, progress)
+    return create("SRResNet", pretrained, progress)
 
 
-def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
+def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
     r"""GAN model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
 
@@ -67,4 +69,4 @@ def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("srgan_4x4_16", 4, pretrained, progress)
+    return create("SRGAN", pretrained, progress)

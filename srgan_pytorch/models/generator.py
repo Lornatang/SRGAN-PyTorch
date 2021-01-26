@@ -11,31 +11,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import math
-
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
-    "srgan_4x4_16": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth"
+    "SRResNet": "",
+    "SRGAN": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-0380a7e1.pth"
 }
 
 
 class Generator(nn.Module):
     r"""The main architecture of the generator."""
 
-    def __init__(self, upscale_factor=4):
+    def __init__(self):
         r""" This is an esrgan model defined by the author himself.
 
         We use two settings for our generator – one of them contains 16 residual blocks, with a capacity similar
         to that of SRGAN and the other is a deeper model with 23 RRDB blocks.
-
-        Args:
-            upscale_factor (int): Image magnification factor. (Default: 4).
         """
-        num_upsample_block = int(math.log(upscale_factor, 2))
-
         super(Generator, self).__init__()
         # First layer
         self.conv1 = nn.Sequential(
@@ -57,7 +51,7 @@ class Generator(nn.Module):
 
         # Upsampling layers
         upsampling = []
-        for _ in range(num_upsample_block):
+        for _ in range(2):
             upsampling += [
                 nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1),
                 nn.PixelShuffle(upscale_factor=2),
@@ -105,15 +99,17 @@ class ResidualBlock(nn.Module):
         return out + input
 
 
-def _srgan(arch, upscale_factor, pretrained, progress):
-    model = Generator(upscale_factor)
+def _srgan(arch, pretrained, progress):
+    model = Generator()
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
+        state_dict = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress,
+                                              map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
 
 
-def srgan_2x2_16(pretrained: bool = False, progress: bool = True) -> Generator:
+def srresnet(pretrained: bool = False, progress: bool = True) -> Generator:
     r"""GAN model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
 
@@ -121,10 +117,10 @@ def srgan_2x2_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _srgan("srgan_2x2_16", 2, pretrained, progress)
+    return _srgan("SRResNet", pretrained, progress)
 
 
-def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
+def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
     r"""GAN model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
 
@@ -132,4 +128,4 @@ def srgan_4x4_16(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _srgan("srgan_4x4_16", 4, pretrained, progress)
+    return _srgan("SRGAN", pretrained, progress)

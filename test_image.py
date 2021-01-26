@@ -32,11 +32,11 @@ if __name__ == "__main__":
                         help="Test low resolution image name.")
     parser.add_argument("--hr", type=str, required=True,
                         help="Raw high resolution image name.")
-    parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan_4x4_16",
+    parser.add_argument("-a", "--arch", metavar="ARCH", default="srresnet",
                         choices=model_names,
                         help="model architecture: " +
                              " | ".join(model_names) +
-                             " (default: srgan_4x4_16)")
+                             " (default: srresnet)")
     parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                         help="Low to high resolution scaling factor. (default:4).")
     parser.add_argument("--model-path", default="", type=str, metavar="PATH",
