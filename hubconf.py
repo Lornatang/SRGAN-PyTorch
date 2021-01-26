@@ -15,7 +15,7 @@
 """File for accessing GAN via PyTorch Hub https://pytorch.org/hub/
 Usage:
     import torch
-    model = torch.hub.load("Lornatang/SRGAN-PyTorch", pretrained=True, progress=True, verbose=False)
+    model = torch.hub.load("Lornatang/SRGAN-PyTorch", "SRGAN", pretrained=True, progress=True, verbose=False)
 """
 import torch
 from torch.hub import load_state_dict_from_url
