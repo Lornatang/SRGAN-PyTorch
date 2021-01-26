@@ -185,10 +185,12 @@ class Trainer(object):
                                        upscale_factor=args.upscale_factor)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                             batch_size=args.batch_size,
+                                                            shuffle=True,
                                                             pin_memory=True,
                                                             num_workers=int(args.workers))
         self.test_dataloader = torch.utils.data.DataLoader(test_dataset,
                                                            batch_size=args.batch_size,
+                                                           shuffle=True,
                                                            pin_memory=True,
                                                            num_workers=int(args.workers))
 

@@ -21,7 +21,7 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),  # input is (3) x 96 x 96
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),  # input is (3) x 96 x 96
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (64) x 48 x 48

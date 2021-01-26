@@ -16,7 +16,7 @@ import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
-    "SRResNet": "",
+    "SRResNet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-0380a7e1.pth",
     "SRGAN": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-0380a7e1.pth"
 }
 
@@ -52,11 +52,7 @@ class Generator(nn.Module):
         # Upsampling layers
         upsampling = []
         for _ in range(2):
-            upsampling += [
-                nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1),
-                nn.PixelShuffle(upscale_factor=2),
-                nn.PReLU()
-            ]
+            upsampling.append(UpsampleBlock(256))
         self.upsampling = nn.Sequential(*upsampling)
 
         # Final output layer
@@ -69,6 +65,28 @@ class Generator(nn.Module):
         out = torch.add(out1, out2)
         out = self.upsampling(out)
         out = self.conv3(out)
+
+        return out
+
+
+class UpsampleBlock(nn.Module):
+    r"""Main upsample block structure"""
+
+    def __init__(self, channels):
+        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
+
+        Args:
+            channels (int): Number of channels in the input image.
+        """
+        super(UpsampleBlock, self).__init__()
+        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.pixel_shuffle = nn.PixelShuffle(upscale_factor=2)
+        self.prelu = nn.PReLU()
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        out = self.conv(input)
+        out = self.pixel_shuffle(out)
+        out = self.prelu(out)
 
         return out
 

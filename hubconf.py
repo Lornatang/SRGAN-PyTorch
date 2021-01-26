@@ -23,7 +23,7 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch import Generator
 
 model_urls = {
-    "SRResNet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/GAN_srgan_4x4_16.pth",
+    "SRResNet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-0380a7e1.pth",
     "SRGAN": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-0380a7e1.pth"
 }
 
