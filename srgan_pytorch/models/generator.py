@@ -16,8 +16,13 @@ import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
+<<<<<<< Updated upstream
     "SRGAN_SRResNet_4x_DF2K": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-0380a7e1.pth",
     "SRGAN_4x_DF2K": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-0380a7e1.pth"
+=======
+    "SRResNet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-e31a1b2e.pth",
+    "SRGAN": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-57e43f2f.pth"
+>>>>>>> Stashed changes
 }
 
 
