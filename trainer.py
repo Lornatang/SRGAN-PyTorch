@@ -31,7 +31,7 @@ from srgan_pytorch.utils.common import init_torch_seeds
 from srgan_pytorch.utils.common import save_checkpoint
 from srgan_pytorch.utils.common import weights_init
 from srgan_pytorch.utils.device import select_device
-from srgan_pytorch.utils.estimate import test_lpips
+from srgan_pytorch.utils.estimate import test_gan
 from srgan_pytorch.utils.estimate import test_psnr
 
 model_names = sorted(name for name in models.__dict__
@@ -280,7 +280,7 @@ class Trainer(object):
 
         # Writer train PSNR model log.
         if self.args.start_psnr_iter == 0:
-            with open(f"ResNet_{args.arch}.csv", "w+") as f:
+            with open(f"ResNet.csv", "w+") as f:
                 writer = csv.writer(f)
                 writer.writerow(["Iter", "PSNR"])
 
@@ -312,11 +312,11 @@ class Trainer(object):
                      "best_psnr": best_psnr,
                      "optimizer": self.psnr_optimizer.state_dict()
                      }, is_best,
-                    os.path.join("weights", f"ResNet_{args.arch}_iter_{iters}.pth"),
-                    os.path.join("weights", f"ResNet_{args.arch}.pth"))
+                    os.path.join("weights", f"SRResNet_iter_{iters}.pth"),
+                    os.path.join("weights", f"SRResNet.pth"))
 
                 # Writer training log
-                with open(f"ResNet_{args.arch}.csv", "a+") as f:
+                with open(f"ResNet.csv", "a+") as f:
                     writer = csv.writer(f)
                     writer.writerow([iters, psnr])
 
@@ -332,9 +332,9 @@ class Trainer(object):
 
         # Writer train GAN model log.
         if args.start_iter == 0:
-            with open(f"GAN_{args.arch}.csv", "w+") as f:
+            with open(f"SRGAN.csv", "w+") as f:
                 writer = csv.writer(f)
-                writer.writerow(["Iter", "LPIPS"])
+                writer.writerow(["Iter", "PSNR", "LPIPS"])
 
         for epoch in range(self.start_epoch, self.epochs):
             # Train epoch.
@@ -352,24 +352,26 @@ class Trainer(object):
                       generator_scheduler=self.generator_scheduler,
                       device=self.device)
             # Test for every epoch.
-            lpips = test_lpips(self.generator, self.lpips_criterion, self.test_dataloader, self.device)
+            psnr, lpips = test_gan(self.generator, self.lpips_criterion, self.test_dataloader, self.device)
             iters = (epoch + 1) * len(self.train_dataloader)
 
             # remember best psnr and save checkpoint
             is_best = lpips < best_lpips
+            best_psnr = max(psnr, best_psnr)
             best_lpips = min(lpips, best_lpips)
 
             # The model is saved every 1 epoch.
             save_checkpoint(
                 {"iter": iters,
                  "state_dict": self.generator.state_dict(),
+                 "best_psnr": best_psnr,
                  "best_lpips": best_lpips,
                  "optimizer": self.generator_optimizer.state_dict()
                  }, is_best,
-                os.path.join("weights", f"GAN_{args.arch}_iter_{iters}.pth"),
-                os.path.join("weights", f"GAN_{args.arch}.pth"))
+                os.path.join("weights", f"SRGAN_iter_{iters}.pth"),
+                os.path.join("weights", f"SRGAN.pth"))
 
             # Writer training log
-            with open(f"GAN_{args.arch}.csv", "a+") as f:
+            with open(f"SRGAN.csv", "a+") as f:
                 writer = csv.writer(f)
-                writer.writerow([iters, lpips])
+                writer.writerow([iters, psnr, lpips])

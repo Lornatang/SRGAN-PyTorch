@@ -30,7 +30,7 @@ from .calculate_niqe import niqe
 from .transform import opencv2tensor
 
 __all__ = [
-    "image_quality_evaluation", "test_psnr", "test_lpips"
+    "image_quality_evaluation", "test_psnr", "test_gan"
 ]
 
 
@@ -86,16 +86,17 @@ def test_psnr(model: nn.Module, criterion: nn.MSELoss, dataloader: torch.utils.d
         psnr = 10 * math.log10(1. / criterion(sr, hr).item())
         total_psnr += psnr
 
-        progress_bar.set_description(f"PSNR: {psnr:.2f}dB")
+        progress_bar.set_description(f"PSNR: {psnr:.2f}dB.")
 
     return total_psnr / len(dataloader)
 
 
-def test_lpips(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils.data.DataLoader,
-               device: torch.device = "cpu"):
+def test_gan(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils.data.DataLoader,
+             device: torch.device = "cpu"):
     # switch eval mode.
     model.eval()
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+    total_psnr = 0.
     total_lpips = 0.
     for i, data in progress_bar:
         # Move data to special device.
@@ -104,10 +105,15 @@ def test_lpips(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils
 
         # Generating fake high resolution images from real low resolution images.
         sr = model(lr)
+
+        # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
+        psnr = 10 * math.log10(1. / criterion(sr, hr).item())
         # The LPIPS of the generated fake high-resolution image and real high-resolution image is calculated.
         lpips = torch.mean(criterion(sr, hr)).item()
+
+        total_psnr += psnr
         total_lpips += lpips
 
-        progress_bar.set_description(f"LPIPS: {lpips:.4f}")
+        progress_bar.set_description(f"PSNR: {psnr:.2f}dB LPIPS: {lpips:.4f}.")
 
-    return total_lpips / len(dataloader)
+    return total_psnr / len(dataloader), total_lpips / len(dataloader)

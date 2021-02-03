@@ -15,7 +15,7 @@ import PIL.BmpImagePlugin
 import cv2
 import numpy as np
 import torch
-import torchvision
+import torchvision.transforms as transforms
 from PIL import Image
 
 __all__ = [
@@ -68,7 +68,7 @@ def process_image(image: PIL.BmpImagePlugin.BmpImageFile, device: torch.device) 
     Returns:
         torch.Tensor.
     """
-    tensor = torchvision.transforms.ToTensor()(image)
+    tensor = transforms.ToTensor()(image)
     input_tensor = tensor.unsqueeze(0)
     input_tensor = input_tensor.to(device)
     return input_tensor
