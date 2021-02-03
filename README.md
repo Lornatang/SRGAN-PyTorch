@@ -71,7 +71,8 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N] [--upscale-factor {4}]
+usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N]
+                         [--image-size IMAGE_SIZE] [--upscale-factor {4}]
                          [--model-path PATH] [--pretrained] [--detail]
                          [--outf PATH] [--device DEVICE]
                          DIR
@@ -85,15 +86,15 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan_2x2_16 | srgan_2x2_23
-                        | srgan_3x3_16 | srgan_3x3_23 | srgan_4x4_16 |
-                        srgan_4x4_23 (default: srgan_4x4_16)
-  -j N, --workers N     Number of data loading workers. (default:4)
+                        load_state_dict_from_url | srgan | srresnet (default:
+                        srresnet)
+  -j N, --workers N     Number of data loading workers. (default:8)
   -b N, --batch-size N  mini-batch size (default: 16), this is the total batch
                         size of all GPUs on the current node when using Data
                         Parallel or Distributed Data Parallel.
-  --upscale-factor {4}
-                        Low to high resolution scaling factor. (default:4).
+  --image-size IMAGE_SIZE
+                        Image size of real sample. (default:96).
+  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
   --detail              Evaluate all indicators. It is very slow.
@@ -103,15 +104,15 @@ optional arguments:
                         ``0``).
 
 # Example
-$ python test_benchmark.py data/DIV2K -a srgan_4x4_16 --upscale-factor 4 --pretrained --device 0
+$ python test_benchmark.py <path-to-dataset>
 ```
 
 #### Test image
 
 ```text
-usage: test_image.py [-h] --lr LR --hr HR [-a ARCH] [--image-size IMAGE_SIZE]
-                     [--upscale-factor {2,4}] [--model-path PATH]
-                     [--pretrained] [--detail] [--outf PATH] [--device DEVICE]
+usage: test_image.py [-h] --lr LR --hr HR [-a ARCH] [--upscale-factor {4}]
+                     [--model-path PATH] [--pretrained] [--detail]
+                     [--outf PATH] [--device DEVICE]
 
 Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 Network.
@@ -121,11 +122,9 @@ optional arguments:
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
   -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan_2x2_16 | srgan_2x2_23
-                        | srgan_3x3_16 | srgan_3x3_23 | srgan_4x4_16 |
-                        srgan_4x4_23 (default: srgan_4x4_16)
-  --upscale-factor {4}
-                        Low to high resolution scaling factor. (default:4).
+                        load_state_dict_from_url | srgan | srresnet (default:
+                        srresnet)
+  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
   --detail              Evaluate all indicators. It is very slow.
@@ -135,13 +134,13 @@ optional arguments:
                         ``0``).
 
 # Example
-$ python test_image.py --lr lr.png --hr hr.png -a srgan_4x4_16 --upscale-factor 4 --pretrained --device 0
+$ python test_image.py --lr <path-to-lr> --hr <path-to-hr>
 ```
 
 #### Test video
 
 ```text
-usage: test_video.py [-h] --file FILE [-a ARCH] [--upscale-factor {2,4}]
+usage: test_video.py [-h] --file FILE [-a ARCH] [--upscale-factor {4}]
                      [--model-path PATH] [--pretrained] [--view] [--outf PATH]
                      [--device DEVICE]
 
@@ -152,10 +151,9 @@ optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
   -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan_2x2_16 | srgan_4x4_16
-                        (default: srgan_4x4_16)
-  --upscale-factor {4}
-                        Low to high resolution scaling factor. (default:4).
+                        load_state_dict_from_url | srgan | srresnet (default:
+                        srresnet)
+  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
   --view                Super resolution real time to show.
@@ -165,7 +163,7 @@ optional arguments:
                         ``0``).
                         
 # Example
-$ python test_video.py --file lr.mp4 --arch srgan_4x4_16 --upscale-factor 4 --pretrained --device 0
+$ python test_video.py --file <path-to-video>
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
@@ -192,10 +190,9 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan_2x2_16 | srgan_2x2_23
-                        | srgan_3x3_16 | srgan_3x3_23 | srgan_4x4_16 |
-                        srgan_4x4_23 (default: srgan_4x4_16)
-  -j N, --workers N     Number of data loading workers. (default:4)
+                        load_state_dict_from_url | srgan | srresnet (default:
+                        srresnet)
+  -j N, --workers N     Number of data loading workers. (default:8)
   --start-psnr-iter N   manual iter number (useful on restarts)
   --psnr-iters N        The number of iterations is needed in the training of
                         PSNR model. (default:1000000)
@@ -208,8 +205,7 @@ optional arguments:
   --lr LR               Learning rate. (default:0.0001)
   --image-size IMAGE_SIZE
                         Image size of real sample. (default:96).
-  --upscale-factor {4}
-                        Low to high resolution scaling factor. (default:4).
+  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
   --netP PATH           Path to latest psnr checkpoint. (default: ````).
@@ -221,16 +217,16 @@ optional arguments:
   --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ````).
 
 # Example (e.g DIV2K)
-$ python train.py data/DIV2K -a srgan_4x4_16 --device 0
+$ python train.py <path-to-dataset> -a srresnet
 ```
 
 If you want to load weights that you've trained before, run the following command.
 
 ```bash
 $ python train.py data/DIV2K \
-                  --arch srgan_4x4_16 \
+                  --arch srresnet \
                   --start-psnr-iter 150000 \
-                  --netP weights/ResNet_srgan_4x4_16_iter_150000.pth \
+                  --netP weights/ResNet_srresnet_iter_150000.pth \
                   --device 0
 ```
 
