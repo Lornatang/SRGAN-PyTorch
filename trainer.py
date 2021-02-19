@@ -23,8 +23,8 @@ import torchvision.utils as vutils
 from tqdm import tqdm
 
 import srgan_pytorch.models as models
-from srgan_pytorch.dataset import BaseTestDataset
-from srgan_pytorch.dataset import BaseTrainDataset
+from srgan_pytorch.dataset import CustomTestDataset
+from srgan_pytorch.dataset import CustomTrainDataset
 from srgan_pytorch.loss import VGGLoss
 from srgan_pytorch.models.discriminator import discriminator
 from srgan_pytorch.utils.common import init_torch_seeds
@@ -177,12 +177,8 @@ class Trainer(object):
 
         logger.info("Load training dataset")
         # Selection of appropriate treatment equipment.
-        train_dataset = BaseTrainDataset(root=f"{args.data}/train",
-                                         image_size=args.image_size,
-                                         upscale_factor=args.upscale_factor)
-        test_dataset = BaseTestDataset(root=f"{args.data}/test",
-                                       image_size=args.image_size,
-                                       upscale_factor=args.upscale_factor)
+        train_dataset = CustomTrainDataset(root=f"{args.data}/train")
+        test_dataset = CustomTestDataset(root=f"{args.data}/test", image_size=args.image_size)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                             batch_size=args.batch_size,
                                                             shuffle=True,
@@ -280,7 +276,7 @@ class Trainer(object):
 
         # Writer train PSNR model log.
         if self.args.start_psnr_iter == 0:
-            with open(f"ResNet.csv", "w+") as f:
+            with open(f"SRResNet.csv", "w+") as f:
                 writer = csv.writer(f)
                 writer.writerow(["Iter", "PSNR"])
 
@@ -295,33 +291,31 @@ class Trainer(object):
                        optimizer=self.psnr_optimizer,
                        device=self.device)
 
-            # every 10 epoch test.
-            if (psnr_epoch + 1) % 10 == 0:
-                # Test for every epoch.
-                psnr = test_psnr(self.generator, self.content_criterion, self.test_dataloader, self.device)
-                iters = (psnr_epoch + 1) * len(self.train_dataloader)
+            # Test for every epoch.
+            psnr = test_psnr(self.generator, self.content_criterion, self.test_dataloader, self.device)
+            iters = (psnr_epoch + 1) * len(self.train_dataloader)
 
-                # remember best psnr and save checkpoint
-                is_best = psnr > best_psnr
-                best_psnr = max(psnr, best_psnr)
+            # remember best psnr and save checkpoint
+            is_best = psnr > best_psnr
+            best_psnr = max(psnr, best_psnr)
 
-                # The model is saved every 1 epoch.
-                save_checkpoint(
-                    {"iter": iters,
-                     "state_dict": self.generator.state_dict(),
-                     "best_psnr": best_psnr,
-                     "optimizer": self.psnr_optimizer.state_dict()
-                     }, is_best,
-                    os.path.join("weights", f"SRResNet_iter_{iters}.pth"),
-                    os.path.join("weights", f"SRResNet.pth"))
+            # The model is saved every 1 epoch.
+            save_checkpoint(
+                {"iter": iters,
+                 "state_dict": self.generator.state_dict(),
+                 "best_psnr": best_psnr,
+                 "optimizer": self.psnr_optimizer.state_dict()
+                 }, is_best,
+                os.path.join("weights", f"SRResNet_iter_{iters}.pth"),
+                os.path.join("weights", f"SRResNet.pth"))
 
-                # Writer training log
-                with open(f"ResNet.csv", "a+") as f:
-                    writer = csv.writer(f)
-                    writer.writerow([iters, psnr])
+            # Writer training log
+            with open(f"SRResNet.csv", "a+") as f:
+                writer = csv.writer(f)
+                writer.writerow([iters, psnr])
 
         # Load best generator model weight.
-        self.generator.load_state_dict(torch.load(os.path.join("weights", f"ResNet_{args.arch}.pth"), self.device))
+        self.generator.load_state_dict(torch.load(os.path.join("weights", "SRResNet.pth"), self.device))
 
         # Loading SRGAN training model.
         if args.netG != "":
