@@ -130,6 +130,8 @@ dmypy.json
 
 data/DIV2K
 data/DF2K
+data/train
+data/test
 KernelGAN
 
 benchmark
