@@ -24,7 +24,7 @@ import torchvision.utils as vutils
 from PIL import Image
 from tqdm import tqdm
 
-from srgan_pytorch.dataset import CustomTestDataset
+from srgan_pytorch.dataset import BaseTestDataset
 from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import inference
 from srgan_pytorch.utils.estimate import image_quality_evaluation
@@ -40,7 +40,9 @@ class Test(object):
         self.model, self.device = configure(args)
 
         logger.info("Load testing dataset")
-        dataset = CustomTestDataset(root=f"{args.data}/test", image_size=args.image_size)
+        dataset = BaseTestDataset(root=f"{args.data}/test",
+                                  image_size=args.image_size,
+                                  upscale_factor=args.upscale_factor)
         self.dataloader = torch.utils.data.DataLoader(dataset,
                                                       batch_size=args.batch_size,
                                                       pin_memory=True,

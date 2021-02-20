@@ -23,8 +23,8 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch import Generator
 
 model_urls = {
-    "SRResNet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-e31a1b2e.pth",
-    "SRGAN": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-57e43f2f.pth"
+    "srresnet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-e31a1b2e.pth",
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-57e43f2f.pth"
 }
 
 dependencies = ["torch"]
@@ -58,7 +58,7 @@ def srresnet(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("SRResNet", pretrained, progress)
+    return create("srresnet", pretrained, progress)
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -69,4 +69,4 @@ def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("SRGAN", pretrained, progress)
+    return create("srgan", pretrained, progress)

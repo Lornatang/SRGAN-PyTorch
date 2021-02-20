@@ -23,8 +23,8 @@ import torchvision.utils as vutils
 from tqdm import tqdm
 
 import srgan_pytorch.models as models
-from srgan_pytorch.dataset import CustomTestDataset
-from srgan_pytorch.dataset import CustomTrainDataset
+from srgan_pytorch.dataset import BaseTestDataset
+from srgan_pytorch.dataset import BaseTrainDataset
 from srgan_pytorch.loss import VGGLoss
 from srgan_pytorch.models.discriminator import discriminator
 from srgan_pytorch.utils.common import init_torch_seeds
@@ -177,8 +177,12 @@ class Trainer(object):
 
         logger.info("Load training dataset")
         # Selection of appropriate treatment equipment.
-        train_dataset = CustomTrainDataset(root=f"{args.data}/train")
-        test_dataset = CustomTestDataset(root=f"{args.data}/test", image_size=args.image_size)
+        train_dataset = BaseTrainDataset(root=f"{args.data}/train",
+                                         image_size=args.image_size,
+                                         upscale_factor=args.upscale_factor)
+        test_dataset = BaseTestDataset(root=f"{args.data}/test",
+                                       image_size=args.image_size,
+                                       upscale_factor=args.upscale_factor)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                             batch_size=args.batch_size,
                                                             shuffle=True,
