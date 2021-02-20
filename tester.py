@@ -104,6 +104,10 @@ class Test(object):
                 total_psnr_value += psnr_value
                 progress_bar.set_description(f"[{i + 1}/{len(self.dataloader)}] PSNR: {psnr_value:.2f}dB")
 
+            # Clean old file.
+            os.remove(f"{args.outf}/sr_{i}.bmp")
+            os.remove(f"{args.outf}/hr_{i}.bmp")
+
             images.extend([hr.data.cpu().squeeze(0), bicubic.squeeze(0), sr.data.cpu().squeeze(0)])
 
         images = torch.stack(images)
