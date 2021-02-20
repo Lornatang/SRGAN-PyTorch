@@ -126,18 +126,21 @@ dmypy.json
 .idea
 .vscode
 
+# Mac configure file.
 .DS_Store
 
-data/DIV2K
-data/DF2K
+# Dataset
 data/train
 data/test
 KernelGAN
 
+# Program run create directory.
 benchmark
 test
-output
+video
+run
 
+# Program run create file.
 *.bmp
 *.png
 *.mp4

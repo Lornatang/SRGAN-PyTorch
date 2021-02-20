@@ -74,9 +74,9 @@ def train_psnr(epoch: int,
         iters = i + epoch * len(dataloader) + 1
         # The image is saved every 1000 epoch.
         if iters % 1000 == 0:
-            vutils.save_image(hr, os.path.join("output", "hr", f"ResNet_{iters}.bmp"))
+            vutils.save_image(hr, os.path.join("run", "hr", f"ResNet_{iters}.bmp"))
             hr = model(lr)
-            vutils.save_image(hr.detach(), os.path.join("output", "sr", f"ResNet_{iters}.bmp"))
+            vutils.save_image(hr.detach(), os.path.join("run", "sr", f"ResNet_{iters}.bmp"))
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
@@ -156,9 +156,9 @@ def train_gan(epoch: int,
         iters = i + epoch * len(dataloader) + 1
         # The image is saved every 1000 epoch.
         if iters % 1000 == 0:
-            vutils.save_image(hr, os.path.join("output", "hr", f"GAN_{iters}.bmp"))
+            vutils.save_image(hr, os.path.join("run", "hr", f"GAN_{iters}.bmp"))
             hr = generator(lr)
-            vutils.save_image(hr.detach(), os.path.join("output", "sr", f"GAN_{iters}.bmp"))
+            vutils.save_image(hr.detach(), os.path.join("run", "sr", f"GAN_{iters}.bmp"))
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
