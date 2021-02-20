@@ -284,39 +284,42 @@ class Trainer(object):
                 writer = csv.writer(f)
                 writer.writerow(["Iter", "PSNR"])
 
-        for psnr_epoch in range(self.start_psnr_epoch, self.psnr_epochs):
-            # Train epoch.
-            train_psnr(epoch=psnr_epoch,
-                       total_epoch=self.psnr_epochs,
-                       total_iters=args.psnr_iters,
-                       dataloader=self.train_dataloader,
-                       model=self.generator,
-                       content_criterion=self.content_criterion,
-                       optimizer=self.psnr_optimizer,
-                       device=self.device)
+        if args.start_psnr_iter < 1000000:
+            for psnr_epoch in range(self.start_psnr_epoch, self.psnr_epochs):
+                # Train epoch.
+                train_psnr(epoch=psnr_epoch,
+                           total_epoch=self.psnr_epochs,
+                           total_iters=args.psnr_iters,
+                           dataloader=self.train_dataloader,
+                           model=self.generator,
+                           content_criterion=self.content_criterion,
+                           optimizer=self.psnr_optimizer,
+                           device=self.device)
 
-            # Test for every epoch.
-            psnr = test_psnr(self.generator, self.content_criterion, self.test_dataloader, self.device)
-            iters = (psnr_epoch + 1) * len(self.train_dataloader)
+                # Test for every epoch.
+                psnr = test_psnr(self.generator, self.content_criterion, self.test_dataloader, self.device)
+                iters = (psnr_epoch + 1) * len(self.train_dataloader)
 
-            # remember best psnr and save checkpoint
-            is_best = psnr > best_psnr
-            best_psnr = max(psnr, best_psnr)
+                # remember best psnr and save checkpoint
+                is_best = psnr > best_psnr
+                best_psnr = max(psnr, best_psnr)
 
-            # The model is saved every 1 epoch.
-            save_checkpoint(
-                {"iter": iters,
-                 "state_dict": self.generator.state_dict(),
-                 "best_psnr": best_psnr,
-                 "optimizer": self.psnr_optimizer.state_dict()
-                 }, is_best,
-                os.path.join("weights", f"SRResNet_iter_{iters}.pth"),
-                os.path.join("weights", f"SRResNet.pth"))
+                # The model is saved every 1 epoch.
+                save_checkpoint(
+                    {"iter": iters,
+                     "state_dict": self.generator.state_dict(),
+                     "best_psnr": best_psnr,
+                     "optimizer": self.psnr_optimizer.state_dict()
+                     }, is_best,
+                    os.path.join("weights", f"SRResNet_iter_{iters}.pth"),
+                    os.path.join("weights", f"SRResNet.pth"))
 
-            # Writer training log
-            with open(f"SRResNet.csv", "a+") as f:
-                writer = csv.writer(f)
-                writer.writerow([iters, psnr])
+                # Writer training log
+                with open(f"SRResNet.csv", "a+") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([iters, psnr])
+        else:
+            logger.info("The weight of pre training model is found.")
 
         # Load best generator model weight.
         self.generator.load_state_dict(torch.load(os.path.join("weights", "SRResNet.pth"), self.device))

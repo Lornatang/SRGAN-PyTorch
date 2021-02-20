@@ -12,6 +12,7 @@
 # limitations under the License.
 # ==============================================================================
 from .calculate_niqe import *
+from .calculate_ssim import *
 from .common import *
 from .device import *
 from .estimate import *

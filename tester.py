@@ -25,6 +25,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from srgan_pytorch.dataset import BaseTestDataset
+from srgan_pytorch.utils.calculate_ssim import ssim
 from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import inference
 from srgan_pytorch.utils.estimate import image_quality_evaluation
@@ -69,12 +70,11 @@ class Test(object):
 
         # Start evaluate model performance.
         progress_bar = tqdm(enumerate(self.dataloader), total=len(self.dataloader))
-        # Concat image.
-        images = []
 
         for i, (input, bicubic, target) in progress_bar:
             # Set model gradients to zero
             lr = input.to(self.device)
+            bicubic = bicubic.to(self.device)
             hr = target.to(self.device)
 
             # Super-resolution.
@@ -85,7 +85,7 @@ class Test(object):
                 vutils.save_image(sr, os.path.join("benchmark", "sr.bmp"))  # Save super resolution image.
                 vutils.save_image(hr, os.path.join("benchmark", "hr.bmp"))  # Save high resolution image.
                 value = image_quality_evaluation(sr_filename=os.path.join("benchmark", "sr.bmp"),
-                                                 hr_filename=os.path.join("benchmark", "sr.bmp"),
+                                                 hr_filename=os.path.join("benchmark", "hr.bmp"),
                                                  device=self.device)
 
                 total_mse_value += value[0]
@@ -103,19 +103,14 @@ class Test(object):
             else:
                 mse_value = ((sr - hr) ** 2).data.mean()
                 psnr_value = 10 * math.log10(1. / mse_value)
+                ssim_value = ssim(hr, sr)
                 total_psnr_value += psnr_value
-                progress_bar.set_description(f"[{i + 1}/{len(self.dataloader)}] PSNR: {psnr_value:.2f}dB.")
+                total_ssim_value += ssim_value
+                progress_bar.set_description(f"[{i + 1}/{len(self.dataloader)}] "
+                                             f"PSNR: {psnr_value:.2f}dB SSIM: {ssim_value:.4f}.")
 
-            images.extend([hr.data.cpu().squeeze(0), bicubic.squeeze(0), sr.data.cpu().squeeze(0)])
-
-        images = torch.stack(images)
-        images = torch.chunk(images, len(self.dataloader) // 3)
-        bar = tqdm(images, desc="[saving testing results]")
-        index = 1
-        for image in bar:
-            image = vutils.make_grid(image, nrow=3, padding=5)
-            vutils.save_image(image, os.path.join(args.outf, f"{index}.bmp"), padding=5)
-            index += 1
+            images = torch.cat([bicubic, sr, hr], dim=-1)
+            vutils.save_image(images, os.path.join("benchmark", f"{i + 1}.bmp"), padding=10)
 
         print(f"Performance avg results:\n")
         print(f"indicator Score\n")
@@ -131,7 +126,8 @@ class Test(object):
                   f"VIF       {total_vif_value / len(self.dataloader):.4f}\n"
                   f"LPIPS     {total_lpips_value / len(self.dataloader):.4f}\n")
         else:
-            print(f"PSNR      {total_psnr_value / len(self.dataloader):.2f}\n")
+            print(f"PSNR      {total_psnr_value / len(self.dataloader):.2f}\n"
+                  f"SSIM      {total_ssim_value / len(self.dataloader):.4f}\n")
 
 
 class Estimate(object):
