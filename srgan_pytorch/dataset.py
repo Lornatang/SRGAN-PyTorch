@@ -142,7 +142,7 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         input_dir = os.path.join(root, "input")
         target_dir = os.path.join(root, "target")
         self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
-        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
+        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
         self.transforms = transforms.ToTensor()
 
     def __getitem__(self, index):
@@ -177,7 +177,7 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         input_dir = os.path.join(root, "input")
         target_dir = os.path.join(root, "target")
         self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
-        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
+        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
 
         self.transforms = transforms.ToTensor()
         self.bicubic_transforms = transforms.Compose([
