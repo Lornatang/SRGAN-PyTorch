@@ -46,7 +46,7 @@ def train_psnr(epoch: int,
                total_iters: int,
                dataloader: torch.utils.data.DataLoader,
                model: nn.Module,
-               content_criterion: nn.MSELoss,
+               pixel_criterion: nn.MSELoss,
                optimizer: torch.optim.Adam,
                device: torch.device):
     # switch train mode.
@@ -60,7 +60,7 @@ def train_psnr(epoch: int,
         # Generating fake high resolution images from real low resolution images.
         sr = model(lr)
         # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-        loss = content_criterion(sr, hr)
+        loss = pixel_criterion(sr, hr)
 
         # compute gradient and do Adam step
         optimizer.zero_grad()
@@ -88,6 +88,7 @@ def train_gan(epoch: int,
               dataloader: torch.utils.data.DataLoader,
               discriminator: nn.Module,
               generator: nn.Module,
+              pixel_criterion: nn.MSELoss,
               perceptual_criterion: VGGLoss,
               adversarial_criterion: nn.BCELoss,
               discriminator_optimizer: torch.optim.Adam,
@@ -138,6 +139,8 @@ def train_gan(epoch: int,
         # Set generator gradients to zero
         generator.zero_grad()
 
+        # The pixel-wise MSE loss is calculated.
+        pixel_loss = pixel_criterion(sr, hr)
         # According to the feature map, the root mean square error is regarded as the content loss.
         perceptual_loss = perceptual_criterion(sr, hr)
         # Train with fake high resolution image.
@@ -145,13 +148,17 @@ def train_gan(epoch: int,
         D_G_z2 = output.mean().item()
         # Adversarial loss.
         adversarial_loss = adversarial_criterion(output, real_label)
-        errG = perceptual_loss + 0.001 * adversarial_loss
+        errG = pixel_loss + 0.006 * perceptual_loss + 0.001 * adversarial_loss
         errG.backward()
         generator_optimizer.step()
 
         progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
-                                     f"Loss_D: {errD.item():.6f} Loss_G: {errG.item():.6f} "
-                                     f"D(HR): {D_x:.6f} D(G(SR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
+                                     f"Loss_D: {errD.item():.6f} "
+                                     f"Pixel Loss: {pixel_loss.item():.6f} "
+                                     f"Perceptual Loss: {perceptual_loss.item():.6f} "
+                                     f"Adversarial Loss: {adversarial_loss.item():.6f} "
+                                     f"D(HR): {D_x:.6f} "
+                                     f"D(G(SR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
 
         iters = i + epoch * len(dataloader) + 1
         # The image is saved every 1000 epoch.
@@ -247,16 +254,15 @@ class Trainer(object):
                     f"\tBetas is (0.9, 0.999)\n"
                     f"\tScheduler is StepLR")
 
-        # We use VGG5.4 as our feature extraction method by default.
-        self.perceptual_criterion = VGGLoss().to(self.device)
-        # Loss = perceptual loss + 0.001 * adversarial loss
-        self.content_criterion = nn.MSELoss().to(self.device)
+        # Loss = pixel loss + 0.006 * perceptual loss + 0.001 * adversarial loss.
+        self.pixel_criterion = nn.MSELoss().to(self.device)
         self.adversarial_criterion = nn.BCELoss().to(self.device)
+        self.perceptual_criterion = VGGLoss().to(self.device)
         # LPIPS Evaluating.
         self.lpips_criterion = lpips.LPIPS(net="vgg", verbose=False).to(self.device)
         logger.info(f"Loss function:\n"
+                    f"\tPixel loss is MSELoss\n"
                     f"\tPerceptual loss is VGGLoss\n"
-                    f"\tContent loss is MSELoss\n"
                     f"\tAdversarial loss is BCELoss")
 
     def run(self):
@@ -289,12 +295,15 @@ class Trainer(object):
                            total_iters=args.psnr_iters,
                            dataloader=self.train_dataloader,
                            model=self.generator,
-                           content_criterion=self.content_criterion,
+                           pixel_criterion=self.pixel_criterion,
                            optimizer=self.psnr_optimizer,
                            device=self.device)
 
                 # Test for every epoch.
-                psnr = test_psnr(self.generator, self.content_criterion, self.test_dataloader, self.device)
+                psnr = test_psnr(model=self.generator,
+                                 pixel_criterion=self.pixel_criterion,
+                                 dataloader=self.test_dataloader,
+                                 device=self.device)
                 iters = (psnr_epoch + 1) * len(self.train_dataloader)
 
                 # remember best psnr and save checkpoint
@@ -342,6 +351,7 @@ class Trainer(object):
                       dataloader=self.train_dataloader,
                       discriminator=self.discriminator,
                       generator=self.generator,
+                      pixel_criterion=self.pixel_criterion,
                       perceptual_criterion=self.perceptual_criterion,
                       adversarial_criterion=self.adversarial_criterion,
                       discriminator_optimizer=self.discriminator_optimizer,
@@ -350,8 +360,11 @@ class Trainer(object):
                       generator_scheduler=self.generator_scheduler,
                       device=self.device)
             # Test for every epoch.
-            psnr, lpips = test_gan(self.generator, self.content_criterion, self.lpips_criterion, self.test_dataloader,
-                                   self.device)
+            psnr, lpips = test_gan(model=self.generator,
+                                   psnr_criterion=self.pixel_criterion,
+                                   lpips_criterion=self.lpips_criterion,
+                                   dataloader=self.test_dataloader,
+                                   device=self.device)
             iters = (epoch + 1) * len(self.train_dataloader)
 
             # remember best psnr and save checkpoint
