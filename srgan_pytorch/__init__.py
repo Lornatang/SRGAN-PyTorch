@@ -13,6 +13,7 @@
 # ==============================================================================
 from .dataset import *
 from .loss import *
+from .models.discriminator import *
 from .models.generator import *
 
 __version__ = "0.1.0"
