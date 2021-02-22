@@ -23,8 +23,8 @@ import torchvision.utils as vutils
 from tqdm import tqdm
 
 import srgan_pytorch.models as models
-from srgan_pytorch.dataset import BaseTestDataset
-from srgan_pytorch.dataset import BaseTrainDataset
+from srgan_pytorch.dataset import CustomTestDataset
+from srgan_pytorch.dataset import CustomTrainDataset
 from srgan_pytorch.loss import VGGLoss
 from srgan_pytorch.models.discriminator import discriminator
 from srgan_pytorch.utils.common import init_torch_seeds
@@ -74,9 +74,9 @@ def train_psnr(epoch: int,
         iters = i + epoch * len(dataloader) + 1
         # The image is saved every 1000 epoch.
         if iters % 1000 == 0:
-            vutils.save_image(hr, os.path.join("run", "hr", f"ResNet_{iters}.bmp"))
+            vutils.save_image(hr, os.path.join("run", "hr", f"SRResNet_{iters}.bmp"))
             hr = model(lr)
-            vutils.save_image(hr.detach(), os.path.join("run", "sr", f"ResNet_{iters}.bmp"))
+            vutils.save_image(hr.detach(), os.path.join("run", "sr", f"SRResNet_{iters}.bmp"))
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
@@ -151,14 +151,14 @@ def train_gan(epoch: int,
 
         progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
                                      f"Loss_D: {errD.item():.6f} Loss_G: {errG.item():.6f} "
-                                     f"D(HR): {D_x:.6f} D(G(LR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
+                                     f"D(HR): {D_x:.6f} D(G(SR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
 
         iters = i + epoch * len(dataloader) + 1
         # The image is saved every 1000 epoch.
         if iters % 1000 == 0:
-            vutils.save_image(hr, os.path.join("run", "hr", f"GAN_{iters}.bmp"))
+            vutils.save_image(hr, os.path.join("run", "hr", f"SRGAN_{iters}.bmp"))
             hr = generator(lr)
-            vutils.save_image(hr.detach(), os.path.join("run", "sr", f"GAN_{iters}.bmp"))
+            vutils.save_image(hr.detach(), os.path.join("run", "sr", f"SRGAN_{iters}.bmp"))
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
@@ -177,12 +177,9 @@ class Trainer(object):
 
         logger.info("Load training dataset")
         # Selection of appropriate treatment equipment.
-        train_dataset = BaseTrainDataset(root=f"{args.data}/train",
-                                         image_size=args.image_size,
-                                         upscale_factor=args.upscale_factor)
-        test_dataset = BaseTestDataset(root=f"{args.data}/test",
-                                       image_size=args.image_size,
-                                       upscale_factor=args.upscale_factor)
+        train_dataset = CustomTrainDataset(root=f"{args.data}/train")
+        test_dataset = CustomTestDataset(root=f"{args.data}/test",
+                                         image_size=args.image_size)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                             batch_size=args.batch_size,
                                                             shuffle=True,
@@ -353,7 +350,8 @@ class Trainer(object):
                       generator_scheduler=self.generator_scheduler,
                       device=self.device)
             # Test for every epoch.
-            psnr, lpips = test_gan(self.generator, self.lpips_criterion, self.test_dataloader, self.device)
+            psnr, lpips = test_gan(self.generator, self.content_criterion, self.lpips_criterion, self.test_dataloader,
+                                   self.device)
             iters = (epoch + 1) * len(self.train_dataloader)
 
             # remember best psnr and save checkpoint
@@ -362,6 +360,7 @@ class Trainer(object):
             best_lpips = min(lpips, best_lpips)
 
             # The model is saved every 1 epoch.
+            torch.save(self.discriminator.state_dict(), "Discriminator.pth")
             save_checkpoint(
                 {"iter": iters,
                  "state_dict": self.generator.state_dict(),

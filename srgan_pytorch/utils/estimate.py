@@ -91,8 +91,8 @@ def test_psnr(model: nn.Module, criterion: nn.MSELoss, dataloader: torch.utils.d
     return total_psnr / len(dataloader)
 
 
-def test_gan(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils.data.DataLoader,
-             device: torch.device = "cpu"):
+def test_gan(model: nn.Module, psnr_criterion: nn.MSELoss, lpips_criterion: lpips.LPIPS,
+             dataloader: torch.utils.data.DataLoader, device: torch.device = "cpu"):
     # switch eval mode.
     model.eval()
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
@@ -107,9 +107,9 @@ def test_gan(model: nn.Module, criterion: lpips.LPIPS, dataloader: torch.utils.d
         sr = model(lr)
 
         # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-        psnr = 10 * math.log10(1. / criterion(sr, hr).item())
+        psnr = 10 * math.log10(1. / psnr_criterion(sr, hr).item())
         # The LPIPS of the generated fake high-resolution image and real high-resolution image is calculated.
-        lpips = torch.mean(criterion(sr, hr)).item()
+        lpips = torch.mean(lpips_criterion(sr, hr)).item()
 
         total_psnr += psnr
         total_lpips += lpips

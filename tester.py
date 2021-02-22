@@ -24,7 +24,7 @@ import torchvision.utils as vutils
 from PIL import Image
 from tqdm import tqdm
 
-from srgan_pytorch.dataset import BaseTestDataset
+from srgan_pytorch.dataset import CustomTestDataset
 from srgan_pytorch.utils.calculate_ssim import ssim
 from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import inference
@@ -41,9 +41,8 @@ class Test(object):
         self.model, self.device = configure(args)
 
         logger.info("Load testing dataset")
-        dataset = BaseTestDataset(root=f"{args.data}/test",
-                                  image_size=args.image_size,
-                                  upscale_factor=args.upscale_factor)
+        dataset = CustomTestDataset(root=f"{args.data}/test",
+                                    image_size=args.image_size)
         self.dataloader = torch.utils.data.DataLoader(dataset,
                                                       batch_size=args.batch_size,
                                                       pin_memory=True,
@@ -246,7 +245,7 @@ class Video(object):
 
                 if args.view:
                     # display video
-                    cv2.imshow("LR video convert HR video ", final_image)
+                    cv2.imshow("LR video convert SR video ", final_image)
                     if cv2.waitKey(1) & 0xFF == ord("q"):
                         break
 
