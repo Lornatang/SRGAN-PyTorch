@@ -196,7 +196,7 @@ If you want to load weights that you've trained before, run the following comman
 $ python train.py data/DIV2K \
                   --arch srgan \
                   --start-psnr-iter 150000 \
-                  --netP weights/SRResNet_iter_150000.pth \
+                  --netP weights/SRGAN_iter_150000.pth \
                   --device 0
 ```
 
