@@ -52,10 +52,10 @@ def train_psnr(epoch: int,
     # switch train mode.
     model.train()
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    for i, data in progress_bar:
+    for i, (input, target) in progress_bar:
         # Move data to special device.
-        lr = data[0].to(device)
-        hr = data[1].to(device)
+        lr = input.to(device)
+        hr = target.to(device)
 
         # Generating fake high resolution images from real low resolution images.
         sr = model(lr)
@@ -67,9 +67,8 @@ def train_psnr(epoch: int,
         loss.backward()
         optimizer.step()
 
-        progress_bar.set_description(f"[{epoch + 1}/{total_epoch}]"
-                                     f"[{i + 1}/{len(dataloader)}] "
-                                     f"Loss: {loss.item():.6f}")
+        progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
+                                     f"MSE Loss: {loss.item():.6f}")
 
         iters = i + epoch * len(dataloader) + 1
         # The image is saved every 1000 epoch.
@@ -100,9 +99,9 @@ def train_gan(epoch: int,
     generator.train()
     discriminator.train()
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    for i, data in progress_bar:
-        lr = data[0].to(device)
-        hr = data[1].to(device)
+    for i, (input, target) in progress_bar:
+        lr = input.to(device)
+        hr = target.to(device)
         batch_size = lr.size(0)
 
         # The real sample label is 1, and the generated sample label is 0.
