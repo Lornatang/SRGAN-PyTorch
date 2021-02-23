@@ -139,17 +139,17 @@ def train_gan(epoch: int,
         # Set generator gradients to zero
         generator.zero_grad()
 
+        # Train with fake high resolution image.
+        output = discriminator(sr)
         # The pixel-wise MSE loss is calculated.
         pixel_loss = pixel_criterion(sr, hr)
         # According to the feature map, the root mean square error is regarded as the content loss.
         perceptual_loss = perceptual_criterion(sr, hr)
-        # Train with fake high resolution image.
-        output = discriminator(sr)  # Train fake image.
-        D_G_z2 = output.mean().item()
         # Adversarial loss.
         adversarial_loss = adversarial_criterion(output, real_label)
         errG = pixel_loss + 0.006 * perceptual_loss + 0.001 * adversarial_loss
         errG.backward()
+        D_G_z2 = output.mean().item()
         generator_optimizer.step()
 
         progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
@@ -184,8 +184,8 @@ class Trainer(object):
 
         logger.info("Load training dataset")
         # Selection of appropriate treatment equipment.
-        train_dataset = CustomTrainDataset(root=f"{args.data}/train")
-        test_dataset = CustomTestDataset(root=f"{args.data}/test",
+        train_dataset = CustomTrainDataset(root=os.path.join(args.data, "train"))
+        test_dataset = CustomTestDataset(root=os.path.join(args.data, "test"),
                                          image_size=args.image_size)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                             batch_size=args.batch_size,

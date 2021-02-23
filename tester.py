@@ -41,7 +41,7 @@ class Test(object):
         self.model, self.device = configure(args)
 
         logger.info("Load testing dataset")
-        dataset = CustomTestDataset(root=f"{args.data}/test",
+        dataset = CustomTestDataset(root=os.path.join(args.data, "test"),
                                     image_size=args.image_size)
         self.dataloader = torch.utils.data.DataLoader(dataset,
                                                       batch_size=args.batch_size,
