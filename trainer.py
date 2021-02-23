@@ -287,7 +287,7 @@ class Trainer(object):
                 writer = csv.writer(f)
                 writer.writerow(["Iter", "PSNR"])
 
-        if args.start_psnr_iter < 1000000:
+        if args.start_psnr_iter < args.psnr_iters:
             for psnr_epoch in range(self.start_psnr_epoch, self.psnr_epochs):
                 # Train epoch.
                 train_psnr(epoch=psnr_epoch,
@@ -343,48 +343,51 @@ class Trainer(object):
                 writer = csv.writer(f)
                 writer.writerow(["Iter", "PSNR", "LPIPS"])
 
-        for epoch in range(self.start_epoch, self.epochs):
-            # Train epoch.
-            train_gan(epoch=epoch,
-                      total_epoch=self.epochs,
-                      total_iters=args.iters,
-                      dataloader=self.train_dataloader,
-                      discriminator=self.discriminator,
-                      generator=self.generator,
-                      pixel_criterion=self.pixel_criterion,
-                      perceptual_criterion=self.perceptual_criterion,
-                      adversarial_criterion=self.adversarial_criterion,
-                      discriminator_optimizer=self.discriminator_optimizer,
-                      generator_optimizer=self.generator_optimizer,
-                      discriminator_scheduler=self.discriminator_scheduler,
-                      generator_scheduler=self.generator_scheduler,
-                      device=self.device)
-            # Test for every epoch.
-            psnr, lpips = test_gan(model=self.generator,
-                                   psnr_criterion=self.pixel_criterion,
-                                   lpips_criterion=self.lpips_criterion,
-                                   dataloader=self.test_dataloader,
-                                   device=self.device)
-            iters = (epoch + 1) * len(self.train_dataloader)
+        if args.start_iter < args.iters:
+            for epoch in range(self.start_epoch, self.epochs):
+                # Train epoch.
+                train_gan(epoch=epoch,
+                          total_epoch=self.epochs,
+                          total_iters=args.iters,
+                          dataloader=self.train_dataloader,
+                          discriminator=self.discriminator,
+                          generator=self.generator,
+                          pixel_criterion=self.pixel_criterion,
+                          perceptual_criterion=self.perceptual_criterion,
+                          adversarial_criterion=self.adversarial_criterion,
+                          discriminator_optimizer=self.discriminator_optimizer,
+                          generator_optimizer=self.generator_optimizer,
+                          discriminator_scheduler=self.discriminator_scheduler,
+                          generator_scheduler=self.generator_scheduler,
+                          device=self.device)
+                # Test for every epoch.
+                psnr, lpips = test_gan(model=self.generator,
+                                       psnr_criterion=self.pixel_criterion,
+                                       lpips_criterion=self.lpips_criterion,
+                                       dataloader=self.test_dataloader,
+                                       device=self.device)
+                iters = (epoch + 1) * len(self.train_dataloader)
 
-            # remember best psnr and save checkpoint
-            is_best = lpips < best_lpips
-            best_psnr = max(psnr, best_psnr)
-            best_lpips = min(lpips, best_lpips)
+                # remember best psnr and save checkpoint
+                is_best = lpips < best_lpips
+                best_psnr = max(psnr, best_psnr)
+                best_lpips = min(lpips, best_lpips)
 
-            # The model is saved every 1 epoch.
-            torch.save(self.discriminator.state_dict(), "Discriminator.pth")
-            save_checkpoint(
-                {"iter": iters,
-                 "state_dict": self.generator.state_dict(),
-                 "best_psnr": best_psnr,
-                 "best_lpips": best_lpips,
-                 "optimizer": self.generator_optimizer.state_dict()
-                 }, is_best,
-                os.path.join("weights", f"SRGAN_iter_{iters}.pth"),
-                os.path.join("weights", f"SRGAN.pth"))
+                # The model is saved every 1 epoch.
+                torch.save(self.discriminator.state_dict(), os.path.join("weights", "Discriminator.pth"))
+                save_checkpoint(
+                    {"iter": iters,
+                     "state_dict": self.generator.state_dict(),
+                     "best_psnr": best_psnr,
+                     "best_lpips": best_lpips,
+                     "optimizer": self.generator_optimizer.state_dict()
+                     }, is_best,
+                    os.path.join("weights", f"SRGAN_iter_{iters}.pth"),
+                    os.path.join("weights", f"SRGAN.pth"))
 
-            # Writer training log
-            with open(f"SRGAN.csv", "a+") as f:
-                writer = csv.writer(f)
-                writer.writerow([iters, psnr, lpips])
+                # Writer training log
+                with open(f"SRGAN.csv", "a+") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([iters, psnr, lpips])
+        else:
+            logger.info("The weight of GAN training model is found.")
