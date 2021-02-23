@@ -58,7 +58,8 @@ def train_psnr(epoch: int,
         # Move data to special device.
         lr = input.to(device)
         hr = target.to(device)
-
+        
+        model.zero_grad()
         # Runs the forward pass with autocasting.
         with amp.autocast():
             # Generating fake high resolution images from real low resolution images.
@@ -86,8 +87,8 @@ def train_psnr(epoch: int,
         # The image is saved every 1000 epoch.
         if iters % 1000 == 0:
             vutils.save_image(hr, os.path.join("run", "hr", f"SRResNet_{iters}.bmp"))
-            hr = model(lr)
-            vutils.save_image(hr.detach(), os.path.join("run", "sr", f"SRResNet_{iters}.bmp"))
+            sr = model(lr)
+            vutils.save_image(sr.detach(), os.path.join("run", "sr", f"SRResNet_{iters}.bmp"))
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
@@ -130,12 +131,12 @@ def train_gan(epoch: int,
         sr = generator(lr)
 
         # Train with real high resolution image.
-        output = discriminator(hr)  # Train lr image.
+        output = discriminator(hr)
         errD_real = adversarial_criterion(output, real_label)
         D_x = output.mean().item()
 
         # Train with fake image resolution image.
-        output = discriminator(sr.detach())  # No train sr image.
+        output = discriminator(sr.detach())
         errD_fake = adversarial_criterion(output, fake_label)
         D_G_z1 = output.mean().item()
 
