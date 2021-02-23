@@ -17,6 +17,7 @@ import math
 import os
 
 import lpips
+import torch.cuda.amp as amp
 import torch.nn as nn
 import torch.utils.data
 import torchvision.utils as vutils
@@ -48,6 +49,7 @@ def train_psnr(epoch: int,
                model: nn.Module,
                pixel_criterion: nn.MSELoss,
                optimizer: torch.optim.Adam,
+               scaler: amp.GradScaler,
                device: torch.device):
     # switch train mode.
     model.train()
@@ -57,15 +59,25 @@ def train_psnr(epoch: int,
         lr = input.to(device)
         hr = target.to(device)
 
-        # Generating fake high resolution images from real low resolution images.
-        sr = model(lr)
-        # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-        loss = pixel_criterion(sr, hr)
+        # Runs the forward pass with autocasting.
+        with amp.autocast():
+            # Generating fake high resolution images from real low resolution images.
+            sr = model(lr)
+            # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
+            loss = pixel_criterion(sr, hr)
 
-        # compute gradient and do Adam step
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
+        # Backward passes under autocast are not recommended.
+        # Backward ops run in the same dtype autocast chose for corresponding forward ops.
+        scaler.scale(loss).backward()
+
+        # scaler.step() first unscales the gradients of the optimizer's assigned params.
+        # If these gradients do not contain infs or NaNs, optimizer.step() is then called,
+        # otherwise, optimizer.step() is skipped.
+        scaler.step(optimizer)
+
+        # Updates the scale for next iteration.
+        scaler.update()
 
         progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
                                      f"MSE Loss: {loss.item():.6f}")
@@ -233,6 +245,10 @@ class Trainer(object):
                     f"\tLearning rate {args.lr}\n"
                     f"\tBetas (0.9, 0.999)")
 
+        # Creates a GradScaler once at the beginning of training.
+        self.scaler = amp.GradScaler()
+        logger.info(f"Turn on mixed precision training.")
+
         # Parameters of GAN training model.
         self.start_epoch = math.floor(args.start_iter / len(self.train_dataloader))
         self.epochs = math.ceil(args.iters / len(self.train_dataloader))
@@ -295,6 +311,7 @@ class Trainer(object):
                            model=self.generator,
                            pixel_criterion=self.pixel_criterion,
                            optimizer=self.psnr_optimizer,
+                           scaler=self.scaler,
                            device=self.device)
 
                 # Test for every epoch.
