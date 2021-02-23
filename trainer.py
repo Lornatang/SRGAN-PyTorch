@@ -114,22 +114,21 @@ def train_gan(epoch: int,
         # Set discriminator gradients to zero.
         discriminator.zero_grad()
 
+        # Generating fake high resolution images from real low resolution images.
+        sr = generator(lr)
+
         # Train with real high resolution image.
         output = discriminator(hr)  # Train lr image.
         errD_real = adversarial_criterion(output, real_label)
         D_x = output.mean().item()
-        errD_real.backward()
-
-        # Generating fake high resolution images from real low resolution images.
-        sr = generator(lr)
 
         # Train with fake image resolution image.
         output = discriminator(sr.detach())  # No train sr image.
         errD_fake = adversarial_criterion(output, fake_label)
         D_G_z1 = output.mean().item()
-        errD_fake.backward()
 
         errD = errD_real + errD_fake
+        errD.backward()
         discriminator_optimizer.step()
 
         ##############################################
@@ -140,6 +139,7 @@ def train_gan(epoch: int,
 
         # Train with fake high resolution image.
         output = discriminator(sr)
+        D_G_z2 = output.mean().item()
         # The pixel-wise MSE loss is calculated.
         pixel_loss = pixel_criterion(sr, hr)
         # According to the feature map, the root mean square error is regarded as the content loss.
@@ -148,7 +148,6 @@ def train_gan(epoch: int,
         adversarial_loss = adversarial_criterion(output, real_label)
         errG = pixel_loss + 0.006 * perceptual_loss + 0.001 * adversarial_loss
         errG.backward()
-        D_G_z2 = output.mean().item()
         generator_optimizer.step()
 
         progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
