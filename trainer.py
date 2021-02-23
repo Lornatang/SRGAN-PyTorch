@@ -59,7 +59,7 @@ def train_psnr(epoch: int,
         lr = input.to(device)
         hr = target.to(device)
         
-        model.zero_grad()
+        optimizer.zero_grad()
         # Runs the forward pass with autocasting.
         with amp.autocast():
             # Generating fake high resolution images from real low resolution images.
