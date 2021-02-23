@@ -30,15 +30,15 @@ if __name__ == "__main__":
                                                  "Generative Adversarial Network.")
     parser.add_argument("--file", type=str, required=True,
                         help="Test low resolution video name.")
-    parser.add_argument("-a", "--arch", metavar="ARCH", default="srresnet",
+    parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                         choices=model_names,
                         help="model architecture: " +
                              " | ".join(model_names) +
-                             " (default: srresnet)")
+                             " (default: srgan)")
     parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                         help="Low to high resolution scaling factor. (default:4).")
-    parser.add_argument("--model-path", default="", type=str, metavar="PATH",
-                        help="Path to latest checkpoint for model. (default: ````).")
+    parser.add_argument("--model-path", default="weights/SRGAN.pth", type=str, metavar="PATH",
+                        help="Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).")
     parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                         help="Use pre-trained model.")
     parser.add_argument("--view", dest="view", action="store_true",

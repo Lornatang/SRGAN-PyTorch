@@ -71,99 +71,78 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N]
-                         [--image-size IMAGE_SIZE] [--upscale-factor {4}]
-                         [--model-path PATH] [--pretrained] [--detail]
-                         [--outf PATH] [--device DEVICE]
+usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N] [--image-size IMAGE_SIZE] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--detail]
+                         [--device DEVICE]
                          DIR
 
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
-Network.
+Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
 
 positional arguments:
   DIR                   path to dataset
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan | srresnet (default:
-                        srresnet)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
   -j N, --workers N     Number of data loading workers. (default:8)
-  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch
-                        size of all GPUs on the current node when using Data
-                        Parallel or Distributed Data Parallel.
+  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or
+                        Distributed Data Parallel.
   --image-size IMAGE_SIZE
                         Image size of real sample. (default:96).
   --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default: ````).
+  --model-path PATH     Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).
   --pretrained          Use pre-trained model.
   --detail              Evaluate all indicators. It is very slow.
-  --outf PATH           The location of the image in the evaluation process.
-                        (default: ``test``).
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
-                        ``0``).
+  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).
 
 # Example
-$ python test_benchmark.py <path-to-dataset>
+$ python3 test_benchmark.py <path-to-dataset> -a srgan --pretrained
 ```
 
 #### Test image
 
 ```text
-usage: test_image.py [-h] --lr LR --hr HR [-a ARCH] [--upscale-factor {4}]
-                     [--model-path PATH] [--pretrained] [--detail]
-                     [--outf PATH] [--device DEVICE]
+usage: test_image.py [-h] --lr LR [--hr HR] [-a ARCH] [--image-size IMAGE_SIZE] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--eval]
+                     [--detail] [--device DEVICE]
 
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
-Network.
+Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
 
 optional arguments:
   -h, --help            show this help message and exit
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
-  -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan | srresnet (default:
-                        srresnet)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
+  --image-size IMAGE_SIZE
+                        Image size of real sample. (default:96).
   --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default: ````).
+  --model-path PATH     Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).
   --pretrained          Use pre-trained model.
+  --eval                Evaluate the image quality.
   --detail              Evaluate all indicators. It is very slow.
-  --outf PATH           The location of the image in the evaluation process.
-                        (default: ``test``).
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
-                        ``0``).
+  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).
 
 # Example
-$ python test_image.py --lr <path-to-lr> --hr <path-to-hr>
+$ python3 test_image.py --lr <path-to-lr> --hr <path-to-hr> -a srgan --pretrained --eval --detail
 ```
 
 #### Test video
 
 ```text
-usage: test_video.py [-h] --file FILE [-a ARCH] [--upscale-factor {4}]
-                     [--model-path PATH] [--pretrained] [--view] [--outf PATH]
-                     [--device DEVICE]
+usage: test_video.py [-h] --file FILE [-a ARCH] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--view] [--device DEVICE]
 
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
-Network.
+Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
 
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan | srresnet (default:
-                        srresnet)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
   --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default: ````).
+  --model-path PATH     Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).
   --pretrained          Use pre-trained model.
   --view                Super resolution real time to show.
-  --outf PATH           The location of the image in the evaluation process.
-                        (default: ``test``).
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
-                        ``0``).
+  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).
                         
 # Example
-$ python test_video.py --file <path-to-video>
+$ python3 test_video.py --file <path-to-video> -a srgan --pretrained --view 
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
@@ -174,34 +153,26 @@ Low resolution / Recovered High Resolution / Ground Truth
 ### Train (e.g DIV2K)
 
 ```text
-usage: train.py [-h] [-a ARCH] [-j N] [--start-psnr-iter N] [--psnr-iters N]
-                [--start-iter N] [--iters N] [-b N] [--lr LR]
-                [--image-size IMAGE_SIZE] [--upscale-factor {4}]
-                [--model-path PATH] [--pretrained] [--netP PATH] [--netD PATH]
-                [--netG PATH] [--manualSeed MANUALSEED] [--device DEVICE]
+usage: train.py [-h] [-a ARCH] [-j N] [--start-psnr-iter N] [--psnr-iters N] [--start-iter N] [--iters N] [-b N] [--lr LR] [--image-size IMAGE_SIZE]
+                [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--netP PATH] [--netD PATH] [--netG PATH] [--manualSeed MANUALSEED]
+                [--device DEVICE]
                 DIR
 
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
-Network.
+Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
 
 positional arguments:
   DIR                   path to dataset
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  model architecture: discriminator |
-                        load_state_dict_from_url | srgan | srresnet (default:
-                        srresnet)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
   -j N, --workers N     Number of data loading workers. (default:8)
   --start-psnr-iter N   manual iter number (useful on restarts)
-  --psnr-iters N        The number of iterations is needed in the training of
-                        PSNR model. (default:1000000)
+  --psnr-iters N        The number of iterations is needed in the training of PSNR model. (default:1000000)
   --start-iter N        manual iter number (useful on restarts)
-  --iters N             The training of srgan model requires the number of
-                        iterations. (default:200000)
-  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch
-                        size of all GPUs on the current node when using Data
-                        Parallel or Distributed Data Parallel.
+  --iters N             The training of srgan model requires the number of iterations. (default:200000)
+  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or
+                        Distributed Data Parallel.
   --lr LR               Learning rate. (default:0.0001)
   --image-size IMAGE_SIZE
                         Image size of real sample. (default:96).
@@ -209,24 +180,23 @@ optional arguments:
   --model-path PATH     Path to latest checkpoint for model. (default: ````).
   --pretrained          Use pre-trained model.
   --netP PATH           Path to latest psnr checkpoint. (default: ````).
-  --netD PATH           Path to latest discriminator checkpoint. (default:
-                        ````).
+  --netD PATH           Path to latest discriminator checkpoint. (default: ````).
   --netG PATH           Path to latest generator checkpoint. (default: ````).
   --manualSeed MANUALSEED
                         Seed for initializing training. (default:1111)
   --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ````).
-
+  
 # Example (e.g DIV2K)
-$ python train.py <path-to-dataset> -a srresnet
+$ python3 train.py <path-to-dataset> -a srgan --device 0
 ```
 
 If you want to load weights that you've trained before, run the following command.
 
 ```bash
 $ python train.py data/DIV2K \
-                  --arch srresnet \
+                  --arch srgan \
                   --start-psnr-iter 150000 \
-                  --netP weights/ResNet_srresnet_iter_150000.pth \
+                  --netP weights/SRResNet_iter_150000.pth \
                   --device 0
 ```
 
