@@ -69,7 +69,7 @@ def image_quality_evaluation(sr_filename: str, hr_filename: str, device: torch.d
     return mse_value, rmse_value, psnr_value, ssim_value, msssim_value, niqe_value, sam_value, vifp_value, lpips_value
 
 
-def test_psnr(model: nn.Module, pixel_criterion: nn.MSELoss, dataloader: torch.utils.data.DataLoader,
+def test_psnr(model: nn.Module, psnr_criterion: nn.MSELoss, dataloader: torch.utils.data.DataLoader,
               device: torch.device = "cpu"):
     # switch eval mode.
     model.eval()
@@ -83,7 +83,7 @@ def test_psnr(model: nn.Module, pixel_criterion: nn.MSELoss, dataloader: torch.u
         # Generating fake high resolution images from real low resolution images.
         sr = model(lr)
         # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-        psnr = 10 * math.log10(1. / pixel_criterion(sr, hr).item())
+        psnr = 10 * math.log10(1. / psnr_criterion(sr, hr).item())
         total_psnr += psnr
 
         progress_bar.set_description(f"PSNR: {psnr:.2f}dB.")
