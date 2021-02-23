@@ -30,19 +30,23 @@ if __name__ == "__main__":
                                                  "Generative Adversarial Network.")
     parser.add_argument("--lr", type=str, required=True,
                         help="Test low resolution image name.")
-    parser.add_argument("--hr", type=str, required=True,
+    parser.add_argument("--hr", type=str,
                         help="Raw high resolution image name.")
     parser.add_argument("-a", "--arch", metavar="ARCH", default="srresnet",
                         choices=model_names,
                         help="model architecture: " +
                              " | ".join(model_names) +
                              " (default: srresnet)")
+    parser.add_argument("--image-size", type=int, default=96,
+                        help="Image size of real sample. (default:96).")
     parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                         help="Low to high resolution scaling factor. (default:4).")
     parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                         help="Path to latest checkpoint for model. (default: ````).")
     parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                         help="Use pre-trained model.")
+    parser.add_argument("--eval", dest="eval", action="store_true",
+                        help="Evaluate the image quality.")
     parser.add_argument("--detail", dest="detail", action="store_true",
                         help="Evaluate all indicators. It is very slow.")
     parser.add_argument("--device", default="0",

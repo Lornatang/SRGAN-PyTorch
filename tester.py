@@ -136,32 +136,51 @@ class Estimate(object):
 
     def run(self):
         args = self.args
-        # Read img to tensor and transfer to the specified device for processing.
-        img = Image.open(args.lr)
-        lr = process_image(img, self.device)
+        # Get file name.
+        filename = os.path.basename(args.lr)
 
-        sr, use_time = inference(self.model, lr, statistical_time=True)
-        vutils.save_image(sr, os.path.join("test", f"{args.lr.split('/')[-1]}"))  # Save super resolution image.
-        value = image_quality_evaluation(os.path.join("test", f"{args.lr.split('/')[-1]}"), args.hr, self.device)
+        # Read all pictures.
+        input = Image.open(args.lr)
+        bicubic = transforms.Resize((args.image_size, args.image_size), interpolation=Image.BICUBIC)(input)
+        target = Image.open(args.hr)
 
-        print(f"Performance avg results:\n")
-        print(f"indicator Score\n")
-        print(f"--------- -----\n")
-        if self.args.detail:
-            print(f"MSE       {value[0]:.2f}\n"
-                  f"RMSE      {value[1]:.2f}\n"
-                  f"PSNR      {value[2]:.2f}\n"
-                  f"SSIM      {value[3][0]:.4f}\n"
-                  f"MS-SSIM   {value[4].real:.4f}\n"
-                  f"NIQE      {value[5]:.2f}\n"
-                  f"SAM       {value[6]:.4f}\n"
-                  f"VIF       {value[7]:.4f}\n"
-                  f"LPIPS     {value[8].item():.4f}\n"
-                  f"Use time: {use_time * 1000:.2f}ms | {use_time:.4f}s")
+        # Convert image to tensor format.
+        lr = process_image(input, self.device)
+        bicubic = process_image(bicubic, self.device)
+        hr = process_image(target, self.device)
+
+        if args.eval:
+            sr, use_time = inference(self.model, lr, statistical_time=True)
+            images = torch.cat([bicubic, sr, hr], dim=-1)
+            vutils.save_image(sr, os.path.join("test", f"sr_{filename}"), padding=10)
+            vutils.save_image(images, os.path.join("test", f"compare_{filename}"), padding=10)
+            value = image_quality_evaluation(sr_filename=os.path.join("test", f"sr_{filename}"),
+                                             hr_filename=args.hr,
+                                             device=self.device)
+
+            print(f"Performance avg results:\n")
+            print(f"indicator Score\n")
+            print(f"--------- -----\n")
+            if self.args.detail:
+                print(f"MSE       {value[0]:.2f}\n"
+                      f"RMSE      {value[1]:.2f}\n"
+                      f"PSNR      {value[2]:.2f}\n"
+                      f"SSIM      {value[3][0]:.4f}\n"
+                      f"MS-SSIM   {value[4].real:.4f}\n"
+                      f"NIQE      {value[5]:.2f}\n"
+                      f"SAM       {value[6]:.4f}\n"
+                      f"VIF       {value[7]:.4f}\n"
+                      f"LPIPS     {value[8].item():.4f}\n"
+                      f"Use time: {use_time * 1000:.2f}ms | {use_time:.4f}s")
+            else:
+                print(f"PSNR      {value[2]:.2f}\n"
+                      f"SSIM      {value[3][0]:.2f}\n"
+                      f"Use time: {use_time * 1000:.2f}ms | {use_time:.4f}s")
         else:
-            print(f"PSNR      {value[0]:.2f}\n"
-                  f"SSIM      {value[1][0]:.2f}\n"
-                  f"Use time: {use_time * 1000:.2f}ms | {use_time:.4f}s")
+            sr = inference(self.model, lr)
+            images = torch.cat([bicubic, sr, hr], dim=-1)
+            vutils.save_image(sr, os.path.join("test", f"sr_{filename}"))
+            vutils.save_image(images, os.path.join("test", f"compare_{filename}"))
 
 
 class Video(object):
