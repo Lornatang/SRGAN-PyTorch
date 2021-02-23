@@ -146,7 +146,7 @@ def train_gan(epoch: int,
         ##############################################
         # (2) Update G network: -logD[G(LR)]
         ##############################################
-        # Set generator gradients to zero
+        # Set generator gradients to zero.
         generator.zero_grad()
 
         # Train with fake high resolution image.
