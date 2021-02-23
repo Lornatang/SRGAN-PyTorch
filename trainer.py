@@ -164,7 +164,7 @@ def train_gan(epoch: int,
         generator_optimizer.step()
 
         progress_bar.set_description(f"[{epoch + 1}/{total_epoch}][{i + 1}/{len(dataloader)}] "
-                                     f"Loss_D: {errD.item():.6f} "
+                                     f"D Loss: {errD.item():.6f} "
                                      f"Pixel Loss: {pixel_loss.item():.6f} "
                                      f"Perceptual Loss: {perceptual_loss.item():.6f} "
                                      f"Adversarial Loss: {adversarial_loss.item():.6f} "
