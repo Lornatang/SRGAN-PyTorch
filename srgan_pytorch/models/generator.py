@@ -16,7 +16,6 @@ import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
-    "srresnet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-e31a1b2e.pth",
     "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-57e43f2f.pth"
 }
 
@@ -26,36 +25,33 @@ class Generator(nn.Module):
 
     def __init__(self):
         r""" This is an esrgan model defined by the author himself.
-
-        We use two settings for our generator – one of them contains 16 residual blocks, with a capacity similar
-        to that of SRGAN and the other is a deeper model with 23 RRDB blocks.
         """
         super(Generator, self).__init__()
-        # First layer
+        # First layer.
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4),
             nn.PReLU()
         )
 
-        # 16 Residual blocks
+        # 16 Residual blocks.
         residual_blocks = []
         for _ in range(16):
             residual_blocks.append(ResidualBlock(64))
         self.Trunk = nn.Sequential(*residual_blocks)
 
-        # Second conv layer post residual blocks
+        # Second conv layer post residual blocks.
         self.conv2 = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(64)
         )
 
-        # Upsampling layers
+        # 2 Upsampling layers.
         upsampling = []
         for _ in range(2):
             upsampling.append(UpsampleBlock(256))
         self.upsampling = nn.Sequential(*upsampling)
 
-        # Final output layer
+        # Final output layer.
         self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -79,7 +75,7 @@ class UpsampleBlock(nn.Module):
             channels (int): Number of channels in the input image.
         """
         super(UpsampleBlock, self).__init__()
-        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1)
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor=2)
         self.prelu = nn.PReLU()
 
@@ -117,7 +113,7 @@ class ResidualBlock(nn.Module):
         return out + input
 
 
-def _srgan(arch, pretrained, progress):
+def _gan(arch, pretrained, progress):
     model = Generator()
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
@@ -125,17 +121,6 @@ def _srgan(arch, pretrained, progress):
                                               map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
-
-
-def srresnet(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _srgan("srresnet", pretrained, progress)
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -146,4 +131,4 @@ def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _srgan("srgan", pretrained, progress)
+    return _gan("srgan", pretrained, progress)
