@@ -12,6 +12,7 @@
 # limitations under the License.
 # ==============================================================================
 import os
+import random
 
 import torch.utils.data.dataset
 import torchvision.transforms as transforms
@@ -132,17 +133,22 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
 class CustomTrainDataset(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str):
+    def __init__(self, root: str, sampler_frequency: int = 1):
         """
 
         Args:
             root (str): The directory address where the data image is stored.
+            sampler_frequency (list): If there are many datasets, this method can be used to increase
+                the number of epochs. (Default: 1).
         """
         super(CustomTrainDataset, self).__init__()
         input_dir = os.path.join(root, "input")
         target_dir = os.path.join(root, "target")
-        self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
-        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
+        self.filenames = os.listdir(input_dir)
+        self.sampler_filenames = random.sample(self.filenames, len(self.filenames) // sampler_frequency)
+        self.input_filenames = [os.path.join(input_dir, x) for x in self.sampler_filenames if check_image_file(x)]
+        self.target_filenames = [os.path.join(target_dir, x) for x in self.sampler_filenames if check_image_file(x)]
+
         self.transforms = transforms.ToTensor()
 
     def __getitem__(self, index):
@@ -166,18 +172,22 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
 class CustomTestDataset(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, image_size: int):
+    def __init__(self, root: str, image_size: int, sampler_frequency: int = 1):
         """
 
         Args:
             root (str): The directory address where the data image is stored.
             image_size (optional, int): The size of image block is randomly cut out from the original image.
+            sampler_frequency (list): If there are many datasets, this method can be used to increase
+                the number of epochs. (Default: 1).
         """
         super(CustomTestDataset, self).__init__()
         input_dir = os.path.join(root, "input")
         target_dir = os.path.join(root, "target")
-        self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
-        self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
+        self.filenames = os.listdir(input_dir)
+        self.sampler_filenames = random.sample(self.filenames, len(self.filenames) // sampler_frequency)
+        self.input_filenames = [os.path.join(input_dir, x) for x in self.sampler_filenames if check_image_file(x)]
+        self.target_filenames = [os.path.join(target_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
         self.transforms = transforms.ToTensor()
         self.bicubic_transforms = transforms.Compose([
