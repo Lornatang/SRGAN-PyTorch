@@ -166,7 +166,7 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         return input, target
 
     def __len__(self):
-        return len(self.input_filenames)
+        return len(self.sampler_filenames)
 
 
 class CustomTestDataset(torch.utils.data.dataset.Dataset):
@@ -212,4 +212,4 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         return input, bicubic, target
 
     def __len__(self):
-        return len(self.input_filenames)
+        return len(self.sampler_filenames)
