@@ -153,9 +153,9 @@ Low resolution / Recovered High Resolution / Ground Truth
 ### Train (e.g DIV2K)
 
 ```text
-usage: train.py [-h] [-a ARCH] [-j N] [--start-psnr-iter N] [--psnr-iters N] [--start-iter N] [--iters N] [-b N] [--lr LR] [--image-size IMAGE_SIZE]
-                [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--netP PATH] [--netD PATH] [--netG PATH] [--manualSeed MANUALSEED]
-                [--device DEVICE]
+usage: train.py [-h] [-a ARCH] [-j N] [--start-psnr-iter N] [--psnr-iters N] [--start-iter N] [--iters N] [-b N] [--sampler-frequency N] [--lr LR]
+                [--image-size IMAGE_SIZE] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--netP PATH] [--netD PATH] [--netG PATH]
+                [--manualSeed MANUALSEED] [--device DEVICE]
                 DIR
 
 Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
@@ -165,7 +165,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
   -j N, --workers N     Number of data loading workers. (default:8)
   --start-psnr-iter N   manual iter number (useful on restarts)
   --psnr-iters N        The number of iterations is needed in the training of PSNR model. (default:1000000)
@@ -173,6 +173,8 @@ optional arguments:
   --iters N             The training of srgan model requires the number of iterations. (default:200000)
   -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or
                         Distributed Data Parallel.
+  --sampler-frequency N
+                        If there are many datasets, this method can be used to increase the number of epochs. (default:1)
   --lr LR               Learning rate. (default:0.0001)
   --image-size IMAGE_SIZE
                         Image size of real sample. (default:96).

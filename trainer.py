@@ -14,6 +14,7 @@
 import logging
 import math
 import os
+import time
 
 import lpips
 import torch.cuda.amp as amp
@@ -208,9 +209,11 @@ class Trainer(object):
 
         logger.info("Load training dataset")
         # Selection of appropriate treatment equipment.
-        train_dataset = CustomTrainDataset(root=os.path.join(args.data, "train"))
+        train_dataset = CustomTrainDataset(root=os.path.join(args.data, "train"),
+                                           sampler_frequency=args.sampler_frequency)
         test_dataset = CustomTestDataset(root=os.path.join(args.data, "test"),
-                                         image_size=args.image_size)
+                                         image_size=args.image_size,
+                                         sampler_frequency=args.sampler_frequency)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                             batch_size=args.batch_size,
                                                             shuffle=True,
@@ -260,8 +263,8 @@ class Trainer(object):
                     f"\tBetas (0.9, 0.999)")
 
         # Create a SummaryWriter at the beginning of training.
-        self.psnr_writer = SummaryWriter("runs/SRResNet_logs")
-        self.gan_writer = SummaryWriter("runs/SRGAN_logs")
+        self.psnr_writer = SummaryWriter(f"runs/SRResNet_{int(time.time())}_logs")
+        self.gan_writer = SummaryWriter(f"runs/SRGAN_{int(time.time())}_logs")
 
         # Creates a GradScaler once at the beginning of training.
         self.scaler = amp.GradScaler()
