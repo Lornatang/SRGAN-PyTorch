@@ -80,8 +80,9 @@ def test_psnr(model: nn.Module, psnr_criterion: nn.MSELoss, dataloader: torch.ut
         lr = data[0].to(device)
         hr = data[2].to(device)
 
-        # Generating fake high resolution images from real low resolution images.
-        sr = model(lr)
+        with torch.no_grad():
+            sr = model(lr)
+
         # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
         psnr = 10 * math.log10(1. / psnr_criterion(sr, hr).item())
         total_psnr += psnr
@@ -103,8 +104,8 @@ def test_gan(model: nn.Module, psnr_criterion: nn.MSELoss, lpips_criterion: lpip
         lr = data[0].to(device)
         hr = data[2].to(device)
 
-        # Generating fake high resolution images from real low resolution images.
-        sr = model(lr)
+        with torch.no_grad():
+            sr = model(lr)
 
         # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
         psnr = 10 * math.log10(1. / psnr_criterion(sr, hr).item())

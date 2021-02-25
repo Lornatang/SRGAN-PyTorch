@@ -82,7 +82,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
   -j N, --workers N     Number of data loading workers. (default:8)
   -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or
                         Distributed Data Parallel.
@@ -110,7 +110,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
   --image-size IMAGE_SIZE
                         Image size of real sample. (default:96).
   --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
@@ -134,7 +134,7 @@ Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Net
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan | srresnet (default: srgan)
+  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
   --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
   --model-path PATH     Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).
   --pretrained          Use pre-trained model.
