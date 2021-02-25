@@ -50,8 +50,8 @@ def train_psnr(epoch: int,
                model: nn.Module,
                pixel_criterion: nn.MSELoss,
                optimizer: torch.optim.Adam,
-               writer: SummaryWriter,
                scaler: amp.GradScaler,
+               writer: SummaryWriter,
                device: torch.device):
     # switch train mode.
     model.train()
@@ -189,8 +189,8 @@ def train_gan(epoch: int,
         # The image is saved every 1000 epoch.
         if iters % 1000 == 0:
             vutils.save_image(hr, os.path.join("runs", "hr", f"SRGAN_{iters}.bmp"))
-            hr = generator(lr)
-            vutils.save_image(hr.detach(), os.path.join("runs", "sr", f"SRGAN_{iters}.bmp"))
+            sr = generator(lr)
+            vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"SRGAN_{iters}.bmp"))
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
@@ -221,7 +221,7 @@ class Trainer(object):
                                                             num_workers=int(args.workers))
         self.test_dataloader = torch.utils.data.DataLoader(test_dataset,
                                                            batch_size=args.batch_size,
-                                                           shuffle=True,
+                                                           shuffle=False,
                                                            pin_memory=True,
                                                            num_workers=int(args.workers))
 
@@ -326,8 +326,8 @@ class Trainer(object):
                            model=self.generator,
                            pixel_criterion=self.pixel_criterion,
                            optimizer=self.psnr_optimizer,
-                           writer=self.psnr_writer,
                            scaler=self.scaler,
+                           writer=self.psnr_writer,
                            device=self.device)
 
                 # Test for every epoch.
