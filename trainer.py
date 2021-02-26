@@ -31,7 +31,6 @@ from srgan_pytorch.loss import VGGLoss
 from srgan_pytorch.models.discriminator import discriminator
 from srgan_pytorch.utils.common import init_torch_seeds
 from srgan_pytorch.utils.common import save_checkpoint
-from srgan_pytorch.utils.common import weights_init
 from srgan_pytorch.utils.device import select_device
 from srgan_pytorch.utils.estimate import test_gan
 from srgan_pytorch.utils.estimate import test_psnr
@@ -244,9 +243,6 @@ class Trainer(object):
             self.generator = models.__dict__[args.arch]().to(self.device)
         logger.info(f"Creating discriminator model")
         self.discriminator = discriminator().to(self.device)
-
-        self.generator = self.generator.apply(weights_init)
-        self.discriminator = self.discriminator.apply(weights_init)
 
         # Parameters of pre training model.
         self.start_psnr_epoch = math.floor(args.start_psnr_iter / len(self.train_dataloader))
