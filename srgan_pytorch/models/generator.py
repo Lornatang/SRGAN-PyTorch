@@ -75,7 +75,7 @@ class UpsampleBlock(nn.Module):
             channels (int): Number of channels in the input image.
         """
         super(UpsampleBlock, self).__init__()
-        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1)
+        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor=2)
         self.prelu = nn.PReLU()
 
