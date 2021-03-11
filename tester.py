@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -12,7 +12,6 @@
 # limitations under the License.
 # ==============================================================================
 import logging
-import math
 import os
 
 import cv2
@@ -22,13 +21,15 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
+from torchvision.transforms import InterpolationMode as Mode
 from tqdm import tqdm
 
-from srgan_pytorch.dataset import BaseTestDataset
-from srgan_pytorch.utils.calculate_ssim import ssim
+from srgan_pytorch.dataset import CustomTestDataset
 from srgan_pytorch.utils.common import configure
-from srgan_pytorch.utils.common import inference
-from srgan_pytorch.utils.estimate import image_quality_evaluation
+from srgan_pytorch.utils.estimate import iqa
+from srgan_pytorch.utils.image_quality_assessment import GMSD
+from srgan_pytorch.utils.image_quality_assessment import LPIPS
+from srgan_pytorch.utils.image_quality_assessment import SSIM
 from srgan_pytorch.utils.transform import process_image
 
 logger = logging.getLogger(__name__)
@@ -38,20 +39,27 @@ logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 class Test(object):
     def __init__(self, args):
         self.args = args
-        self.model, self.device = configure(args)
+        self.model = configure(args)
+
+        # Reference sources from https://hub.fastgit.org/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py
+        self.ssim_loss = SSIM().cuda(args.gpu)
+        # Reference sources from https://github.com/richzhang/PerceptualSimilarity
+        self.lpips_loss = LPIPS().cuda(args.gpu)
+        # Reference sources from http://www4.comp.polyu.edu.hk/~cslzhang/IQA/GMSD/GMSD.htm
+        self.gmsd_loss = GMSD().cuda(args.gpu)
 
         logger.info("Load testing dataset")
-        dataset = BaseTestDataset(root=os.path.join(args.data, "test"),
-                                  image_size=args.image_size)
-        self.dataloader = torch.utils.data.DataLoader(dataset,
+        dataset = CustomTestDataset(root=os.path.join(args.data, "test"),
+                                    image_size=args.image_size)
+        self.dataloader = torch.utils.data.DataLoader(dataset=dataset,
                                                       batch_size=args.batch_size,
                                                       pin_memory=True,
-                                                      num_workers=int(args.workers))
+                                                      num_workers=args.workers)
 
         logger.info(f"Dataset information\n"
                     f"\tDataset dir is `{os.getcwd()}/{args.data}/test`\n"
                     f"\tBatch size is {args.batch_size}\n"
-                    f"\tWorkers is {int(args.workers)}\n"
+                    f"\tWorkers is {args.workers}\n"
                     f"\tLoad dataset to CUDA")
 
     def run(self):
@@ -62,131 +70,96 @@ class Test(object):
         total_psnr_value = 0.0
         total_ssim_value = 0.0
         total_mssim_value = 0.0
-        total_niqe_value = 0.0
-        total_sam_value = 0.0
-        total_vif_value = 0.0
         total_lpips_value = 0.0
+        total_gmsd_value = 0.0
 
         # Start evaluate model performance.
         progress_bar = tqdm(enumerate(self.dataloader), total=len(self.dataloader))
 
-        for i, (input, bicubic, target) in progress_bar:
-            # Set model gradients to zero
-            lr = input.to(self.device)
-            bicubic = bicubic.to(self.device)
-            hr = target.to(self.device)
+        for i, (lr, bicubic, hr) in progress_bar:
+            # Move data to special device.
+            if args.gpu is not None:
+                lr = lr.cuda(args.gpu, non_blocking=True)
+                bicubic = bicubic.cuda(args.gpu, non_blocking=True)
+                hr = hr.cuda(args.gpu, non_blocking=True)
 
-            # Super-resolution.
-            sr = inference(self.model, lr)
+            with torch.no_grad():
+                sr = self.model(lr)
 
             # Evaluate performance
-            if args.detail:
-                vutils.save_image(sr, os.path.join("benchmark", "sr.bmp"))  # Save super resolution image.
-                vutils.save_image(hr, os.path.join("benchmark", "hr.bmp"))  # Save high resolution image.
-                value = image_quality_evaluation(sr_filename=os.path.join("benchmark", "sr.bmp"),
-                                                 hr_filename=os.path.join("benchmark", "hr.bmp"),
-                                                 device=self.device)
+            value = iqa(os.path.join("benchmark", "sr.bmp"), os.path.join("benchmark", "hr.bmp"), args.gpu)
 
-                total_mse_value += value[0]
-                total_rmse_value += value[1]
-                total_psnr_value += value[2]
-                total_ssim_value += value[3][0]
-                total_mssim_value += value[4].real
-                total_niqe_value += value[5]
-                total_sam_value += value[6]
-                total_vif_value += value[7]
-                total_lpips_value += value[8].item()
-                progress_bar.set_description(f"[{i + 1}/{len(self.dataloader)}] "
-                                             f"PSNR: {value[2]:.2f}dB "
-                                             f"SSIM: {value[3][0]:.4f}")
-            else:
-                mse_value = ((sr - hr) ** 2).data.mean()
-                psnr_value = 10 * math.log10(1. / mse_value)
-                ssim_value = ssim(hr, sr)
-                total_psnr_value += psnr_value
-                total_ssim_value += ssim_value
-                progress_bar.set_description(f"[{i + 1}/{len(self.dataloader)}] "
-                                             f"PSNR: {psnr_value:.2f}dB SSIM: {ssim_value:.4f}.")
+            total_mse_value += value[0]
+            total_rmse_value += value[1]
+            total_psnr_value += value[2]
+            total_ssim_value += value[3]
+            total_mssim_value += value[4]
+            total_lpips_value += value[5]
+            total_gmsd_value += value[6]
+
+            progress_bar.set_description(f"[{i + 1}/{len(self.dataloader)}] PSNR: {value[2]:.2f}dB")
 
             images = torch.cat([bicubic, sr, hr], dim=-1)
             vutils.save_image(images, os.path.join("benchmark", f"{i + 1}.bmp"), padding=10)
 
-        print(f"Performance avg results:\n")
+        print(f"Performance average results:\n")
         print(f"indicator Score\n")
         print(f"--------- -----\n")
-        if args.detail:
-            print(f"MSE       {total_mse_value / len(self.dataloader):.2f}\n"
-                  f"RMSE      {total_rmse_value / len(self.dataloader):.2f}\n"
-                  f"PSNR      {total_psnr_value / len(self.dataloader):.2f}\n"
-                  f"SSIM      {total_ssim_value / len(self.dataloader):.4f}\n"
-                  f"MS-SSIM   {total_mssim_value / len(self.dataloader):.4f}\n"
-                  f"NIQE      {total_niqe_value / len(self.dataloader):.2f}\n"
-                  f"SAM       {total_sam_value / len(self.dataloader):.4f}\n"
-                  f"VIF       {total_vif_value / len(self.dataloader):.4f}\n"
-                  f"LPIPS     {total_lpips_value / len(self.dataloader):.4f}\n")
-        else:
-            print(f"PSNR      {total_psnr_value / len(self.dataloader):.2f}\n"
-                  f"SSIM      {total_ssim_value / len(self.dataloader):.4f}\n")
+        print(f"MSE       {total_mse_value / len(self.dataloader):.2f}\n"
+              f"RMSE      {total_rmse_value / len(self.dataloader):.2f}\n"
+              f"PSNR      {total_psnr_value / len(self.dataloader):.2f}\n"
+              f"SSIM      {total_ssim_value / len(self.dataloader):.2f}\n"
+              f"MS-SSIM   {total_mssim_value / len(self.dataloader):.2f}\n"
+              f"LPIPS     {total_lpips_value / len(self.dataloader):.2f}\n"
+              f"GMSD      {total_ssim_value}")
 
 
 class Estimate(object):
     def __init__(self, args):
         self.args = args
-        self.model, self.device = configure(args)
+        self.model = configure(args)
 
     def run(self):
         args = self.args
-        # Get file name.
+        # Get filename.
         filename = os.path.basename(args.lr)
 
         # Read all pictures.
-        input = Image.open(args.lr)
-        bicubic = transforms.Resize((args.image_size, args.image_size), interpolation=Image.BICUBIC)(input)
-        target = Image.open(args.hr)
+        lr = process_image(Image.open(args.lr), args.gpu)
+        bicubic = process_image(transforms.Resize(args.image_size, interpolation=Mode.BICUBIC)(lr), args.gpu)
 
-        # Convert image to tensor format.
-        lr = process_image(input, self.device)
-        bicubic = process_image(bicubic, self.device)
-        hr = process_image(target, self.device)
+        with torch.no_grad():
+            sr = self.model(lr)
 
-        if args.eval:
-            sr, use_time = inference(self.model, lr, statistical_time=True)
+        if args.hr:
+            hr = process_image(Image.open(args.hr), args.gpu)
+            vutils.save_image(hr, os.path.join("test", f"hr_{filename}"))
             images = torch.cat([bicubic, sr, hr], dim=-1)
-            vutils.save_image(sr, os.path.join("test", f"sr_{filename}"), padding=10)
-            vutils.save_image(images, os.path.join("test", f"compare_{filename}"), padding=10)
-            value = image_quality_evaluation(sr_filename=os.path.join("test", f"sr_{filename}"),
-                                             hr_filename=args.hr,
-                                             device=self.device)
-
-            print(f"Performance avg results:\n")
-            print(f"indicator Score\n")
-            print(f"--------- -----\n")
-            if self.args.detail:
-                print(f"MSE       {value[0]:.2f}\n"
-                      f"RMSE      {value[1]:.2f}\n"
-                      f"PSNR      {value[2]:.2f}\n"
-                      f"SSIM      {value[3][0]:.4f}\n"
-                      f"MS-SSIM   {value[4].real:.4f}\n"
-                      f"NIQE      {value[5]:.2f}\n"
-                      f"SAM       {value[6]:.4f}\n"
-                      f"VIF       {value[7]:.4f}\n"
-                      f"LPIPS     {value[8].item():.4f}\n"
-                      f"Use time: {use_time * 1000:.2f}ms | {use_time:.4f}s")
-            else:
-                print(f"PSNR      {value[2]:.2f}\n"
-                      f"SSIM      {value[3][0]:.2f}\n"
-                      f"Use time: {use_time * 1000:.2f}ms | {use_time:.4f}s")
         else:
-            sr = inference(self.model, lr)
-            images = torch.cat([bicubic, sr, hr], dim=-1)
-            vutils.save_image(sr, os.path.join("test", f"sr_{filename}"))
-            vutils.save_image(images, os.path.join("test", f"compare_{filename}"))
+            images = torch.cat([bicubic, sr], dim=-1)
+
+        vutils.save_image(lr, os.path.join("test", f"lr_{filename}"))
+        vutils.save_image(bicubic, os.path.join("test", f"bicubic_{filename}"))
+        vutils.save_image(sr, os.path.join("test", f"sr_{filename}"))
+        vutils.save_image(images, os.path.join("test", f"compare_{filename}"), padding=10)
+        value = iqa(os.path.join("test", f"sr_{filename}"), args.hr, args.gpu)
+
+        print(f"Performance avg results:\n")
+        print(f"indicator Score\n")
+        print(f"--------- -----\n")
+        print(f"MSE       {value[0]:.2f}\n"
+              f"RMSE      {value[1]:.2f}\n"
+              f"PSNR      {value[2]:.2f}\n"
+              f"SSIM      {value[3]:.2f}\n"
+              f"MS-SSIM   {value[4]:.2f}\n"
+              f"LPIPS     {value[5]:.2f}\n"
+              f"GMSD      {value[6]:.2f}\n")
 
 
 class Video(object):
     def __init__(self, args):
         self.args = args
-        self.model, self.device = configure(args)
+        self.model = configure(args)
         # Image preprocessing operation
         self.tensor2pil = transforms.ToPILImage()
 
@@ -222,10 +195,10 @@ class Video(object):
         for _ in progress_bar:
             if success:
                 # Read img to tensor and transfer to the specified device for processing.
-                img = Image.open(args.lr)
-                lr = process_image(img, self.device)
+                lr = process_image(Image.open(args.lr), args.gpu)
 
-                sr = inference(self.model, lr)
+                with torch.no_grad():
+                    sr = self.model(lr)
 
                 sr = sr.cpu()
                 sr = sr.data[0].numpy()

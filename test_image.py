@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -13,10 +13,24 @@
 # ==============================================================================
 import argparse
 import logging
+import os
+import random
+import warnings
+
+import torch
+import torch.backends.cudnn as cudnn
+import torch.optim
+import torch.utils.data
+import torchvision.transforms as transforms
+import torchvision.utils as vutils
+from PIL import Image
+from torchvision.transforms import InterpolationMode as Mode
 
 import srgan_pytorch.models as models
+from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import create_folder
-from tester import Estimate
+from srgan_pytorch.utils.estimate import iqa
+from srgan_pytorch.utils.transform import process_image
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -25,49 +39,109 @@ model_names = sorted(name for name in models.__dict__
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Photo-Realistic Single Image Super-Resolution Using a "
-                                                 "Generative Adversarial Network.")
-    parser.add_argument("--lr", type=str, required=True,
-                        help="Test low resolution image name.")
-    parser.add_argument("--hr", type=str,
-                        help="Raw high resolution image name.")
-    parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
-                        choices=model_names,
-                        help="model architecture: " +
-                             " | ".join(model_names) +
-                             " (default: srgan)")
-    parser.add_argument("--image-size", type=int, default=96,
-                        help="Image size of real sample. (default:96).")
-    parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
-                        help="Low to high resolution scaling factor. (default:4).")
-    parser.add_argument("--model-path", default="weights/SRGAN.pth", type=str, metavar="PATH",
-                        help="Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).")
-    parser.add_argument("--pretrained", dest="pretrained", action="store_true",
-                        help="Use pre-trained model.")
-    parser.add_argument("--eval", dest="eval", action="store_true",
-                        help="Evaluate the image quality.")
-    parser.add_argument("--detail", dest="detail", action="store_true",
-                        help="Evaluate all indicators. It is very slow.")
-    parser.add_argument("--device", default="0",
-                        help="device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using "
+                                 "a Generative Adversarial Network.")
+parser.add_argument("--lr", type=str, required=True,
+                    help="Test low resolution image name.")
+parser.add_argument("--hr", type=str,
+                    help="Raw high resolution image name.")
+parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
+                    choices=model_names,
+                    help="model architecture: " +
+                         " | ".join(model_names) +
+                         " (default: srgan)")
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
+                    help="Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)")
+parser.add_argument("--model-path", default="", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model.")
+parser.add_argument("--pretrained", dest="pretrained", action="store_true",
+                    help="Use pre-trained model.")
+parser.add_argument("--seed", default=None, type=int,
+                    help="Seed for initializing training.")
+parser.add_argument("--gpu", default=None, type=int,
+                    help="GPU id to use.")
+
+
+def main():
     args = parser.parse_args()
 
+    if args.seed is not None:
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        cudnn.deterministic = True
+        warnings.warn("You have chosen to seed training. "
+                      "This will turn on the CUDNN deterministic setting, "
+                      "which can slow down your training considerably! "
+                      "You may see unexpected behavior when restarting "
+                      "from checkpoints.")
+
+    main_worker(args.gpu, args)
+
+
+def main_worker(gpu, args):
+    args.gpu = gpu
+
+    if args.gpu is not None:
+        logger.info(f"Use GPU: {args.gpu} for training.")
+
+    model = configure(args)
+
+    if not torch.cuda.is_available():
+        logger.warning("Using CPU, this will be slow.")
+    elif args.gpu is not None:
+        torch.cuda.set_device(args.gpu)
+        model = model.cuda(args.gpu)
+
+    # Set eval mode.
+    model.eval()
+
+    cudnn.benchmark = True
+
+    # Get image filename.
+    filename = os.path.basename(args.lr)
+
+    # Read all pictures.
+    lr = process_image(Image.open(args.lr), args.gpu)
+    bicubic = process_image(transforms.Resize(args.image_size, interpolation=Mode.BICUBIC)(lr), args.gpu)
+
+    with torch.no_grad():
+        sr = model(lr)
+
+    if args.hr:
+        hr = process_image(Image.open(args.hr), args.gpu)
+        vutils.save_image(hr, os.path.join("test", f"hr_{filename}"))
+        images = torch.cat([bicubic, sr, hr], dim=-1)
+    else:
+        images = torch.cat([bicubic, sr], dim=-1)
+
+    vutils.save_image(lr, os.path.join("test", f"lr_{filename}"))
+    vutils.save_image(bicubic, os.path.join("test", f"bicubic_{filename}"))
+    vutils.save_image(sr, os.path.join("test", f"sr_{filename}"))
+    vutils.save_image(images, os.path.join("test", f"compare_{filename}"), padding=10)
+    value = iqa(os.path.join("test", f"sr_{filename}"), args.hr, args.gpu)
+
+    print(f"Performance avg results:\n")
+    print(f"indicator Score\n")
+    print(f"--------- -----\n")
+    print(f"MSE       {value[0]:.2f}\n"
+          f"RMSE      {value[1]:.2f}\n"
+          f"PSNR      {value[2]:.2f}\n"
+          f"SSIM      {value[3]:.2f}\n"
+          f"MS-SSIM   {value[4]:.2f}\n"
+          f"LPIPS     {value[5]:.2f}\n"
+          f"GMSD      {value[6]:.2f}\n")
+
+
+if __name__ == "__main__":
     print("##################################################\n")
     print("Run Testing Engine.\n")
-    print(args)
 
     create_folder("test")
 
     logger.info("TestEngine:")
     print("\tAPI version .......... 0.1.1")
     print("\tBuild ................ 2020.11.30-1116-0c5adc7e")
-
-    logger.info("Creating Testing Engine")
-    estimate = Estimate(args)
-
-    logger.info("Staring testing model")
-    estimate.run()
+    main()
     print("##################################################\n")
 
     logger.info("Test single image performance evaluation completed successfully.\n")
