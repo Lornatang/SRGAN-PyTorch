@@ -383,6 +383,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 os.path.join("weights", f"SRResNet_up{args.upscale_factor}_epoch{epoch}.pth"),
                 os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth"))
 
+    generator.load_state_dict(torch.load(os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth")))
+
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
