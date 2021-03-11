@@ -173,7 +173,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                 rank=args.rank)
     # create model
     generator = configure(args)
-    discriminator = discriminator_for_vgg()
+    discriminator = discriminator_for_vgg(args.image_size)
 
     if not torch.cuda.is_available():
         logger.warning("Using CPU, this will be slow.")
@@ -246,8 +246,12 @@ def main_worker(gpu, ngpus_per_node, args):
 
     logger.info("Load training dataset")
     # Selection of appropriate treatment equipment.
-    train_dataset = BaseTrainDataset(root=os.path.join(args.data, "train"))
-    test_dataset = BaseTestDataset(root=os.path.join(args.data, "test"), image_size=args.image_size)
+    train_dataset = BaseTrainDataset(root=os.path.join(args.data, "train"),
+                                     image_size=args.image_size,
+                                     upscale_factor=args.upscale_factor)
+    test_dataset = BaseTestDataset(root=os.path.join(args.data, "test"),
+                                   image_size=args.image_size,
+                                   upscale_factor=args.upscale_factor)
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
