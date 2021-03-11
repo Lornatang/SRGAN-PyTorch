@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 
-def select_device(device: str = "", batch_size: int = 1) -> torch.device:
+# Reference https://github.com/ultralytics/yolov5/blob/master/utils/torch_utils.py#select_device
+def select_device(device="", batch_size=None):
     r""" Choose the right equipment.
 
     Args:
@@ -32,24 +33,25 @@ def select_device(device: str = "", batch_size: int = 1) -> torch.device:
         torch.device.
     """
     # device = "cpu" or "cuda:0,1,2,3".
-    only_cpu = device.lower() == "cpu"
-    if device and not only_cpu:  # if device requested other than "cpu".
-        os.environ["CUDA_VISIBLE_DEVICES"] = device  # set environment variable.
-        assert torch.cuda.is_available(), f"CUDA unavailable, invalid device {device} requested"
+    s = ""
+    cpu = device.lower() == "cpu"
+    if cpu:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # force torch.cuda.is_available() = False
+    elif device:  # non-cpu device requested
+        os.environ["CUDA_VISIBLE_DEVICES"] = device  # set environment variable
+        assert torch.cuda.is_available(), f"CUDA unavailable, invalid device {device} requested"  # check availability
 
-    cuda = False if only_cpu else torch.cuda.is_available()
+    cuda = not cpu and torch.cuda.is_available()
     if cuda:
-        c = 1024 ** 2  # bytes to MB.
-        gpu_count = torch.cuda.device_count()
-        if gpu_count > 1 and batch_size:  # check that batch_size is compatible with device_count.
-            assert batch_size % gpu_count == 0, f"batch-size {batch_size} not multiple of GPU count {gpu_count}"
-        x = [torch.cuda.get_device_properties(i) for i in range(gpu_count)]
-        s = "Using CUDA "
-        for i in range(0, gpu_count):
-            if i == 1:
-                s = " " * len(s)
-            logger.info(f"{s}\n\t+ device:{i} (name=`{x[i].name}`, total_memory={int(x[i].total_memory / c)}MB)")
+        n = torch.cuda.device_count()
+        if n > 1 and batch_size:  # check that batch_size is compatible with device_count
+            assert batch_size % n == 0, f"batch-size {batch_size} not multiple of GPU count {n}"
+        space = " " * len(s)
+        for i, d in enumerate(device.split(',') if device else range(n)):
+            p = torch.cuda.get_device_properties(i)
+            s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
     else:
-        logger.info("Using CPU.")
+        s += "CPU\n"
 
-    return torch.device("cuda:0" if cuda else "cpu")
+    logger.info("\n" + s)  # skip a line
+    return torch.device("cuda" if cuda else "cpu")

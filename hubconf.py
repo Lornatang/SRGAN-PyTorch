@@ -11,11 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 """File for accessing GAN via PyTorch Hub https://pytorch.org/hub/
 Usage:
     import torch
-    model = torch.hub.load("Lornatang/SRGAN-PyTorch", "SRGAN", pretrained=True, progress=True, verbose=False)
+    model = torch.hub.load("Lornatang/SRGAN-PyTorch", "srgan", pretrained=True, progress=True, verbose=False)
 """
 import torch
 from torch.hub import load_state_dict_from_url
@@ -23,25 +22,14 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch import Generator
 
 model_urls = {
-    "srresnet": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRResNet_4x4_16_DIV2K-e31a1b2e.pth",
     "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_4x4_16_DIV2K-57e43f2f.pth"
 }
 
 dependencies = ["torch"]
 
 
-def create(arch, pretrained, progress):
-    """ Creates a specified GAN model
-
-    Args:
-        arch (str): Arch name of model.
-        pretrained (bool): Load pretrained weights into the model.
-        progress (bool): Show progress bar when downloading weights.
-
-    Returns:
-        PyTorch model.
-    """
-    model = Generator()
+def create(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
+    model = Generator(upscale_factor)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress,
@@ -50,7 +38,7 @@ def create(arch, pretrained, progress):
     return model
 
 
-def srresnet(pretrained: bool = False, progress: bool = True) -> Generator:
+def srgan_2x2(pretrained: bool = False, progress: bool = True) -> Generator:
     r"""GAN model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
 
@@ -58,7 +46,7 @@ def srresnet(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("srresnet", pretrained, progress)
+    return create("srgan_2x2", 2, pretrained, progress)
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -69,4 +57,15 @@ def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("srgan", pretrained, progress)
+    return create("srgan", 4, pretrained, progress)
+
+
+def srgan_8x8(pretrained: bool = False, progress: bool = True) -> Generator:
+    r"""GAN model architecture from the
+    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return create("srgan_8x8", 8, pretrained, progress)

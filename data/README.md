@@ -1,5 +1,7 @@
 # Dataset Information
 
+## *This experiment uses the `test` data set in ImageNet2012 (delete image size less 96 pixel)*
+
 ## Creating pairs of superset datasets
 
 ### Method 1: Blind Super-Resolution Kernel Estimation using an Internal-GAN

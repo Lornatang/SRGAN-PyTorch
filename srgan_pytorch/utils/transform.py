@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -34,7 +34,7 @@ def opencv2pil(image: np.ndarray) -> PIL.BmpImagePlugin.BmpImageFile:
     return image
 
 
-def opencv2tensor(image: np.ndarray, device: torch.device) -> torch.Tensor:
+def opencv2tensor(image: np.ndarray, gpu: int) -> torch.Tensor:
     """ OpenCV Convert to torch.Tensor format.
 
     Returns:
@@ -42,8 +42,9 @@ def opencv2tensor(image: np.ndarray, device: torch.device) -> torch.Tensor:
     """
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     nhwc_image = torch.from_numpy(rgb_image).div(255.0).unsqueeze(0)
-    nchw_image = nhwc_image.permute(0, 3, 1, 2)
-    input_tensor = nchw_image.to(device)
+    input_tensor = nhwc_image.permute(0, 3, 1, 2)
+    if gpu is not None:
+        input_tensor = input_tensor.cuda(gpu, non_blocking=True)
     return input_tensor
 
 
@@ -58,17 +59,18 @@ def pil2opencv(image: PIL.BmpImagePlugin.BmpImageFile) -> np.ndarray:
     return image
 
 
-def process_image(image: PIL.BmpImagePlugin.BmpImageFile, device: torch.device) -> torch.Tensor:
+def process_image(image: PIL.BmpImagePlugin.BmpImageFile, gpu: int = None) -> torch.Tensor:
     """ PIL.Image Convert to PyTorch format.
 
     Args:
         image (PIL.BmpImagePlugin.BmpImageFile): File read by PIL.Image.
-        device (torch.device): Location of data set processing.
+        gpu (int): Graphics card model.
 
     Returns:
         torch.Tensor.
     """
     tensor = transforms.ToTensor()(image)
     input_tensor = tensor.unsqueeze(0)
-    input_tensor = input_tensor.to(device)
+    if gpu is not None:
+        input_tensor = input_tensor.cuda(gpu, non_blocking=True)
     return input_tensor

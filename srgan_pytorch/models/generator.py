@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -11,6 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import math
+
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
@@ -23,10 +25,13 @@ model_urls = {
 class Generator(nn.Module):
     r"""The main architecture of the generator."""
 
-    def __init__(self):
-        r""" This is an esrgan model defined by the author himself.
+    def __init__(self, upscale_factor: int = 4) -> None:
+        """ PyTorch implementation SRGAN.
+        Args:
+            upscale_factor (int): How many times to enlarge the picture. (default: 4)
         """
         super(Generator, self).__init__()
+        num_upsampling_block = int(math.log(upscale_factor, 2))
         # First layer.
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4),
@@ -37,7 +42,7 @@ class Generator(nn.Module):
         residual_blocks = []
         for _ in range(16):
             residual_blocks.append(ResidualBlock(64))
-        self.Trunk = nn.Sequential(*residual_blocks)
+        self.trunk = nn.Sequential(*residual_blocks)
 
         # Second conv layer post residual blocks.
         self.conv2 = nn.Sequential(
@@ -47,16 +52,16 @@ class Generator(nn.Module):
 
         # 2 Upsampling layers.
         upsampling = []
-        for _ in range(2):
+        for _ in range(num_upsampling_block):
             upsampling.append(UpsampleBlock(256))
         self.upsampling = nn.Sequential(*upsampling)
 
         # Final output layer.
         self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        out1 = self.conv1(input)
-        out = self.Trunk(out1)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out1 = self.conv1(x)
+        out = self.trunk(out1)
         out2 = self.conv2(out)
         out = torch.add(out1, out2)
         out = self.upsampling(out)
@@ -68,19 +73,19 @@ class Generator(nn.Module):
 class UpsampleBlock(nn.Module):
     r"""Main upsample block structure"""
 
-    def __init__(self, channels):
+    def __init__(self, channels: int = 256) -> None:
         r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
 
         Args:
-            channels (int): Number of channels in the input image.
+            channels (int): Number of channels in the input image. (default: 256)
         """
         super(UpsampleBlock, self).__init__()
-        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1)
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor=2)
         self.prelu = nn.PReLU()
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        out = self.conv(input)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.conv(x)
         out = self.pixel_shuffle(out)
         out = self.prelu(out)
 
@@ -90,11 +95,11 @@ class UpsampleBlock(nn.Module):
 class ResidualBlock(nn.Module):
     r"""Main residual block structure"""
 
-    def __init__(self, channels):
+    def __init__(self, channels: int = 64) -> None:
         r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
 
         Args:
-            channels (int): Number of channels in the input image.
+            channels (int): Number of channels in the input image. (default: 64)
         """
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
@@ -103,24 +108,37 @@ class ResidualBlock(nn.Module):
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        out = self.conv1(input)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.conv1(x)
         out = self.bn1(out)
         out = self.prelu(out)
         out = self.conv2(out)
         out = self.bn2(out)
 
-        return out + input
+        out = torch.add(out, x)
+
+        return out
 
 
-def _gan(arch, pretrained, progress):
-    model = Generator()
+def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
+    model = Generator(upscale_factor)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress,
                                               map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
+
+
+def srgan_2x2(pretrained: bool = False, progress: bool = True) -> Generator:
+    r"""GAN model architecture from the
+    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _gan("srgan_2x2", 2, pretrained, progress)
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -131,4 +149,15 @@ def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _gan("srgan", pretrained, progress)
+    return _gan("srgan", 4, pretrained, progress)
+
+
+def srgan_8x8(pretrained: bool = False, progress: bool = True) -> Generator:
+    r"""GAN model architecture from the
+    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _gan("srgan_8x8", 8, pretrained, progress)

@@ -16,7 +16,6 @@ import math
 import os
 import time
 
-import lpips
 import torch.cuda.amp as amp
 import torch.nn as nn
 import torch.utils.data
@@ -25,10 +24,10 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 import srgan_pytorch.models as models
-from srgan_pytorch.dataset import BaseTestDataset
-from srgan_pytorch.dataset import BaseTrainDataset
+from srgan_pytorch.dataset import CustomTestDataset
+from srgan_pytorch.dataset import CustomTrainDataset
 from srgan_pytorch.loss import VGGLoss
-from srgan_pytorch.models.discriminator import discriminator
+from srgan_pytorch.models.discriminator import discriminator_for_vgg
 from srgan_pytorch.utils.common import init_torch_seeds
 from srgan_pytorch.utils.common import save_checkpoint
 from srgan_pytorch.utils.device import select_device
@@ -208,8 +207,8 @@ class Trainer(object):
 
         logger.info("Load training dataset")
         # Selection of appropriate treatment equipment.
-        train_dataset = BaseTrainDataset(root=os.path.join(args.data, "train"))
-        test_dataset = BaseTestDataset(root=os.path.join(args.data, "test"),
+        train_dataset = CustomTrainDataset(root=os.path.join(args.data, "train"))
+        test_dataset = CustomTestDataset(root=os.path.join(args.data, "test"),
                                        image_size=args.image_size)
         self.train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                             batch_size=args.batch_size,
@@ -242,7 +241,7 @@ class Trainer(object):
             logger.info(f"Creating model `{args.arch}`")
             self.generator = models.__dict__[args.arch]().to(self.device)
         logger.info(f"Creating discriminator model")
-        self.discriminator = discriminator().to(self.device)
+        self.discriminator = discriminator_for_vgg().to(self.device)
 
         # Parameters of pre training model.
         self.start_psnr_epoch = math.floor(args.start_psnr_iter / len(self.train_dataloader))

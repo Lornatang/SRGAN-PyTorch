@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -14,17 +14,14 @@
 import logging
 import os
 import random
-import time
 
-import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 
 import srgan_pytorch.models as models
-from .device import select_device
 
 __all__ = [
-    "create_folder", "configure", "inference", "init_torch_seeds", "save_checkpoint", "weights_init",
+    "create_folder", "configure", "init_torch_seeds", "save_checkpoint", "weights_init",
     "AverageMeter", "ProgressMeter"
 ]
 
@@ -47,71 +44,34 @@ def configure(args):
     Args:
         args (argparse.ArgumentParser.parse_args): Use argparse library parse command.
     """
-    # Selection of appropriate treatment equipment
-    device = select_device(args.device, batch_size=1)
 
     # Create model
     if args.pretrained:
         logger.info(f"Using pre-trained model `{args.arch}`")
-        model = models.__dict__[args.arch](pretrained=True).to(device)
+        model = models.__dict__[args.arch](pretrained=True)
     else:
         logger.info(f"Creating model `{args.arch}`")
-        model = models.__dict__[args.arch]().to(device)
+        model = models.__dict__[args.arch]()
         if args.model_path:
             logger.info(f"You loaded the specified weight. Load weights from `{args.model_path}`")
-            model.load_state_dict(torch.load(args.model_path, map_location=device), strict=False)
+            model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu")), state_dict=False)
 
-    return model, device
-
-
-def inference(model, lr, statistical_time=False):
-    r"""General inference method.
-
-    Args:
-        model (nn.Module): Neural network model.
-        lr (Torch.Tensor): Picture in pytorch format (N*C*H*W).
-        statistical_time (optional, bool): Is reasoning time counted. (default: ``False``).
-
-    Returns:
-        super resolution image, time consumption of super resolution image (if `statistical_time` set to `True`).
-    """
-    # Set eval model.
-    model.eval()
-
-    if statistical_time:
-        start_time = time.time()
-        with torch.no_grad():
-            sr = model(lr)
-        use_time = time.time() - start_time
-        return sr, use_time
-    else:
-        with torch.no_grad():
-            sr = model(lr)
-        return sr
+    return model
 
 
-# Source from "https://github.com/ultralytics/yolov5/blob/master/utils/torch_utils.py"
-def init_torch_seeds(seed: int = 0):
-    r""" Sets the seed for generating random numbers. Returns a
+def init_torch_seeds(seed: int = None):
+    r""" Sets the seed for generating random numbers.
 
     Args:
         seed (int): The desired seed.
     """
-
-    # Speed-reproducibility tradeoff https://pytorch.org/docs/stable/notes/randomness.html
-    if seed == 0:  # slower, more reproducible
+    if seed is not None:
+        random.seed(seed)
+        torch.manual_seed(seed)
         cudnn.deterministic = True
-        cudnn.benchmark = False
-    else:  # faster, less reproducible
-        cudnn.deterministic = False
-        cudnn.benchmark = True
-
-    logger.info("Initialize random seed.")
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+        logger.warning("You have chosen to seed training. "
+                       "This will turn on the CUDNN deterministic setting, which can slow down your "
+                       "training considerably! You may see unexpected behavior when restarting from checkpoints.")
 
 
 def save_checkpoint(state, is_best: bool, source_filename: str, target_filename: str):

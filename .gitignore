@@ -139,6 +139,7 @@ benchmark
 test
 video
 runs
+weights
 
 # Program run create file.
 *.bmp
@@ -146,4 +147,3 @@ runs
 *.mp4
 *.zip
 *.csv
-*.pth
