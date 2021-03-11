@@ -71,78 +71,87 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N] [--image-size IMAGE_SIZE] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--detail]
-                         [--device DEVICE]
-                         DIR
-
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [-b N] [--sampler-frequency N] [--image-size IMAGE_SIZE]
+                                                                                             [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained]
+                                                                                             [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL]
+                                                                                             [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU]
+                                                                                             [--multiprocessing-distributed]
+                                                                                             DIR
 
 positional arguments:
   DIR                   path to dataset
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
-  -j N, --workers N     Number of data loading workers. (default:8)
-  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or
-                        Distributed Data Parallel.
+  -a ARCH, --arch ARCH  model architecture: load_state_dict_from_url | srgan | srgan_2x2 | srgan_8x8 (default: srgan)
+  -j N, --workers N     Number of data loading workers. (default: 4)
+  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
+  --sampler-frequency N
+                        If there are many datasets, this method can be used to increase the number of epochs. (default:1)
   --image-size IMAGE_SIZE
-                        Image size of real sample. (default:96).
-  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).
+                        Image size of high resolution image. (default: 96)
+  --upscale-factor {2,4,8}
+                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
+  --model-path PATH     Path to latest checkpoint for model.
   --pretrained          Use pre-trained model.
-  --detail              Evaluate all indicators. It is very slow.
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).
+  --world-size WORLD_SIZE
+                        Number of nodes for distributed training
+  --rank RANK           Node rank for distributed training
+  --dist-url DIST_URL   url used to set up distributed training. (default: tcp://59.110.31.55:12345)
+  --dist-backend DIST_BACKEND
+                        Distributed backend. (default: nccl)
+  --seed SEED           Seed for initializing training.
+  --gpu GPU             GPU id to use.
+  --multiprocessing-distributed
+                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node
+                        or multi node data parallel training
 
 # Example
-$ python3 test_benchmark.py <path-to-dataset> -a srgan --pretrained
+$ python3 test_benchmark.py -a srgan --pretrained --gpu 0 [image-folder with train and val folders]
 ```
 
 #### Test image
 
 ```text
-usage: test_image.py [-h] --lr LR [--hr HR] [-a ARCH] [--image-size IMAGE_SIZE] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--eval]
-                     [--detail] [--device DEVICE]
-
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] --lr LR [--hr HR] [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH]
+                                                                                             [--pretrained] [--seed SEED] [--gpu GPU]
 
 optional arguments:
   -h, --help            show this help message and exit
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
-  --image-size IMAGE_SIZE
-                        Image size of real sample. (default:96).
-  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).
+  -a ARCH, --arch ARCH  model architecture: load_state_dict_from_url | srgan | srgan_2x2 | srgan_8x8 (default: srgan)
+  --upscale-factor {2,4,8}
+                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
+  --model-path PATH     Path to latest checkpoint for model.
   --pretrained          Use pre-trained model.
-  --eval                Evaluate the image quality.
-  --detail              Evaluate all indicators. It is very slow.
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).
+  --seed SEED           Seed for initializing training.
+  --gpu GPU             GPU id to use.
 
 # Example
-$ python3 test_image.py --lr <path-to-lr> --hr <path-to-hr> -a srgan --pretrained --eval --detail
+$ python3 test_image.py -a srgan --pretrained --gpu 0 [image-folder with train and val folders]
 ```
 
 #### Test video
 
 ```text
-usage: test_video.py [-h] --file FILE [-a ARCH] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--view] [--device DEVICE]
-
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] --file FILE [--hr HR] [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH]
+                                                                                             [--pretrained] [--seed SEED] [--gpu GPU]
 
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
-  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default: ``weights/SRGAN.pth``).
+  --hr HR               Raw high resolution image name.
+  -a ARCH, --arch ARCH  model architecture: load_state_dict_from_url | srgan | srgan_2x2 | srgan_8x8 (default: srgan)
+  --upscale-factor {2,4,8}
+                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
+  --model-path PATH     Path to latest checkpoint for model.
   --pretrained          Use pre-trained model.
-  --view                Super resolution real time to show.
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``0``).
+  --seed SEED           Seed for initializing training.
+  --gpu GPU             GPU id to use.
                         
 # Example
-$ python3 test_video.py --file <path-to-video> -a srgan --pretrained --view 
+$ python3 test_video.py -a srgan --pretrained --gpu 0 [image-folder with train and val folders]
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
@@ -153,53 +162,62 @@ Low resolution / Recovered High Resolution / Ground Truth
 ### Train (e.g DIV2K)
 
 ```text
-usage: train.py [-h] [-a ARCH] [-j N] [--start-psnr-iter N] [--psnr-iters N] [--start-iter N] [--iters N] [-b N] [--sampler-frequency N] [--lr LR]
-                [--image-size IMAGE_SIZE] [--upscale-factor {4}] [--model-path PATH] [--pretrained] [--netP PATH] [--netD PATH] [--netG PATH]
-                [--manualSeed MANUALSEED] [--device DEVICE]
-                DIR
-
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [--psnr-epochs N] [--start-psnr-epoch N] [--gan-epochs N]
+                                                                                             [--start-gan-epoch N] [-b N] [--sampler-frequency N] [--psnr-lr PSNR_LR] [--lr LR]
+                                                                                             [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH]
+                                                                                             [--resume_psnr PATH] [--resume_d PATH] [--resume_g PATH] [--pretrained]
+                                                                                             [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL]
+                                                                                             [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU]
+                                                                                             [--multiprocessing-distributed]
+                                                                                             DIR
 
 positional arguments:
   DIR                   path to dataset
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  model architecture: discriminator | load_state_dict_from_url | srgan (default: srgan)
-  -j N, --workers N     Number of data loading workers. (default:8)
-  --start-psnr-iter N   manual iter number (useful on restarts)
-  --psnr-iters N        The number of iterations is needed in the training of PSNR model. (default:1000000)
-  --start-iter N        manual iter number (useful on restarts)
-  --iters N             The training of srgan model requires the number of iterations. (default:200000)
-  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or
-                        Distributed Data Parallel.
+  -a ARCH, --arch ARCH  model architecture: load_state_dict_from_url | srgan | srgan_2x2 | srgan_8x8 (default: srgan)
+  -j N, --workers N     Number of data loading workers. (default: 4)
+  --psnr-epochs N       Number of total psnr epochs to run. (default: 180)
+  --start-psnr-epoch N  Manual psnr epoch number (useful on restarts). (default: 0)
+  --gan-epochs N        Number of total gan epochs to run. (default: 36)
+  --start-gan-epoch N   Manual gan epoch number (useful on restarts). (default: 0)
+  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
   --sampler-frequency N
                         If there are many datasets, this method can be used to increase the number of epochs. (default:1)
-  --lr LR               Learning rate. (default:0.0001)
+  --psnr-lr PSNR_LR     Learning rate for psnr-oral. (default: 0.0002)
+  --lr LR               Learning rate for gan-oral. (default: 0.0001)
   --image-size IMAGE_SIZE
-                        Image size of real sample. (default:96).
-  --upscale-factor {4}  Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default: ````).
+                        Image size of high resolution image. (default: 96)
+  --upscale-factor {2,4,8}
+                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
+  --model-path PATH     Path to latest checkpoint for model.
+  --resume_psnr PATH    Path to latest psnr-oral checkpoint.
+  --resume_d PATH       Path to latest -oral checkpoint.
+  --resume_g PATH       Path to latest psnr-oral checkpoint.
   --pretrained          Use pre-trained model.
-  --netP PATH           Path to latest psnr checkpoint. (default: ````).
-  --netD PATH           Path to latest discriminator checkpoint. (default: ````).
-  --netG PATH           Path to latest generator checkpoint. (default: ````).
-  --manualSeed MANUALSEED
-                        Seed for initializing training. (default:1111)
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ````).
+  --world-size WORLD_SIZE
+                        Number of nodes for distributed training
+  --rank RANK           Node rank for distributed training
+  --dist-url DIST_URL   url used to set up distributed training. (default: tcp://59.110.31.55:12345)
+  --dist-backend DIST_BACKEND
+                        Distributed backend. (default: nccl)
+  --seed SEED           Seed for initializing training.
+  --gpu GPU             GPU id to use.
+  --multiprocessing-distributed
+                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node
+                        or multi node data parallel training
   
 # Example (e.g DIV2K)
-$ python3 train.py <path-to-dataset> -a srgan --device 0
+$ python train.py -a srgan [image-folder with train and val folders]
+# Multi-processing Distributed Data Parallel Training
+$ python3 train.py -a srgan --dist-url 'tcp://127.0.0.1:12345' --dist-backend 'nccl' --multiprocessing-distributed --world-size 1 --rank 0 [image-folder with train and val folders]
 ```
 
 If you want to load weights that you've trained before, run the following command.
 
 ```bash
-$ python train.py data/DIV2K \
-                  --arch srgan \
-                  --start-psnr-iter 150000 \
-                  --netP weights/SRGAN_iter_150000.pth \
-                  --device 0
+$ python3 train.py -a srgan --start-psnr-epoch 10 --resume-psnr weights/SRResNet_up4_epoch10.pth [image-folder with train and val folders] 
 ```
 
 ### Contributing
