@@ -33,15 +33,15 @@ class GMSD(nn.Module):
         self.average_kernel = nn.Parameter(torch.ones(3, 1, 2, 2) / 4., requires_grad=False)
 
     def gmsd(self, image1_tensor: torch.Tensor, image2_tensor: torch.Tensor) -> torch.Tensor:
-        image1_tensor = F.conv2d(image1_tensor, self.average_kernel, stride=2, padding=0, groups=self.channels)
-        image2_tensor = F.conv2d(image2_tensor, self.average_kernel, stride=2, padding=0, groups=self.channels)
+        image1_tensor = F.conv2d(image1_tensor, self.average_kernel, stride=2, padding=0, groups=3)
+        image2_tensor = F.conv2d(image2_tensor, self.average_kernel, stride=2, padding=0, groups=3)
 
-        image1_image1 = F.conv2d(image1_tensor, self.image1, stride=1, padding=1, groups=self.channels)
-        image1_image2 = F.conv2d(image1_tensor, self.image2, stride=1, padding=1, groups=self.channels)
+        image1_image1 = F.conv2d(image1_tensor, self.image1, stride=1, padding=1, groups=3)
+        image1_image2 = F.conv2d(image1_tensor, self.image2, stride=1, padding=1, groups=3)
         gradient_map1 = torch.sqrt(image1_image1 ** 2 + image1_image2 ** 2 + 1e-12)
 
-        image2_image1 = F.conv2d(image2_tensor, self.image1, stride=1, padding=1, groups=self.channels)
-        image2_image2 = F.conv2d(image2_tensor, self.image2, stride=1, padding=1, groups=self.channels)
+        image2_image1 = F.conv2d(image2_tensor, self.image1, stride=1, padding=1, groups=3)
+        image2_image2 = F.conv2d(image2_tensor, self.image2, stride=1, padding=1, groups=3)
         gradient_map2 = torch.sqrt(image2_image1 ** 2 + image2_image2 ** 2 + 1e-12)
 
         quality_map = (2 * gradient_map1 * gradient_map2 + 170) / (gradient_map1 ** 2 + gradient_map2 ** 2 + 170)
