@@ -101,8 +101,10 @@ def main_worker(gpu, args):
     filename = os.path.basename(args.lr)
 
     # Read all pictures.
-    lr = process_image(Image.open(args.lr), args.gpu)
-    bicubic = process_image(transforms.Resize(args.image_size, interpolation=Mode.BICUBIC)(lr), args.gpu)
+    lr = Image.open(args.lr)
+    bicubic = transforms.Resize((lr.size[1] * args.upscale_factor, lr.size[0] * args.upscale_factor), Mode.BICUBIC)(lr)
+    lr = process_image(lr, args.gpu)
+    bicubic = process_image(bicubic, args.gpu)
 
     with torch.no_grad():
         sr = model(lr)
@@ -111,6 +113,18 @@ def main_worker(gpu, args):
         hr = process_image(Image.open(args.hr), args.gpu)
         vutils.save_image(hr, os.path.join("test", f"hr_{filename}"))
         images = torch.cat([bicubic, sr, hr], dim=-1)
+
+        value = iqa(sr, hr, args.gpu)
+        print(f"Performance avg results:\n")
+        print(f"indicator Score\n")
+        print(f"--------- -----\n")
+        print(f"MSE       {value[0]:.6f}\n"
+              f"RMSE      {value[1]:.6f}\n"
+              f"PSNR      {value[2]:.2f}\n"
+              f"SSIM      {value[3]:.4f}\n"
+              f"MS-SSIM   {value[4]:.4f}\n"
+              f"LPIPS     {value[5]:.4f}\n"
+              f"GMSD      {value[6]:.4f}\n")
     else:
         images = torch.cat([bicubic, sr], dim=-1)
 
@@ -118,18 +132,6 @@ def main_worker(gpu, args):
     vutils.save_image(bicubic, os.path.join("test", f"bicubic_{filename}"))
     vutils.save_image(sr, os.path.join("test", f"sr_{filename}"))
     vutils.save_image(images, os.path.join("test", f"compare_{filename}"), padding=10)
-    value = iqa(os.path.join("test", f"sr_{filename}"), args.hr, args.gpu)
-
-    print(f"Performance avg results:\n")
-    print(f"indicator Score\n")
-    print(f"--------- -----\n")
-    print(f"MSE       {value[0]:.2f}\n"
-          f"RMSE      {value[1]:.2f}\n"
-          f"PSNR      {value[2]:.2f}\n"
-          f"SSIM      {value[3]:.2f}\n"
-          f"MS-SSIM   {value[4]:.2f}\n"
-          f"LPIPS     {value[5]:.2f}\n"
-          f"GMSD      {value[6]:.2f}\n")
 
 
 if __name__ == "__main__":

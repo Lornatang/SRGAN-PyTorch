@@ -24,9 +24,9 @@ __all__ = [
 
 # Reference sources from https://github.com/richzhang/PerceptualSimilarity
 class LPIPS(torch.nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, gpu: int = None) -> None:
         super(LPIPS, self).__init__()
-        model = models.vgg19(pretrained=True)
+        model = models.vgg19(pretrained=True).eval()
 
         # Freeze parameters. Don't train.
         for param in self.parameters():
@@ -53,7 +53,12 @@ class LPIPS(torch.nn.Module):
         self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1))
 
         self.channels = [64, 128, 256, 512, 512]
-        self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"))
+        if gpu is None:
+            self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"))
+        else:
+            # Map model to be loaded to specified single gpu.
+            loc = f"cuda:{gpu}"
+            self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"), map_location=loc)
         self.weights = list(self.weights.items())
 
     def forward_once(self, x: torch.Tensor) -> torch.Tensor:

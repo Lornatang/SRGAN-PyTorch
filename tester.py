@@ -44,7 +44,7 @@ class Test(object):
         # Reference sources from https://hub.fastgit.org/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py
         self.ssim_loss = SSIM().cuda(args.gpu)
         # Reference sources from https://github.com/richzhang/PerceptualSimilarity
-        self.lpips_loss = LPIPS().cuda(args.gpu)
+        self.lpips_loss = LPIPS(args.gpu).cuda(args.gpu)
         # Reference sources from http://www4.comp.polyu.edu.hk/~cslzhang/IQA/GMSD/GMSD.htm
         self.gmsd_loss = GMSD().cuda(args.gpu)
 

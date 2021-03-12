@@ -345,43 +345,43 @@ def main_worker(gpu, ngpus_per_node, args):
     psnr_writer = SummaryWriter(f"runs/{args.arch}_psnr_up{args.upscale_factor}_logs")
     gan_writer = SummaryWriter(f"runs/{args.arch}_gan_up{args.upscale_factor}_logs")
 
-    for epoch in range(args.start_psnr_epoch, args.psnr_epochs):
-        if args.distributed:
-            train_sampler.set_epoch(epoch)
-
-        # train for one epoch
-        train_psnr(dataloader=train_dataloader,
-                   model=generator,
-                   pixel_criterion=pixel_criterion,
-                   optimizer=psnr_optimizer,
-                   epoch=epoch,
-                   scaler=scaler,
-                   writer=psnr_writer,
-                   args=args)
-
-        # Test for every epoch.
-        psnr_value, ssim_value = test_psnr(model=generator,
-                                           dataloader=test_dataloader,
-                                           gpu=args.gpu)
-        psnr_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
-        psnr_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
-
-        # remember best psnr and save checkpoint
-        is_best = psnr_value > best_psnr_value and ssim_value > best_ssim_value
-        best_psnr_value = max(psnr_value, best_psnr_value)
-        best_ssim_value = max(ssim_value, best_ssim_value)
-
-        if not args.multiprocessing_distributed or (
-                args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-            save_checkpoint(
-                {"epoch": epoch + 1,
-                 "arch": args.arch,
-                 "state_dict": generator.state_dict(),
-                 "best_psnr": best_psnr_value,
-                 "optimizer": psnr_optimizer.state_dict()
-                 }, is_best,
-                os.path.join("weights", f"SRResNet_up{args.upscale_factor}_epoch{epoch}.pth"),
-                os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth"))
+    # for epoch in range(args.start_psnr_epoch, args.psnr_epochs):
+    #     if args.distributed:
+    #         train_sampler.set_epoch(epoch)
+    #
+    #     # train for one epoch
+    #     train_psnr(dataloader=train_dataloader,
+    #                model=generator,
+    #                pixel_criterion=pixel_criterion,
+    #                optimizer=psnr_optimizer,
+    #                epoch=epoch,
+    #                scaler=scaler,
+    #                writer=psnr_writer,
+    #                args=args)
+    #
+    #     # Test for every epoch.
+    #     psnr_value, ssim_value = test_psnr(model=generator,
+    #                                        dataloader=test_dataloader,
+    #                                        gpu=args.gpu)
+    #     psnr_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
+    #     psnr_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
+    #
+    #     # remember best psnr and save checkpoint
+    #     is_best = psnr_value > best_psnr_value and ssim_value > best_ssim_value
+    #     best_psnr_value = max(psnr_value, best_psnr_value)
+    #     best_ssim_value = max(ssim_value, best_ssim_value)
+    #
+    #     if not args.multiprocessing_distributed or (
+    #             args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+    #         save_checkpoint(
+    #             {"epoch": epoch + 1,
+    #              "arch": args.arch,
+    #              "state_dict": generator.state_dict(),
+    #              "best_psnr": best_psnr_value,
+    #              "optimizer": psnr_optimizer.state_dict()
+    #              }, is_best,
+    #             os.path.join("weights", f"SRResNet_up{args.upscale_factor}_epoch{epoch}.pth"),
+    #             os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth"))
 
     generator.load_state_dict(torch.load(os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth")))
 
@@ -525,23 +525,23 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         # Set discriminator gradients to zero.
         discriminator_optimizer.zero_grad()
 
+        # Generating fake high resolution images from real low resolution images.
+        sr = generator(lr)
+
         # Runs the forward pass with autocasting.
         with amp.autocast():
-            # Generating fake high resolution images from real low resolution images.
-            sr = generator(lr)
-
             # The accuracy probability of high resolution image and super-resolution image is calculated
             # without calculating super-resolution gradient.
             real_output = discriminator(hr)
-            output = discriminator(sr.detach())
+            fake_output = discriminator(sr.detach())
 
             # Adversarial loss for real and fake images (relativistic average GAN)
             d_loss_real = adversarial_criterion(real_output, real_label)
-            d_loss_fake = adversarial_criterion(output, fake_label)
+            d_loss_fake = adversarial_criterion(fake_output, fake_label)
 
-            d_loss = d_loss_fake + d_loss_real
-            d_x = real_output.mean().item()
-            d_g_z1 = output.mean().item()
+            d_loss = d_loss_real + d_loss_fake
+            d_x = real_output.mean()
+            d_g_z1 = fake_output.mean()
 
         # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
         # Backward passes under autocast are not recommended.
@@ -570,11 +570,11 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
             perceptual_loss = perceptual_criterion(sr, hr)
             # The accuracy probability of high resolution image and super-resolution image is calculated
             # without calculating high-resolution gradient.
-            output = discriminator(sr)  # Train fake image.
+            fake_output = discriminator(sr)  # Train fake image.
             # Adversarial loss (relativistic average GAN)
-            adversarial_loss = adversarial_criterion(output, real_label)
+            adversarial_loss = adversarial_criterion(fake_output, real_label)
             g_loss = pixel_loss + 0.006 * perceptual_loss + 0.001 * adversarial_loss
-            d_g_z2 = output.mean().item()
+            d_g_z2 = fake_output.mean()
 
         # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
         # Backward passes under autocast are not recommended.
@@ -590,20 +590,20 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         scaler.update()
 
         progress_bar.set_description(f"[{epoch + 1}/{args.gan_epochs}][{i + 1}/{len(dataloader)}] "
-                                     f"D Loss: {d_loss.item():.6f} "
-                                     f"G Loss: {g_loss.item():.6f} "
-                                     f"Pixel Loss: {pixel_loss.item():.6f} "
-                                     f"Perceptual Loss: {perceptual_loss.item():.6f} "
-                                     f"Adversarial Loss: {adversarial_loss.item():.6f} "
+                                     f"D Loss: {d_loss:.6f} "
+                                     f"G Loss: {g_loss:.6f} "
+                                     f"Pixel Loss: {pixel_loss:.6f} "
+                                     f"Perceptual Loss: {perceptual_loss:.6f} "
+                                     f"Adversarial Loss: {adversarial_loss:.6f} "
                                      f"D(HR): {d_x:.6f} "
                                      f"D(G(SR)): {d_g_z1:.6f}/{d_g_z2:.6f}")
 
         iters = i + epoch * len(dataloader) + 1
-        writer.add_scalar("Train/D Loss", d_loss.item(), iters)
-        writer.add_scalar("Train/G Loss", g_loss.item(), iters)
-        writer.add_scalar("Train/Pixel Loss", pixel_loss.item(), iters)
-        writer.add_scalar("Train/Perceptual Loss", perceptual_loss.item(), iters)
-        writer.add_scalar("Train/Adversarial Loss", adversarial_loss.item(), iters)
+        writer.add_scalar("Train/D Loss", d_loss, iters)
+        writer.add_scalar("Train/G Loss", g_loss, iters)
+        writer.add_scalar("Train/Pixel Loss", pixel_loss, iters)
+        writer.add_scalar("Train/Perceptual Loss", perceptual_loss, iters)
+        writer.add_scalar("Train/Adversarial Loss", adversarial_loss, iters)
         writer.add_scalar("Train/D(x)", d_x, iters)
         writer.add_scalar("Train/D(G(SR1))", d_g_z1, iters)
         writer.add_scalar("Train/D(G(SR2))", d_g_z2, iters)
