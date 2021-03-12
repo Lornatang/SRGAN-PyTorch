@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import math
 
 import torch
 import torch.nn as nn
@@ -23,7 +22,7 @@ class DiscriminatorForVGG(nn.Module):
     def __init__(self, image_size: int = 96) -> None:
         super(DiscriminatorForVGG, self).__init__()
 
-        feature_size = int(math.log(image_size, 16))
+        feature_size = int(image_size // 16)
 
         self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),  # input is (3) x 96 x 96
