@@ -345,43 +345,43 @@ def main_worker(gpu, ngpus_per_node, args):
     psnr_writer = SummaryWriter(f"runs/{args.arch}_psnr_up{args.upscale_factor}_logs")
     gan_writer = SummaryWriter(f"runs/{args.arch}_gan_up{args.upscale_factor}_logs")
 
-    # for epoch in range(args.start_psnr_epoch, args.psnr_epochs):
-    #     if args.distributed:
-    #         train_sampler.set_epoch(epoch)
-    #
-    #     # train for one epoch
-    #     train_psnr(dataloader=train_dataloader,
-    #                model=generator,
-    #                pixel_criterion=pixel_criterion,
-    #                optimizer=psnr_optimizer,
-    #                epoch=epoch,
-    #                scaler=scaler,
-    #                writer=psnr_writer,
-    #                args=args)
-    #
-    #     # Test for every epoch.
-    #     psnr_value, ssim_value = test_psnr(model=generator,
-    #                                        dataloader=test_dataloader,
-    #                                        gpu=args.gpu)
-    #     psnr_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
-    #     psnr_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
-    #
-    #     # remember best psnr and save checkpoint
-    #     is_best = psnr_value > best_psnr_value and ssim_value > best_ssim_value
-    #     best_psnr_value = max(psnr_value, best_psnr_value)
-    #     best_ssim_value = max(ssim_value, best_ssim_value)
-    #
-    #     if not args.multiprocessing_distributed or (
-    #             args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-    #         save_checkpoint(
-    #             {"epoch": epoch + 1,
-    #              "arch": args.arch,
-    #              "state_dict": generator.state_dict(),
-    #              "best_psnr": best_psnr_value,
-    #              "optimizer": psnr_optimizer.state_dict()
-    #              }, is_best,
-    #             os.path.join("weights", f"SRResNet_up{args.upscale_factor}_epoch{epoch}.pth"),
-    #             os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth"))
+    for epoch in range(args.start_psnr_epoch, args.psnr_epochs):
+        if args.distributed:
+            train_sampler.set_epoch(epoch)
+
+        # train for one epoch
+        train_psnr(dataloader=train_dataloader,
+                   model=generator,
+                   pixel_criterion=pixel_criterion,
+                   optimizer=psnr_optimizer,
+                   epoch=epoch,
+                   scaler=scaler,
+                   writer=psnr_writer,
+                   args=args)
+
+        # Test for every epoch.
+        psnr_value, ssim_value = test_psnr(model=generator,
+                                           dataloader=test_dataloader,
+                                           gpu=args.gpu)
+        psnr_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
+        psnr_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
+
+        # remember best psnr and save checkpoint
+        is_best = psnr_value > best_psnr_value and ssim_value > best_ssim_value
+        best_psnr_value = max(psnr_value, best_psnr_value)
+        best_ssim_value = max(ssim_value, best_ssim_value)
+
+        if not args.multiprocessing_distributed or (
+                args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+            save_checkpoint(
+                {"epoch": epoch + 1,
+                 "arch": args.arch,
+                 "state_dict": generator.state_dict(),
+                 "best_psnr": best_psnr_value,
+                 "optimizer": psnr_optimizer.state_dict()
+                 }, is_best,
+                os.path.join("weights", f"SRResNet_up{args.upscale_factor}_epoch{epoch}.pth"),
+                os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth"))
 
     generator.load_state_dict(torch.load(os.path.join("weights", f"SRResNet_up{args.upscale_factor}.pth")))
 
