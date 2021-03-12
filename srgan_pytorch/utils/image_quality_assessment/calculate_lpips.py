@@ -53,8 +53,7 @@ class LPIPS(torch.nn.Module):
         self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1))
 
         self.channels = [64, 128, 256, 512, 512]
-        self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"),
-                                  map_location=torch.device("cpu"))
+        self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"))
         self.weights = list(self.weights.items())
 
     def forward_once(self, x: torch.Tensor) -> torch.Tensor:
