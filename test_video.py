@@ -44,8 +44,6 @@ parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution 
                                  "a Generative Adversarial Network.")
 parser.add_argument("--file", type=str, required=True,
                     help="Test low resolution video name.")
-parser.add_argument("--hr", type=str,
-                    help="Raw high resolution image name.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="model architecture: " +
@@ -61,6 +59,8 @@ parser.add_argument("--seed", default=None, type=int,
                     help="Seed for initializing training.")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
+parser.add_argument("--view", dest="view", action="store_true",
+                    help="Do you want to show SR video synchronously.")
 
 
 def main():
@@ -128,7 +128,7 @@ def main_worker(gpu, args):
     for _ in progress_bar:
         if success:
             # Read img to tensor and transfer to the specified device for processing.
-            lr = process_image(Image.open(args.lr), args.gpu)
+            lr = process_image(raw_frame, args.gpu)
 
             with torch.no_grad():
                 sr = model(lr)
