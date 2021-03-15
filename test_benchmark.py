@@ -30,7 +30,7 @@ import torchvision.utils as vutils
 from tqdm import tqdm
 
 import srgan_pytorch.models as models
-from srgan_pytorch.dataset import BaseTrainDataset
+from srgan_pytorch.dataset import BaseTestDataset
 from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import create_folder
 from srgan_pytorch.utils.estimate import iqa
@@ -186,9 +186,9 @@ def main_worker(gpu, ngpus_per_node, args):
 
     logger.info("Load testing dataset")
     # Selection of appropriate treatment equipment.
-    dataset = BaseTrainDataset(root=os.path.join(args.data, "test"),
-                               image_size=args.image_size,
-                               upscale_factor=args.upscale_factor)
+    dataset = BaseTestDataset(root=os.path.join(args.data, "test"),
+                              image_size=args.image_size,
+                              upscale_factor=args.upscale_factor)
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=args.batch_size,
                                              pin_memory=True,
@@ -218,7 +218,7 @@ def main_worker(gpu, ngpus_per_node, args):
             sr = model(lr)
 
         # Evaluate performance
-        value = iqa(os.path.join("benchmark", "sr.bmp"), os.path.join("benchmark", "hr.bmp"), args.gpu)
+        value = iqa(sr, hr, args.gpu)
 
         total_mse_value += value[0]
         total_rmse_value += value[1]
