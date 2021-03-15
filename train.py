@@ -78,7 +78,7 @@ parser.add_argument("--sampler-frequency", default=1, type=int, metavar="N",
                     help="If there are many datasets, this method can be used "
                          "to increase the number of epochs. (default:1)")
 parser.add_argument("--psnr-lr", type=float, default=0.0001,
-                    help="Learning rate for psnr-oral. (default: 0.0002)")
+                    help="Learning rate for psnr-oral. (default: 0.0001)")
 parser.add_argument("--lr", type=float, default=0.0001,
                     help="Learning rate for gan-oral. (default: 0.0001)")
 parser.add_argument("--image-size", type=int, default=96,
@@ -220,7 +220,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # We use VGG5.4 as our feature extraction method by default.
     perceptual_criterion = VGGLoss().cuda(args.gpu)
-    # Loss = 5 * pixel loss + 2 * perceptual loss + 0.001 * adversarial loss
+    # Loss = pixel loss + 0.006 * perceptual loss + 0.001 * adversarial loss
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
     adversarial_criterion = nn.BCEWithLogitsLoss().cuda(args.gpu)
     logger.info(f"Loss function:\n"
