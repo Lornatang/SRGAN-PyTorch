@@ -234,11 +234,11 @@ def main_worker(gpu, ngpus_per_node, args):
     print(f"Performance average results:\n")
     print(f"indicator Score\n")
     print(f"--------- -----\n")
-    print(f"MSE       {total_mse_value / len(dataloader):.2f}\n"
-          f"RMSE      {total_rmse_value / len(dataloader):.2f}\n"
+    print(f"MSE       {total_mse_value / len(dataloader):.6f}\n"
+          f"RMSE      {total_rmse_value / len(dataloader):.6f}\n"
           f"PSNR      {total_psnr_value / len(dataloader):.2f}\n"
-          f"SSIM      {total_ssim_value / len(dataloader):.2f}\n"
-          f"LPIPS     {total_lpips_value / len(dataloader):.2f}\n"
+          f"SSIM      {total_ssim_value / len(dataloader):.4f}\n"
+          f"LPIPS     {total_lpips_value / len(dataloader):.4f}\n"
           f"GMSD      {total_ssim_value}")
 
 
