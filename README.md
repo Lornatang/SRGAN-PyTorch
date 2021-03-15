@@ -135,13 +135,12 @@ $ python3 test_image.py -a srgan --pretrained --gpu 0 [image-folder with train a
 #### Test video
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] --file FILE [--hr HR] [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH]
-                                                                                             [--pretrained] [--seed SEED] [--gpu GPU]
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] --file FILE [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH]
+                                                                                             [--pretrained] [--seed SEED] [--gpu GPU] [--view]
 
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  --hr HR               Raw high resolution image name.
   -a ARCH, --arch ARCH  model architecture: load_state_dict_from_url | srgan | srgan_2x2 | srgan_8x8 (default: srgan)
   --upscale-factor {2,4,8}
                         Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
@@ -149,9 +148,10 @@ optional arguments:
   --pretrained          Use pre-trained model.
   --seed SEED           Seed for initializing training.
   --gpu GPU             GPU id to use.
+  --view                Do you want to show SR video synchronously.
                         
 # Example
-$ python3 test_video.py -a srgan --pretrained --gpu 0 [image-folder with train and val folders]
+$ python3 test_video.py -a srgan --pretrained --gpu 0 --view [image-folder with train and val folders]
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
