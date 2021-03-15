@@ -91,7 +91,6 @@ total_mse_value = 0.0
 total_rmse_value = 0.0
 total_psnr_value = 0.0
 total_ssim_value = 0.0
-total_mssim_value = 0.0
 total_lpips_value = 0.0
 total_gmsd_value = 0.0
 
@@ -224,11 +223,10 @@ def main_worker(gpu, ngpus_per_node, args):
         total_rmse_value += value[1]
         total_psnr_value += value[2]
         total_ssim_value += value[3]
-        total_mssim_value += value[4]
-        total_lpips_value += value[5]
-        total_gmsd_value += value[6]
+        total_lpips_value += value[4]
+        total_gmsd_value += value[5]
 
-        progress_bar.set_description(f"[{i + 1}/{len(dataloader)}] PSNR: {value[2]:.2f}dB")
+        progress_bar.set_description(f"[{i + 1}/{len(dataloader)}] PSNR: {value[2]:.2f}dB  SSIM: {value[3]:.4f}")
 
         images = torch.cat([bicubic, sr, hr], dim=-1)
         vutils.save_image(images, os.path.join("benchmark", f"{i + 1}.bmp"), padding=10)
@@ -240,7 +238,6 @@ def main_worker(gpu, ngpus_per_node, args):
           f"RMSE      {total_rmse_value / len(dataloader):.2f}\n"
           f"PSNR      {total_psnr_value / len(dataloader):.2f}\n"
           f"SSIM      {total_ssim_value / len(dataloader):.2f}\n"
-          f"MS-SSIM   {total_mssim_value / len(dataloader):.2f}\n"
           f"LPIPS     {total_lpips_value / len(dataloader):.2f}\n"
           f"GMSD      {total_ssim_value}")
 

@@ -122,9 +122,8 @@ def main_worker(gpu, args):
               f"RMSE      {value[1]:.6f}\n"
               f"PSNR      {value[2]:.2f}\n"
               f"SSIM      {value[3]:.4f}\n"
-              f"MS-SSIM   {value[4]:.4f}\n"
-              f"LPIPS     {value[5]:.4f}\n"
-              f"GMSD      {value[6]:.4f}\n")
+              f"LPIPS     {value[4]:.4f}\n"
+              f"GMSD      {value[5]:.4f}\n")
     else:
         images = torch.cat([bicubic, sr], dim=-1)
 
