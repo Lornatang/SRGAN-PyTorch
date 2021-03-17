@@ -139,7 +139,7 @@ benchmark
 test
 video
 runs
-weights
+
 
 # Program run create file.
 *.bmp
