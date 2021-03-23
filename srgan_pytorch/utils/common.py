@@ -16,7 +16,7 @@ import os
 
 import torch
 
-import ssrgan.models as models
+import srgan_pytorch.models as models
 
 __all__ = [
     "create_folder", "configure", "save_checkpoint", "AverageMeter", "ProgressMeter"
