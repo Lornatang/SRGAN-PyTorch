@@ -48,7 +48,7 @@ parser.add_argument("data", metavar="DIR",
                     help="path to dataset")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
-                    help="model architecture: " +
+                    help="Model architecture: " +
                          " | ".join(model_names) +
                          " (default: srgan)")
 parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
@@ -131,7 +131,7 @@ def main():
 
 def main_worker(gpu, ngpus_per_node, args):
     global total_mse_value, total_rmse_value, total_psnr_value
-    global total_ssim_value, total_mssim_value, total_lpips_value, total_gmsd_value
+    global total_ssim_value, total_lpips_value, total_gmsd_value
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -192,11 +192,13 @@ def main_worker(gpu, ngpus_per_node, args):
                                              batch_size=args.batch_size,
                                              pin_memory=True,
                                              num_workers=args.workers)
-    logger.info(f"Test Dataset information:\n"
-                f"\tTest Dataset dir is `{os.getcwd()}/{args.data}/test`\n"
-                f"\tBatch size is {args.batch_size}\n"
-                f"\tWorkers is {int(args.workers)}\n"
-                f"\tLoad dataset to CUDA")
+    logger.info(f"Dataset information:\n"
+                f"\tPath:              {os.getcwd()}/{args.data}/test\n"
+                f"\tNumber of samples: {len(dataset)}\n"
+                f"\tNumber of batches: {len(dataloader)}\n"
+                f"\tShuffle:           False\n"
+                f"\tSampler:           None\n"
+                f"\tWorkers:           {args.workers}")
 
     cudnn.benchmark = True
 
@@ -226,7 +228,9 @@ def main_worker(gpu, ngpus_per_node, args):
         total_lpips_value += value[4]
         total_gmsd_value += value[5]
 
-        progress_bar.set_description(f"[{i + 1}/{len(dataloader)}] PSNR: {value[2]:.2f}dB  SSIM: {value[3]:.4f}")
+        progress_bar.set_description(f"[{i + 1}/{len(dataloader)}] "
+                                     f"PSNR: {total_psnr_value / (i + 1):6.2f} "
+                                     f"SSIM: {total_ssim_value / (i + 1):6.4f}")
 
         images = torch.cat([bicubic, sr, hr], dim=-1)
         vutils.save_image(images, os.path.join("benchmark", f"{i + 1}.bmp"), padding=10)
@@ -234,12 +238,12 @@ def main_worker(gpu, ngpus_per_node, args):
     print(f"Performance average results:\n")
     print(f"indicator Score\n")
     print(f"--------- -----\n")
-    print(f"MSE       {total_mse_value / len(dataloader):.6f}\n"
-          f"RMSE      {total_rmse_value / len(dataloader):.6f}\n"
-          f"PSNR      {total_psnr_value / len(dataloader):.2f}\n"
-          f"SSIM      {total_ssim_value / len(dataloader):.4f}\n"
-          f"LPIPS     {total_lpips_value / len(dataloader):.4f}\n"
-          f"GMSD      {total_ssim_value}")
+    print(f"MSE       {total_mse_value / len(dataloader):6.4f}\n"
+          f"RMSE      {total_rmse_value / len(dataloader):6.4f}\n"
+          f"PSNR      {total_psnr_value / len(dataloader):6.2f}\n"
+          f"SSIM      {total_ssim_value / len(dataloader):6.4f}\n"
+          f"LPIPS     {total_lpips_value / len(dataloader):6.4f}\n"
+          f"GMSD      {total_gmsd_value / len(dataloader):6.4f}")
 
 
 if __name__ == "__main__":
@@ -248,9 +252,10 @@ if __name__ == "__main__":
 
     create_folder("benchmark")
 
-    logger.info("TestEngine:")
-    print("\tAPI version .......... 0.1.1")
-    print("\tBuild ................ 2020.11.30-1116-0c5adc7e")
-    main()
+    logger.info("TestingEngine:")
+    print("\tAPI version .......... 0.1.0")
+    print("\tBuild ................ 2021.03.23")
     print("##################################################\n")
-    logger.info("Test dataset performance evaluation completed successfully.\n")
+    main()
+
+    logger.info("Test dataset performance evaluation completed successfully.")

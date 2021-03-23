@@ -47,7 +47,7 @@ parser.add_argument("--hr", type=str,
                     help="Raw high resolution image name.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
-                    help="model architecture: " +
+                    help="Model architecture: " +
                          " | ".join(model_names) +
                          " (default: srgan)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
@@ -56,8 +56,6 @@ parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
-parser.add_argument("--seed", default=None, type=int,
-                    help="Seed for initializing training.")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 
@@ -118,12 +116,12 @@ def main_worker(gpu, args):
         print(f"Performance avg results:\n")
         print(f"indicator Score\n")
         print(f"--------- -----\n")
-        print(f"MSE       {value[0]:.6f}\n"
-              f"RMSE      {value[1]:.6f}\n"
-              f"PSNR      {value[2]:.2f}\n"
-              f"SSIM      {value[3]:.4f}\n"
-              f"LPIPS     {value[4]:.4f}\n"
-              f"GMSD      {value[5]}\n")
+        print(f"MSE       {value[0]:6.4f}\n"
+              f"RMSE      {value[1]:6.4f}\n"
+              f"PSNR      {value[2]:6.2f}\n"
+              f"SSIM      {value[3]:6.4f}\n"
+              f"LPIPS     {value[4]:6.4f}\n"
+              f"GMSD      {value[5]:6.4f}\n")
     else:
         images = torch.cat([bicubic, sr], dim=-1)
 
@@ -139,10 +137,10 @@ if __name__ == "__main__":
 
     create_folder("test")
 
-    logger.info("TestEngine:")
-    print("\tAPI version .......... 0.1.1")
-    print("\tBuild ................ 2020.11.30-1116-0c5adc7e")
-    main()
+    logger.info("TestingEngine:")
+    print("\tAPI version .......... 0.1.0")
+    print("\tBuild ................ 2021.03.23")
     print("##################################################\n")
+    main()
 
     logger.info("Test single image performance evaluation completed successfully.\n")

@@ -24,7 +24,6 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
-from PIL import Image
 from torchvision.transforms import InterpolationMode as Mode
 from tqdm import tqdm
 
@@ -46,7 +45,7 @@ parser.add_argument("--file", type=str, required=True,
                     help="Test low resolution video name.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
-                    help="model architecture: " +
+                    help="Model architecture: " +
                          " | ".join(model_names) +
                          " (default: srgan)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
@@ -184,9 +183,9 @@ if __name__ == "__main__":
     create_folder("video")
 
     logger.info("SREngine:")
-    print("\tAPI version .......... 0.1.1")
-    print("\tBuild ................ 2020.11.30-1116-0c5adc7e")
-    main()
+    print("\tAPI version .......... 0.1.0")
+    print("\tBuild ................ 2021.03.23")
     print("##################################################\n")
+    main()
 
     logger.info("Super-resolution video completed successfully.\n")
