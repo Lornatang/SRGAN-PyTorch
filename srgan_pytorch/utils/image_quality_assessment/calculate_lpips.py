@@ -57,8 +57,8 @@ class LPIPS(torch.nn.Module):
             self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"))
         else:
             # Map model to be loaded to specified single gpu.
-            loc = f"cuda:{gpu}"
-            self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"), map_location=loc)
+            self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"),
+                                      map_location=f"cuda:{gpu}")
         self.weights = list(self.weights.items())
 
     def forward_once(self, x: torch.Tensor) -> torch.Tensor:
@@ -77,9 +77,8 @@ class LPIPS(torch.nn.Module):
 
     def forward(self, image1_tensor: torch.Tensor, image2_tensor: torch.Tensor) -> torch.Tensor:
         assert image1_tensor.shape == image2_tensor.shape
-        with torch.no_grad():
-            feats0 = self.forward_once(image1_tensor)
-            feats1 = self.forward_once(image2_tensor)
+        feats0 = self.forward_once(image1_tensor)
+        feats1 = self.forward_once(image2_tensor)
         out = 0
         for k in range(len(self.channels)):
             out = out + (self.weights[k][1] * (feats0[k] - feats1[k]) ** 2).mean([2, 3]).sum(1)

@@ -60,8 +60,7 @@ class GMSD(nn.Module):
         assert image1_tensor.shape == image2_tensor.shape
         image1_tensor = image1_tensor * 255
         image2_tensor = image2_tensor * 255
-        with torch.no_grad():
-            out = self.gmsd(image1_tensor, image2_tensor)
+        out = self.gmsd(image1_tensor, image2_tensor)
 
         out = torch.mean(out)
         return out

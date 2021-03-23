@@ -14,10 +14,9 @@
 import numpy as np
 import torch
 import torch.nn.functional
-import torchvision.transforms as transforms
 
 __all__ = [
-    "gaussian_filter", "fspecial_gauss", "prepare_image"
+    "gaussian_filter", "fspecial_gauss"
 ]
 
 
@@ -49,18 +48,4 @@ def fspecial_gauss(size: int, sigma):
     gauss = np.exp(-((x ** 2 + y ** 2) / (2.0 * sigma ** 2)))
     gauss = torch.from_numpy(gauss / gauss.sum()).float().unsqueeze(0).unsqueeze(0)
     out = gauss.repeat(3, 1, 1, 1)
-    return out
-
-
-def prepare_image(image_tensor):
-    """ The image read by using pilot is processed into PyTorch format.
-
-    Args:
-        image_tensor (np.array): Image stream read by PIL.
-
-    Returns:
-        PyTorch tensor.
-    """
-    image_tensor = transforms.ToTensor()(image_tensor)
-    out = image_tensor.unsqueeze(0).repeat(1, 1, 1, 1)
     return out

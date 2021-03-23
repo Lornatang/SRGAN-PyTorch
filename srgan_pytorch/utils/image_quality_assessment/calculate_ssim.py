@@ -76,6 +76,6 @@ class SSIM(torch.nn.Module):
             torch.Tensor.
         """
         assert image1_tensor.shape == image2_tensor.shape
-        with torch.no_grad():
-            out = torch.mean(ssim(image1_tensor, image2_tensor, filter_weight=self.filter_weight))
+        out = torch.mean(ssim(image1_tensor, image2_tensor, filter_weight=self.filter_weight))
+
         return out
