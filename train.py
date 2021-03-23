@@ -583,8 +583,6 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
             d_loss_fake = adversarial_criterion(fake_output, fake_label)
 
             d_loss = d_loss_real + d_loss_fake
-            d_x = real_output.mean()
-            d_g_z1 = fake_output.mean()
 
         # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
         # Backward passes under autocast are not recommended.
@@ -616,7 +614,6 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
             # Adversarial loss (relativistic average GAN)
             adversarial_loss = adversarial_criterion(fake_output, real_label)
             g_loss = pixel_loss + 0.006 * perceptual_loss + 0.001 * adversarial_loss
-            d_g_z2 = fake_output.mean()
 
         # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
         # Backward passes under autocast are not recommended.
