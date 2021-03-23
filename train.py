@@ -80,7 +80,7 @@ parser.add_argument("--sampler-frequency", default=1, type=int, metavar="N",
                          "to increase the number of epochs. (default:1)")
 parser.add_argument("--psnr-lr", type=float, default=0.0001,
                     help="Learning rate for psnr-oral. (default: 0.0001)")
-parser.add_argument("--lr", type=float, default=0.0001,
+parser.add_argument("--gan-lr", type=float, default=0.0001,
                     help="Learning rate for gan-oral. (default: 0.0001)")
 parser.add_argument("--image-size", type=int, default=96,
                     help="Image size of high resolution image. (default: 96)")
@@ -231,8 +231,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # All optimizer function and scheduler function.
     psnr_optimizer = torch.optim.Adam(generator.parameters(), lr=args.psnr_lr, betas=(0.9, 0.999))
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=args.lr, betas=(0.9, 0.999))
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=args.lr, betas=(0.9, 0.999))
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=args.gan_lr, betas=(0.9, 0.999))
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=args.gan_lr, betas=(0.9, 0.999))
     discriminator_scheduler = torch.optim.lr_scheduler.StepLR(discriminator_optimizer, args.gan_epochs // 2, 0.1)
     generator_scheduler = torch.optim.lr_scheduler.StepLR(generator_optimizer, args.gan_epochs // 2, 0.1)
     logger.info(f"Optimizer information:\n"

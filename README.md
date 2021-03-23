@@ -154,7 +154,7 @@ Low resolution / Recovered High Resolution / Ground Truth
 ### Train (e.g DIV2K)
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [--psnr-epochs N] [--start-psnr-epoch N] [--gan-epochs N] [--start-gan-epoch N] [-b N] [--sampler-frequency N] [--psnr-lr PSNR_LR] [--lr LR]
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [--psnr-epochs N] [--start-psnr-epoch N] [--gan-epochs N] [--start-gan-epoch N] [-b N] [--sampler-frequency N] [--psnr-lr PSNR_LR] [--gan-lr GAN_LR]
                                                                                              [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--resume_psnr PATH] [--resume_d PATH] [--resume_g PATH] [--pretrained] [--world-size WORLD_SIZE]
                                                                                              [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU] [--multiprocessing-distributed]
                                                                                              DIR
@@ -174,7 +174,7 @@ optional arguments:
   --sampler-frequency N
                         If there are many datasets, this method can be used to increase the number of epochs. (default:1)
   --psnr-lr PSNR_LR     Learning rate for psnr-oral. (default: 0.0001)
-  --lr LR               Learning rate for gan-oral. (default: 0.0001)
+  --gan-lr GAN_LR       Learning rate for gan-oral. (default: 0.0001)
   --image-size IMAGE_SIZE
                         Image size of high resolution image. (default: 96)
   --upscale-factor {2,4,8}
@@ -194,7 +194,7 @@ optional arguments:
   --gpu GPU             GPU id to use.
   --multiprocessing-distributed
                         Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training
-                        
+                                         
 # Example (e.g DIV2K)
 $ python train.py -a srgan [image-folder with train and val folders]
 # Multi-processing Distributed Data Parallel Training
