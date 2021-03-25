@@ -39,9 +39,7 @@ from srgan_pytorch.utils.common import AverageMeter
 from srgan_pytorch.utils.common import ProgressMeter
 from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import create_folder
-from srgan_pytorch.utils.common import save_checkpoint
-from srgan_pytorch.utils.estimate import test_gan
-from srgan_pytorch.utils.estimate import test_psnr
+from srgan_pytorch.utils.estimate import test
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -113,11 +111,6 @@ parser.add_argument("--multiprocessing-distributed", action="store_true",
                          "fastest way to use PyTorch for either single node or "
                          "multi node data parallel training")
 
-best_psnr_value = 0.0
-best_ssim_value = 0.0
-best_lpips_value = 1.0
-best_gmsd_value = 1.0
-
 
 def main():
     args = parser.parse_args()
@@ -154,7 +147,6 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    global best_psnr_value, best_ssim_value, best_lpips_value, best_gmsd_value
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -295,12 +287,6 @@ def main_worker(gpu, ngpus_per_node, args):
                 # Map model to be loaded to specified single gpu.
                 checkpoint = torch.load(args.resume_psnr, map_location=f"cuda:{args.gpu}")
             args.start_psnr_epoch = checkpoint["epoch"]
-            best_psnr_value = checkpoint["best_psnr"]
-            best_ssim_value = checkpoint["best_ssim"]
-            if args.gpu is not None:
-                # best_psnr, best_ssim may be from a checkpoint from a different GPU
-                best_psnr_value = best_psnr_value.to(args.gpu)
-                best_ssim_value = best_ssim_value.to(args.gpu)
             generator.load_state_dict(checkpoint["state_dict"])
             psnr_optimizer.load_state_dict(checkpoint["optimizer"])
             logger.info(f"Loaded checkpoint '{args.resume_psnr}' (epoch {checkpoint['epoch']}).")
@@ -319,14 +305,6 @@ def main_worker(gpu, ngpus_per_node, args):
                 checkpoint_d = torch.load(args.resume_d, map_location=f"cuda:{args.gpu}")
                 checkpoint_g = torch.load(args.resume_g, map_location=f"cuda:{args.gpu}")
             args.start_gan_epoch = checkpoint_d["epoch"]
-            best_ssim_value = checkpoint_g["best_ssim"]
-            best_lpips_value = checkpoint_g["best_lpips"]
-            best_gmsd_value = checkpoint_g["best_gmsd"]
-            if args.gpu is not None:
-                # best_ssim, best_lpips, best_gmsd may be from a checkpoint from a different GPU
-                best_ssim_value = best_ssim_value.to(args.gpu)
-                best_lpips_value = best_lpips_value.to(args.gpu)
-                best_gmsd_value = best_gmsd_value.to(args.gpu)
             discriminator.load_state_dict(checkpoint_d["state_dict"])
             discriminator_optimizer.load_state_dict(checkpoint_d["optimizer"])
             generator.load_state_dict(checkpoint_g["state_dict"])
@@ -360,31 +338,26 @@ def main_worker(gpu, ngpus_per_node, args):
                    args=args)
 
         # Test for every epoch.
-        psnr_value, ssim_value = test_psnr(model=generator, dataloader=test_dataloader, gpu=args.gpu)
-        psnr_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
-        psnr_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
-
-        # remember best psnr and save checkpoint
-        is_best = psnr_value > best_psnr_value and ssim_value > best_ssim_value
-        best_psnr_value = max(psnr_value, best_psnr_value)
-        best_ssim_value = max(ssim_value, best_ssim_value)
+        psnr_value, ssim_value, lpips_value, gmsd_value = test(generator, test_dataloader, args.gpu)
+        gan_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
+        gan_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
+        gan_writer.add_scalar("Test/LPIPS", lpips_value, epoch + 1)
+        gan_writer.add_scalar("Test/GMSD", gmsd_value, epoch + 1)
 
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-            save_checkpoint(
-                {"epoch": epoch + 1,
-                 "arch": args.arch,
-                 "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
-                 "best_psnr": best_psnr_value,
-                 "best_ssim": best_ssim_value,
-                 "optimizer": psnr_optimizer.state_dict(),
-                 }, is_best,
-                os.path.join("weights", f"PSNR_epoch{epoch}.pth"),
-                os.path.join("weights", f"PSNR.pth"))
+            torch.save({"epoch": epoch + 1,
+                        "arch": args.arch,
+                        "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
+                        "psnr_value": psnr_value,
+                        "ssim_value": ssim_value,
+                        "lpips_value": lpips_value,
+                        "gmsd_value": gmsd_value,
+                        "optimizer": psnr_optimizer.state_dict(),
+                        }, os.path.join("weights", f"PSNR_epoch{epoch}.pth"))
 
-    best_ssim_value = 0.0
-    # Load best PSNR model.
-    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
+        # Load best PSNR model.
+        generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
         if args.distributed:
@@ -406,41 +379,28 @@ def main_worker(gpu, ngpus_per_node, args):
         generator_scheduler.step()
 
         # Test for every epoch.
-        ssim_value, lpips_value, gmsd_value = test_gan(model=generator, dataloader=test_dataloader, gpu=args.gpu)
+        psnr_value, ssim_value, lpips_value, gmsd_value = test(generator, test_dataloader, args.gpu)
+        gan_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
         gan_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
         gan_writer.add_scalar("Test/LPIPS", lpips_value, epoch + 1)
         gan_writer.add_scalar("Test/GMSD", gmsd_value, epoch + 1)
 
-        # remember best psnr and save checkpoint
-        is_best = ssim_value > best_ssim_value and lpips_value < best_lpips_value and gmsd_value < best_gmsd_value
-        best_ssim_value = max(ssim_value, best_ssim_value)
-        best_lpips_value = min(lpips_value, best_lpips_value)
-        best_gmsd_value = min(gmsd_value, best_gmsd_value)
-
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-            save_checkpoint(
-                {"epoch": epoch + 1,
-                 "arch": "vgg",
-                 "state_dict": discriminator.module.state_dict() if args.multiprocessing_distributed else discriminator.state_dict(),
-                 "best_ssim": best_ssim_value,
-                 "best_lpips": best_lpips_value,
-                 "best_gmsd": best_gmsd_value,
-                 "optimizer": discriminator_optimizer.state_dict()
-                 }, is_best,
-                os.path.join("weights", f"Discriminator_epoch{epoch}.pth"),
-                os.path.join("weights", f"Discriminator.pth"))
-            save_checkpoint(
-                {"epoch": epoch + 1,
-                 "arch": args.arch,
-                 "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
-                 "best_ssim": best_ssim_value,
-                 "best_lpips": best_lpips_value,
-                 "best_gmsd": best_gmsd_value,
-                 "optimizer": generator_optimizer.state_dict()
-                 }, is_best,
-                os.path.join("weights", f"Generator_epoch{epoch}.pth"),
-                os.path.join("weights", f"Generator.pth"))
+            torch.save({"epoch": epoch + 1,
+                        "arch": "vgg",
+                        "state_dict": discriminator.module.state_dict() if args.multiprocessing_distributed else discriminator.state_dict(),
+                        "optimizer": discriminator_optimizer.state_dict()
+                        }, os.path.join("weights", f"Discriminator_epoch{epoch}.pth"))
+            torch.save({"epoch": epoch + 1,
+                        "arch": args.arch,
+                        "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
+                        "psnr_value": psnr_value,
+                        "ssim_value": ssim_value,
+                        "lpips_value": lpips_value,
+                        "gmsd_value": gmsd_value,
+                        "optimizer": generator_optimizer.state_dict()
+                        }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
 
 
 def train_psnr(train_dataloader: torch.utils.data.DataLoader,
@@ -613,19 +573,18 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
             sr = generator(lr)
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
 
+    if __name__ == "__main__":
+        print("##################################################\n")
+        print("Run Training Engine.\n")
 
-if __name__ == "__main__":
-    print("##################################################\n")
-    print("Run Training Engine.\n")
+        create_folder("runs")
+        create_folder("runs/hr")
+        create_folder("runs/sr")
+        create_folder("weights")
 
-    create_folder("runs")
-    create_folder("runs/hr")
-    create_folder("runs/sr")
-    create_folder("weights")
-
-    logger.info("TrainingEngine:")
-    print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.03.25")
-    print("##################################################\n")
-    main()
-    logger.info("All training has been completed successfully.\n")
+        logger.info("TrainingEngine:")
+        print("\tAPI version .......... 0.1.0")
+        print("\tBuild ................ 2021.03.25")
+        print("##################################################\n")
+        main()
+        logger.info("All training has been completed successfully.\n")

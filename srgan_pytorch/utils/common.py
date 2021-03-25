@@ -19,7 +19,7 @@ import torch
 import srgan_pytorch.models as models
 
 __all__ = [
-    "create_folder", "configure", "save_checkpoint", "AverageMeter", "ProgressMeter"
+    "create_folder", "configure", "AverageMeter", "ProgressMeter"
 ]
 
 logger = logging.getLogger(__name__)
@@ -51,16 +51,9 @@ def configure(args):
         model = models.__dict__[args.arch]()
     if args.model_path:
         logger.info(f"You loaded the specified weight. Load weights from `{os.path.abspath(args.model_path)}`.")
-        model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu")), strict=False)
+        model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu"))["state_dict"], strict=False)
 
     return model
-
-
-# Copy from https://github.com/pytorch/examples/blob/master/imagenet/main.py
-def save_checkpoint(state, is_best: bool, source_filename: str, target_filename: str):
-    torch.save(state, source_filename)
-    if is_best:
-        torch.save(state["state_dict"], target_filename)
 
 
 # Copy from https://github.com/pytorch/examples/blob/master/imagenet/main.py

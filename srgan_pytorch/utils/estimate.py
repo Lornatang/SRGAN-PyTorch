@@ -21,7 +21,7 @@ from .image_quality_assessment import LPIPS
 from .image_quality_assessment import SSIM
 
 __all__ = [
-    "iqa", "test_psnr", "test_gan"
+    "iqa", "test"
 ]
 
 
@@ -56,17 +56,25 @@ def iqa(image1_tensor: torch.Tensor, image2_tensor: torch.Tensor, gpu: int = Non
     return mse_value, rmse_value, psnr_value, ssim_value, lpips_value, gmsd_value
 
 
-def test_psnr(model: nn.Module, dataloader: torch.utils.data.DataLoader, gpu: int = None) -> [torch.Tensor,
-                                                                                              torch.Tensor]:
+def test(model: nn.Module, dataloader: torch.utils.data.DataLoader, gpu: int = None) -> [torch.Tensor,
+                                                                                         torch.Tensor,
+                                                                                         torch.Tensor,
+                                                                                         torch.Tensor]:
     mse_loss = nn.MSELoss().cuda(gpu).eval()
     # Reference sources from https://hub.fastgit.org/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py
     ssim_loss = SSIM().cuda(gpu).eval()
+    # Reference sources from https://github.com/richzhang/PerceptualSimilarity
+    lpips_loss = LPIPS(gpu).cuda(gpu).eval()
+    # Reference sources from http://www4.comp.polyu.edu.hk/~cslzhang/IQA/GMSD/GMSD.htm
+    gmsd_loss = GMSD().cuda(gpu).eval()
 
     # switch eval mode.
     model.eval()
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     total_psnr_value = 0.
     total_ssim_value = 0.
+    total_lpips_value = 0.
+    total_gmsd_value = 0.
     total = len(dataloader)
 
     with torch.no_grad():
@@ -81,45 +89,6 @@ def test_psnr(model: nn.Module, dataloader: torch.utils.data.DataLoader, gpu: in
 
             # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
             total_psnr_value += 10 * torch.log10(1. / mse_loss(sr, hr))
-            total_ssim_value += ssim_loss(sr, hr)
-
-            progress_bar.set_description(f"PSNR: {total_psnr_value / (i + 1):.2f} "
-                                         f"SSIM: {total_ssim_value / (i + 1):.4f}")
-
-    out = total_psnr_value / total, total_ssim_value / total
-
-    return out
-
-
-def test_gan(model: nn.Module, dataloader: torch.utils.data.DataLoader, gpu: int = None) -> [torch.Tensor,
-                                                                                             torch.Tensor,
-                                                                                             torch.Tensor]:
-    # Reference sources from https://hub.fastgit.org/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py
-    ssim_loss = SSIM().cuda(gpu).eval()
-    # Reference sources from https://github.com/richzhang/PerceptualSimilarity
-    lpips_loss = LPIPS(gpu).cuda(gpu).eval()
-    # Reference sources from http://www4.comp.polyu.edu.hk/~cslzhang/IQA/GMSD/GMSD.htm
-    gmsd_loss = GMSD().cuda(gpu).eval()
-
-    # switch eval mode.
-    model.eval()
-    progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    total_ssim_value = 0.
-    total_lpips_value = 0.
-    total_gmsd_value = 0.
-    total = len(dataloader)
-
-    with torch.no_grad():
-        for i, (lr, _, hr) in progress_bar:
-            # Move data to special device.
-            if gpu is not None:
-                lr = lr.cuda(gpu, non_blocking=True)
-            if torch.cuda.is_available():
-                hr = hr.cuda(gpu, non_blocking=True)
-
-            with torch.no_grad():
-                sr = model(lr)
-
             # The SSIM of the generated fake high-resolution image and real high-resolution image is calculated.
             total_ssim_value += ssim_loss(sr, hr)
             # The LPIPS of the generated fake high-resolution image and real high-resolution image is calculated.
@@ -127,10 +96,11 @@ def test_gan(model: nn.Module, dataloader: torch.utils.data.DataLoader, gpu: int
             # The GMSD of the generated fake high-resolution image and real high-resolution image is calculated.
             total_gmsd_value += gmsd_loss(sr, hr)
 
-            progress_bar.set_description(f"SSIM: {total_ssim_value / (i + 1):.4f} "
+            progress_bar.set_description(f"PSNR: {total_psnr_value / (i + 1):.2f} "
+                                         f"SSIM: {total_ssim_value / (i + 1):.4f} "
                                          f"LPIPS: {total_lpips_value / (i + 1):.4f} "
                                          f"GMSD: {total_gmsd_value / (i + 1):.4f}")
 
-    out = total_ssim_value / total, total_lpips_value / total, total_gmsd_value / total
+    out = total_psnr_value / total, total_ssim_value / total, total_lpips_value / total, total_gmsd_value / total
 
     return out
