@@ -107,7 +107,9 @@ def main_worker(gpu, args):
     bicubic = process_image(bicubic, args.gpu)
 
     with torch.no_grad():
+        c_time = time.time()
         sr = model(lr)
+        print('Total time is %f sec. and FPS is %d'%((time.time()- c_time),1/(time.time()- c_time)))
 
     if args.hr:
         hr = process_image(Image.open(args.hr), args.gpu)
