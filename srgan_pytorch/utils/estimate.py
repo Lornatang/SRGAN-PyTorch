@@ -25,7 +25,12 @@ __all__ = [
 ]
 
 
-def iqa(image1_tensor: torch.Tensor, image2_tensor: torch.Tensor, gpu: int = None) -> torch.Tensor:
+def iqa(image1_tensor: torch.Tensor, image2_tensor: torch.Tensor, gpu: int = None) -> [torch.Tensor,
+                                                                                       torch.Tensor,
+                                                                                       torch.Tensor,
+                                                                                       torch.Tensor,
+                                                                                       torch.Tensor,
+                                                                                       torch.Tensor]:
     """Image quality evaluation function.
 
     Args:

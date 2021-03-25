@@ -16,13 +16,19 @@ import logging
 import os
 import random
 import warnings
-from glob import glob
 
 import torch
 import torch.backends.cudnn as cudnn
+import torch.optim
+import torch.utils.data
+import torchvision.transforms as transforms
+import torchvision.utils as vutils
 from PIL import Image
+from torchvision.transforms import InterpolationMode as Mode
 
 import srgan_pytorch.models as models
+from srgan_pytorch.utils.common import configure
+from srgan_pytorch.utils.common import create_folder
 from srgan_pytorch.utils.estimate import iqa
 from srgan_pytorch.utils.transform import process_image
 
@@ -53,8 +59,6 @@ parser.add_argument("--seed", default=None, type=int,
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 
-best_mse_value = 0.0
-best_rmse_value = 0.0
 best_psnr_value = 0.0
 best_ssim_value = 0.0
 best_lpips_value = 1.0
@@ -78,7 +82,6 @@ def main():
 
 
 def main_worker(gpu, args):
-    global best_mse_value, best_rmse_value, best_psnr_value, best_ssim_value, best_lpips_value, best_gmsd_value
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -87,7 +90,7 @@ def main_worker(gpu, args):
     cudnn.benchmark = True
 
     # Configure model
-    model = models.__dict__[args.arch]()
+    model = configure(args)
 
     if not torch.cuda.is_available():
         logger.warning("Using CPU, this will be slow.")
@@ -95,42 +98,14 @@ def main_worker(gpu, args):
     # Read all pictures.
     lr = process_image(Image.open(args.lr), args.gpu)
     hr = process_image(Image.open(args.hr), args.gpu)
-
-    model_paths = glob(os.path.join(f"{args.model_dir}", "Generator_epoch*.pth"))
-    best_model = model_paths[0]
-
-    for model_path in model_paths:
-        print(f"Process `{model_path}`")
-        value = inference(lr, hr, model, model_path, gpu)
-
-        # is_best = psnr_value > best_psnr_value and ssim_value > best_ssim_value and lpips_value < best_lpips_value and gmsd_value < best_gmsd_value
-        is_best = value[2] > best_psnr_value
-
-        if is_best:
-            best_model = os.path.basename(model_path)
-            best_mse_value = value[0]
-            best_rmse_value = value[1]
-            best_psnr_value = value[2]
-            best_ssim_value = value[3]
-            best_lpips_value = value[4]
-            best_gmsd_value = value[5]
-
-    print("\n##################################################")
-    print(f"Best model: `{best_model}`.")
-    print(f"indicator Score")
-    print(f"--------- -----")
-    print(f"MSE       {best_mse_value:6.4f}"
-          f"RMSE      {best_rmse_value:6.2f}"
-          f"PSNR      {best_psnr_value:6.2f}\n"
-          f"SSIM      {best_ssim_value:6.4f}\n"
-          f"LPIPS     {best_lpips_value:6.4f}\n"
-          f"GMSD      {best_gmsd_value:6.4f}")
-    print(f"--------- -----")
-    print("##################################################\n")
+    
+    weight_names = os.listdir(os.path.join("weights", "Generator_epoch*.pth"))
+    print(weight_names)
+    
 
 
 def inference(lr, hr, model, model_path, gpu: int = None):
-    model.load_state_dict(torch.load(model_path)["state_dict"])
+    model.load_state_dict(torch.load(model_path))
 
     if gpu is not None:
         torch.cuda.set_device(gpu)
@@ -143,7 +118,7 @@ def inference(lr, hr, model, model_path, gpu: int = None):
         sr = model(lr)
 
     value = iqa(sr, hr, gpu)
-
+    
     return value
 
 
@@ -151,10 +126,12 @@ if __name__ == "__main__":
     print("##################################################\n")
     print("Run Testing Engine.\n")
 
+    create_folder("test")
+
     logger.info("TestingEngine:")
     print("\tAPI version .......... 0.1.0")
     print("\tBuild ................ 2021.03.23")
     print("##################################################\n")
     main()
 
-    logger.info("Test single image performance evaluation completed successfully.")
+    logger.info("Test single image performance evaluation completed successfully.\n")
