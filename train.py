@@ -603,6 +603,10 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         writer.add_scalar("Train/D(SR1) Loss", d_sr1, iters)
         writer.add_scalar("Train/D(SR2) Loss", d_sr2, iters)
 
+        # Output results every 100 batches.
+        if i % 100 == 0:
+            progress.display(i)
+
         # Save image every 1000 batches.
         if iters % 1000 == 0:
             vutils.save_image(hr, os.path.join("runs", "hr", f"GAN_{iters}.bmp"))
