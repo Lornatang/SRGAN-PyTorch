@@ -218,15 +218,15 @@ def main_worker(gpu, ngpus_per_node, args):
             discriminator = torch.nn.DataParallel(discriminator).cuda()
             generator = torch.nn.DataParallel(generator).cuda()
 
-    # Loss = pixel loss + 0.006 * perceptual loss + 0.001 * adversarial loss
+    # Loss = content loss + 0.001 * adversarial loss
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
     # We use VGG5.4 as our feature extraction method by default.
-    perceptual_criterion = VGGLoss().cuda(args.gpu)
-    adversarial_criterion = nn.BCEWithLogitsLoss().cuda(args.gpu)
+    content_criterion = VGGLoss().cuda(args.gpu)
+    adversarial_criterion = nn.BCELoss().cuda(args.gpu)
     logger.info(f"Losses function information:\n"
                 f"\tPixel:       MSELoss\n"
                 f"\tPerceptual:  VGG19_36th\n"
-                f"\tAdversarial: BCEWithLogitsLoss")
+                f"\tAdversarial: BCELoss")
 
     # All optimizer function and scheduler function.
     psnr_optimizer = torch.optim.Adam(generator.parameters(), lr=args.psnr_lr, betas=(0.9, 0.999))
@@ -483,9 +483,12 @@ def train_psnr(train_dataloader: torch.utils.data.DataLoader,
         iters = i + epoch * len(train_dataloader) + 1
         writer.add_scalar("Train/MSE Loss", mse_loss.item(), iters)
 
-        # Output results and save image every 100 batches.
+        # Output results every 100 batches.
         if i % 100 == 0:
             progress.display(i)
+
+        # Save image every 1000 batches.
+        if iters % 1000 == 0:
             vutils.save_image(hr, os.path.join("runs", "hr", f"PSNR_{iters}.bmp"))
             sr = generator(lr)
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"PSNR_{iters}.bmp"))
@@ -600,9 +603,8 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         writer.add_scalar("Train/D(SR1) Loss", d_sr1, iters)
         writer.add_scalar("Train/D(SR2) Loss", d_sr2, iters)
 
-        # Output results and save image every 100 batches.
-        if i % 100 == 0:
-            progress.display(i)
+        # Save image every 1000 batches.
+        if iters % 1000 == 0:
             vutils.save_image(hr, os.path.join("runs", "hr", f"GAN_{iters}.bmp"))
             sr = generator(lr)
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
