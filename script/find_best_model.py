@@ -103,7 +103,6 @@ def main_worker(gpu, args):
         print(f"Process `{model_path}`")
         value = inference(lr, hr, model, model_path, gpu)
 
-        # is_best = psnr_value > best_psnr_value and ssim_value > best_ssim_value and lpips_value < best_lpips_value and gmsd_value < best_gmsd_value
         is_best = value[2] > best_psnr_value
 
         if is_best:
@@ -148,13 +147,4 @@ def inference(lr, hr, model, model_path, gpu: int = None):
 
 
 if __name__ == "__main__":
-    print("##################################################\n")
-    print("Run Testing Engine.\n")
-
-    logger.info("TestingEngine:")
-    print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.03.23")
-    print("##################################################\n")
     main()
-
-    logger.info("Test single image performance evaluation completed successfully.")

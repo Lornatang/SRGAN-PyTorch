@@ -349,10 +349,6 @@ def main_worker(gpu, ngpus_per_node, args):
             torch.save({"epoch": epoch + 1,
                         "arch": args.arch,
                         "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
-                        "psnr_value": psnr_value,
-                        "ssim_value": ssim_value,
-                        "lpips_value": lpips_value,
-                        "gmsd_value": gmsd_value,
                         "optimizer": psnr_optimizer.state_dict(),
                         }, os.path.join("weights", f"PSNR_epoch{epoch}.pth"))
 
@@ -395,10 +391,6 @@ def main_worker(gpu, ngpus_per_node, args):
             torch.save({"epoch": epoch + 1,
                         "arch": args.arch,
                         "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
-                        "psnr_value": psnr_value,
-                        "ssim_value": ssim_value,
-                        "lpips_value": lpips_value,
-                        "gmsd_value": gmsd_value,
                         "optimizer": generator_optimizer.state_dict()
                         }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
 
