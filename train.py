@@ -357,10 +357,10 @@ def main_worker(gpu, ngpus_per_node, args):
             if psnr_value > best_psnr_value:
                 best_psnr_value = max(psnr_value, best_psnr_value)
                 torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
-    
+
     # Load best model weight.
     best_psnr_value = 0.0
-    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth")))
+    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
         if args.distributed:
