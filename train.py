@@ -20,7 +20,6 @@ import warnings
 
 import torch
 import torch.backends.cudnn as cudnn
-import torch.cuda.amp as amp
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
@@ -339,10 +338,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
     cudnn.benchmark = True
 
-    # Creates a GradScaler once at the beginning of training.
-    scaler = amp.GradScaler()
-    logger.info(f"Turn on mixed precision training.")
-
     # Create a SummaryWriter at the beginning of training.
     psnr_writer = SummaryWriter(f"runs/{args.arch}_psnr_logs")
     gan_writer = SummaryWriter(f"runs/{args.arch}_gan_logs")
@@ -357,11 +352,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # train for one epoch
         train_psnr(train_dataloader=train_dataloader,
-                   model=generator,
-                   criterion=pixel_criterion,
-                   optimizer=psnr_optimizer,
+                   generator=generator,
+                   pixel_criterion=pixel_criterion,
+                   psnr_optimizer=psnr_optimizer,
                    epoch=epoch,
-                   scaler=scaler,
                    writer=psnr_writer,
                    args=args)
 
@@ -400,13 +394,11 @@ def main_worker(gpu, ngpus_per_node, args):
         train_gan(train_dataloader=train_dataloader,
                   discriminator=discriminator,
                   generator=generator,
-                  pixel_criterion=pixel_criterion,
-                  perceptual_criterion=perceptual_criterion,
+                  content_criterion=content_criterion,
                   adversarial_criterion=adversarial_criterion,
                   discriminator_optimizer=discriminator_optimizer,
                   generator_optimizer=generator_optimizer,
                   epoch=epoch,
-                  scaler=scaler,
                   writer=gan_writer,
                   args=args)
 
@@ -447,104 +439,83 @@ def main_worker(gpu, ngpus_per_node, args):
                  "best_gmsd": best_gmsd_value,
                  "optimizer": generator_optimizer.state_dict()
                  }, is_best,
-                os.path.join("exps", "weights", f"Generator_epoch{epoch}.pth"),
-                os.path.join("exps", "weights", f"Generator.pth"))
+                os.path.join("weights", f"Generator_epoch{epoch}.pth"),
+                os.path.join("weights", f"Generator.pth"))
 
 
 def train_psnr(train_dataloader: torch.utils.data.DataLoader,
-               model: nn.Module,
-               criterion: nn.MSELoss,
-               optimizer: torch.optim.Adam,
+               generator: nn.Module,
+               pixel_criterion: nn.MSELoss,
+               psnr_optimizer: torch.optim.Adam,
                epoch: int,
-               scaler: amp.GradScaler,
                writer: SummaryWriter,
                args: argparse.ArgumentParser.parse_args):
     batch_time = AverageMeter("Time", ":6.4f")
-    data_time = AverageMeter("Data", ":6.4f")
-    pixel_losses = AverageMeter("MSE Loss", ":.6f")
-    progress = ProgressMeter(
-        len(train_dataloader),
-        [batch_time, data_time, pixel_losses],
-        prefix=f"Epoch: [{epoch}]")
+    mse_losses = AverageMeter("MSE Loss", ":.6f")
+    progress = ProgressMeter(len(train_dataloader), [batch_time, mse_losses], prefix=f"Epoch: [{epoch}]")
 
     # switch to train mode
-    model.train()
+    generator.train()
 
     end = time.time()
     for i, (lr, hr) in enumerate(train_dataloader):
-        # measure data loading time
-        data_time.update(time.time() - end)
-
         # Move data to special device.
         if args.gpu is not None:
             lr = lr.cuda(args.gpu, non_blocking=True)
             hr = hr.cuda(args.gpu, non_blocking=True)
 
-        optimizer.zero_grad()
-        # Runs the forward pass with autocasting.
-        with amp.autocast():
-            # Generating fake high resolution images from real low resolution images.
-            sr = model(lr)
-            # The L1 Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-            pixel_loss = criterion(sr, hr)
+        generator.zero_grad()
 
-        # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
-        # Backward passes under autocast are not recommended.
-        # Backward ops run in the same dtype autocast chose for corresponding forward ops.
-        scaler.scale(pixel_loss).backward()
-
-        # scaler.step() first unscales the gradients of the optimizer's assigned params.
-        # If these gradients do not contain infs or NaNs, optimizer.step() is then called,
-        # otherwise, optimizer.step() is skipped.
-        scaler.step(optimizer)
-
-        # Updates the scale for next iteration.
-        scaler.update()
-
-        # measure accuracy and record loss
-        pixel_losses.update(pixel_loss.item(), lr.size(0))
+        # Generating fake high resolution images from real low resolution images.
+        sr = generator(lr)
+        # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
+        mse_loss = pixel_criterion(sr, hr)
+        mse_loss.backward()
+        psnr_optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
-        iters = i + epoch * len(train_dataloader) + 1
-        writer.add_scalar("Train/MSE Loss", pixel_loss.item(), iters)
+        # measure accuracy and record loss
+        mse_losses.update(mse_loss.item(), lr.size(0))
 
-        # Output results every 100 batches.
+        iters = i + epoch * len(train_dataloader) + 1
+        writer.add_scalar("Train/MSE Loss", mse_loss.item(), iters)
+
+        # Output results and save image every 100 batches.
         if i % 100 == 0:
             progress.display(i)
-
-        # Save images every 1000 iterations.
-        if iters % 1000 == 0:
             vutils.save_image(hr, os.path.join("runs", "hr", f"PSNR_{iters}.bmp"))
-            sr = model(lr)
+            sr = generator(lr)
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"PSNR_{iters}.bmp"))
 
 
 def train_gan(train_dataloader: torch.utils.data.DataLoader,
               discriminator: nn.Module,
               generator: nn.Module,
-              pixel_criterion: nn.MSELoss,
-              perceptual_criterion: VGGLoss,
-              adversarial_criterion: nn.BCEWithLogitsLoss,
+              content_criterion: VGGLoss,
+              adversarial_criterion: nn.BCELoss,
               discriminator_optimizer: torch.optim.Adam,
               generator_optimizer: torch.optim.Adam,
               epoch: int,
-              scaler: amp.GradScaler,
               writer: SummaryWriter,
               args: argparse.ArgumentParser.parse_args):
-    batch_time = AverageMeter("Time", ":6.4f")
-    data_time = AverageMeter("Data", ":6.4f")
-    d_losses = AverageMeter("Discriminator Loss", ":.6f")
-    g_losses = AverageMeter("Generator Loss", ":.6f")
-    pixel_losses = AverageMeter("Pixel Loss", ":.6f")
-    perceptual_losses = AverageMeter("Perceptual Loss", ":.6f")
-    adversarial_losses = AverageMeter("Adversarial Loss", ":.6f")
+    batch_time = AverageMeter("Time", ":.4f")
+    d_losses = AverageMeter("D Loss", ":.6f")
+    g_losses = AverageMeter("G Loss", ":.6f")
+    content_losses = AverageMeter("Content Loss", ":.4f")
+    adversarial_losses = AverageMeter("Adversarial Loss", ":.4f")
+    d_hr_losses = AverageMeter("D(x)", ":.4f")
+    d_sr1_losses = AverageMeter("D(SR1)", ":.4f")
+    d_sr2_losses = AverageMeter("D(SR2)", ":.4f")
 
     progress = ProgressMeter(
         len(train_dataloader),
-        [batch_time, data_time, d_losses, g_losses, pixel_losses, perceptual_losses, adversarial_losses],
+        [batch_time,
+         d_losses, g_losses,
+         content_losses, adversarial_losses,
+         d_hr_losses, d_sr1_losses, d_sr2_losses],
         prefix=f"Epoch: [{epoch}]")
 
     # switch to train mode
@@ -564,94 +535,74 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         fake_label = torch.full((batch_size, 1), 0, dtype=lr.dtype).cuda(args.gpu, non_blocking=True)
 
         ##############################################
-        # (1) Update D network: maximize - E(hr)[1- log(D(hr, sr))] - E(sr)[log(D(sr, hr))]
+        # (1) Update D network: maximize - E(hr)[log(D(hr))] + E(lr)[log(1- D(G(lr))]
         ##############################################
         # Set discriminator gradients to zero.
-        discriminator_optimizer.zero_grad()
-        # Runs the forward pass with autocasting.
-        with amp.autocast():
-            # Generating fake high resolution images from real low resolution images.
-            sr = generator(lr)
+        discriminator.zero_grad()
 
-            # The accuracy probability of high resolution image and super-resolution image is calculated
-            # without calculating super-resolution gradient.
-            real_output = discriminator(hr)
-            fake_output = discriminator(sr.detach())
+        real_output = discriminator(hr)
+        # Let the discriminator realize that the sample is real.
+        d_loss_real = adversarial_criterion(real_output, real_label)
 
-            # Adversarial loss for real and fake images (relativistic average GAN)
-            d_loss_real = adversarial_criterion(real_output, real_label)
-            d_loss_fake = adversarial_criterion(fake_output, fake_label)
+        # Generating fake high resolution images from real low resolution images.
+        sr = generator(lr)
+        fake_output = discriminator(sr.detach())
+        # Let the discriminator realize that the sample is false.
+        d_loss_fake = adversarial_criterion(fake_output, fake_label)
 
-            d_loss = d_loss_real + d_loss_fake
+        # Count all discriminator losses.
+        d_loss = (d_loss_real + d_loss_fake) / 2
+        d_loss.backward()
+        d_hr = real_output.mean().item()
+        d_sr1 = fake_output.mean().item()
 
-        # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
-        # Backward passes under autocast are not recommended.
-        # Backward ops run in the same dtype autocast chose for corresponding forward ops.
-        scaler.scale(d_loss).backward()
-
-        # scaler.step() first unscales the gradients of the optimizer's assigned params.
-        # If these gradients do not contain infs or NaNs, optimizer.step() is then called,
-        # otherwise, optimizer.step() is skipped.
-        scaler.step(discriminator_optimizer)
-
-        # Updates the scale for next iteration.
-        scaler.update()
+        # Update discriminator optimizer gradient information.
+        discriminator_optimizer.step()
 
         ##############################################
-        # (2) Update G network: -logD[G(LR)]
+        # (2) Update G network: content loss + 0.001 * adversarial loss
         ##############################################
         # Set discriminator gradients to zero.
-        generator_optimizer.zero_grad()
-        # Runs the forward pass with autocasting.
-        with amp.autocast():
-            # The pixel-wise L1 loss is calculated.
-            pixel_loss = pixel_criterion(sr, hr)
-            # According to the feature map, the root mean square error is regarded as the content loss.
-            perceptual_loss = perceptual_criterion(sr, hr)
-            # The accuracy probability of high resolution image and super-resolution image is calculated
-            # without calculating high-resolution gradient.
-            fake_output = discriminator(sr)  # Train fake image.
-            # Adversarial loss (relativistic average GAN)
-            adversarial_loss = adversarial_criterion(fake_output, real_label)
-            g_loss = pixel_loss + 0.006 * perceptual_loss + 0.001 * adversarial_loss
+        generator.zero_grad()
 
-        # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
-        # Backward passes under autocast are not recommended.
-        # Backward ops run in the same dtype autocast chose for corresponding forward ops.
-        scaler.scale(g_loss).backward()
+        # Based on VGG19_36th pre training model to find the maximum square error between feature maps.
+        content_loss = content_criterion(sr, hr.detach())
 
-        # scaler.step() first unscales the gradients of the optimizer's assigned params.
-        # If these gradients do not contain infs or NaNs, optimizer.step() is then called,
-        # otherwise, optimizer.step() is skipped.
-        scaler.step(generator_optimizer)
+        fake_output = discriminator(sr)
+        # Let the discriminator realize that the sample is true.
+        adversarial_loss = adversarial_criterion(fake_output, real_label)
+        g_loss = content_loss + 0.001 * adversarial_loss
+        g_loss.backward()
+        d_sr2 = fake_output.mean().item()
 
-        # Updates the scale for next iteration.
-        scaler.update()
+        # Update generator optimizer gradient information.
+        generator_optimizer.step()
 
         # measure accuracy and record loss
         d_losses.update(d_loss.item(), lr.size(0))
         g_losses.update(g_loss.item(), lr.size(0))
-        pixel_losses.update(pixel_loss.item(), lr.size(0))
-        perceptual_losses.update(perceptual_loss.item(), lr.size(0))
+        content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
+        d_hr_losses.update(d_hr, lr.size(0))
+        d_sr1_losses.update(d_sr1, lr.size(0))
+        d_sr2_losses.update(d_sr2, lr.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
         iters = i + epoch * len(train_dataloader) + 1
-        writer.add_scalar("Train/Discriminator Loss", d_loss.item(), iters)
-        writer.add_scalar("Train/Generator Loss", g_loss.item(), iters)
-        writer.add_scalar("Train/Pixel Loss", pixel_loss.item(), iters)
-        writer.add_scalar("Train/Perceptual Loss", perceptual_loss.item(), iters)
+        writer.add_scalar("Train/D Loss", d_loss.item(), iters)
+        writer.add_scalar("Train/G Loss", d_loss.item(), iters)
+        writer.add_scalar("Train/Content Loss", content_loss.item(), iters)
         writer.add_scalar("Train/Adversarial Loss", adversarial_loss.item(), iters)
+        writer.add_scalar("Train/D(LR) Loss", d_hr, iters)
+        writer.add_scalar("Train/D(SR1) Loss", d_sr1, iters)
+        writer.add_scalar("Train/D(SR2) Loss", d_sr2, iters)
 
-        # Output results every 100 batches.
+        # Output results and save image every 100 batches.
         if i % 100 == 0:
             progress.display(i)
-
-        # The image is saved every 1000 epoch.
-        if iters % 1000 == 0:
             vutils.save_image(hr, os.path.join("runs", "hr", f"GAN_{iters}.bmp"))
             sr = generator(lr)
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
@@ -668,7 +619,7 @@ if __name__ == "__main__":
 
     logger.info("TrainingEngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.03.23")
+    print("\tBuild ................ 2021.03.25")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")
