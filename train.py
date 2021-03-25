@@ -509,16 +509,16 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
     g_losses = AverageMeter("G Loss", ":.6f")
     content_losses = AverageMeter("Content Loss", ":.4f")
     adversarial_losses = AverageMeter("Adversarial Loss", ":.4f")
-    d_hr_losses = AverageMeter("D(x)", ":.4f")
-    d_sr1_losses = AverageMeter("D(SR1)", ":.4f")
-    d_sr2_losses = AverageMeter("D(SR2)", ":.4f")
+    d_hr_values = AverageMeter("D(x)", ":.4f")
+    d_sr1_values = AverageMeter("D(SR1)", ":.4f")
+    d_sr2_values = AverageMeter("D(SR2)", ":.4f")
 
     progress = ProgressMeter(
         len(train_dataloader),
         [batch_time,
          d_losses, g_losses,
          content_losses, adversarial_losses,
-         d_hr_losses, d_sr1_losses, d_sr2_losses],
+         d_hr_values, d_sr1_values, d_sr2_values],
         prefix=f"Epoch: [{epoch}]")
 
     # switch to train mode
@@ -586,9 +586,9 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         g_losses.update(g_loss.item(), lr.size(0))
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
-        d_hr_losses.update(d_hr, lr.size(0))
-        d_sr1_losses.update(d_sr1, lr.size(0))
-        d_sr2_losses.update(d_sr2, lr.size(0))
+        d_hr_values.update(d_hr, lr.size(0))
+        d_sr1_values.update(d_sr1, lr.size(0))
+        d_sr2_values.update(d_sr2, lr.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -599,9 +599,9 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         writer.add_scalar("Train/G Loss", d_loss.item(), iters)
         writer.add_scalar("Train/Content Loss", content_loss.item(), iters)
         writer.add_scalar("Train/Adversarial Loss", adversarial_loss.item(), iters)
-        writer.add_scalar("Train/D(LR) Loss", d_hr, iters)
-        writer.add_scalar("Train/D(SR1) Loss", d_sr1, iters)
-        writer.add_scalar("Train/D(SR2) Loss", d_sr2, iters)
+        writer.add_scalar("Train/D(LR)", d_hr, iters)
+        writer.add_scalar("Train/D(SR1)", d_sr1, iters)
+        writer.add_scalar("Train/D(SR2)", d_sr2, iters)
 
         # Output results every 100 batches.
         if i % 100 == 0:
