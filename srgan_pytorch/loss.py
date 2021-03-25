@@ -118,6 +118,6 @@ class VGGLoss(torch.nn.Module):
             param.requires_grad = False
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        vgg_loss = torch.nn.functional.mse_loss(self.features(source), self.features(target))
+        vgg_loss = torch.nn.functional.l1_loss(self.features(source), self.features(target))
 
         return vgg_loss
