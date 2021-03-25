@@ -217,7 +217,7 @@ def main_worker(gpu, ngpus_per_node, args):
     adversarial_criterion = nn.BCELoss().cuda(args.gpu)
     logger.info(f"Losses function information:\n"
                 f"\tPixel:       MSELoss\n"
-                f"\tPerceptual:  VGG19_36th\n"
+                f"\tContent:     VGG19_36th\n"
                 f"\tAdversarial: BCELoss")
 
     # All optimizer function and scheduler function.
