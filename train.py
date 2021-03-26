@@ -575,18 +575,19 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
             sr = generator(lr)
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
 
-    if __name__ == "__main__":
-        print("##################################################\n")
-        print("Run Training Engine.\n")
 
-        create_folder("runs")
-        create_folder("runs/hr")
-        create_folder("runs/sr")
-        create_folder("weights")
+if __name__ == "__main__":
+    print("##################################################\n")
+    print("Run Training Engine.\n")
 
-        logger.info("TrainingEngine:")
-        print("\tAPI version .......... 0.1.0")
-        print("\tBuild ................ 2021.03.25")
-        print("##################################################\n")
-        main()
-        logger.info("All training has been completed successfully.\n")
+    create_folder("runs")
+    create_folder("runs/hr")
+    create_folder("runs/sr")
+    create_folder("weights")
+
+    logger.info("TrainingEngine:")
+    print("\tAPI version .......... 0.1.0")
+    print("\tBuild ................ 2021.03.25")
+    print("##################################################\n")
+    main()
+    logger.info("All training has been completed successfully.\n")
