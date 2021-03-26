@@ -39,8 +39,8 @@ model_names = sorted(name for name in models.__dict__
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using "
-                                 "a Generative Adversarial Network.")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network")
+
 parser.add_argument("--file", type=str, required=True,
                     help="Test low resolution video name.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",

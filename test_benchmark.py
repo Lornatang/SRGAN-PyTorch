@@ -42,8 +42,7 @@ model_names = sorted(name for name in models.__dict__
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using "
-                                 "a Generative Adversarial Network.")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network")
 parser.add_argument("data", metavar="DIR",
                     help="path to dataset")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
@@ -164,14 +163,12 @@ def main_worker(gpu, ngpus_per_node, args):
             # ourselves based on the total number of GPUs we have
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-            model = nn.parallel.DistributedDataParallel(module=model,
-                                                        device_ids=[args.gpu],
-                                                        find_unused_parameters=True)
+            model = nn.parallel.DistributedDataParallel(module=model, device_ids=[args.gpu])
         else:
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
             # available GPUs if device_ids are not set
-            model = nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
+            model = nn.parallel.DistributedDataParallel(model)
     elif args.gpu is not None:
         torch.cuda.set_device(args.gpu)
         model = model.cuda(args.gpu)
