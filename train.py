@@ -111,7 +111,7 @@ parser.add_argument("--multiprocessing-distributed", action="store_true",
                          "fastest way to use PyTorch for either single node or "
                          "multi node data parallel training")
 
-best_psnr_value = 0.0
+best_psnr = 0.0
 
 
 def main():
@@ -149,7 +149,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    global best_psnr_value
+    global best_psnr
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -186,18 +186,16 @@ def main_worker(gpu, ngpus_per_node, args):
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
             discriminator = nn.parallel.DistributedDataParallel(module=discriminator,
-                                                                device_ids=[args.gpu],
-                                                                find_unused_parameters=True)
+                                                                device_ids=[args.gpu])
             generator = nn.parallel.DistributedDataParallel(module=generator,
-                                                            device_ids=[args.gpu],
-                                                            find_unused_parameters=True)
+                                                            device_ids=[args.gpu])
         else:
             discriminator.cuda()
             generator.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
             # available GPUs if device_ids are not set
-            discriminator = nn.parallel.DistributedDataParallel(discriminator, find_unused_parameters=True)
-            generator = nn.parallel.DistributedDataParallel(generator, find_unused_parameters=True)
+            discriminator = nn.parallel.DistributedDataParallel(discriminator)
+            generator = nn.parallel.DistributedDataParallel(generator)
     elif args.gpu is not None:
         torch.cuda.set_device(args.gpu)
         discriminator = discriminator.cuda(args.gpu)
@@ -290,6 +288,10 @@ def main_worker(gpu, ngpus_per_node, args):
                 # Map model to be loaded to specified single gpu.
                 checkpoint = torch.load(args.resume_psnr, map_location=f"cuda:{args.gpu}")
             args.start_psnr_epoch = checkpoint["epoch"]
+            best_psnr = checkpoint["best_psnr"]
+            if args.gpu is not None:
+                # best_psnr may be from a checkpoint from a different GPU
+                best_psnr = best_psnr.to(args.gpu)
             generator.load_state_dict(checkpoint["state_dict"])
             psnr_optimizer.load_state_dict(checkpoint["optimizer"])
             logger.info(f"Loaded checkpoint '{args.resume_psnr}' (epoch {checkpoint['epoch']}).")
@@ -307,7 +309,11 @@ def main_worker(gpu, ngpus_per_node, args):
                 # Map model to be loaded to specified single gpu.
                 checkpoint_d = torch.load(args.resume_d, map_location=f"cuda:{args.gpu}")
                 checkpoint_g = torch.load(args.resume_g, map_location=f"cuda:{args.gpu}")
-            args.start_gan_epoch = checkpoint_d["epoch"]
+            args.start_gan_epoch = checkpoint_g["epoch"]
+            best_psnr = checkpoint_g["best_psnr"]
+            if args.gpu is not None:
+                # best_psnr may be from a checkpoint from a different GPU
+                best_psnr = best_psnr.to(args.gpu)
             discriminator.load_state_dict(checkpoint_d["state_dict"])
             discriminator_optimizer.load_state_dict(checkpoint_d["optimizer"])
             generator.load_state_dict(checkpoint_g["state_dict"])
@@ -341,11 +347,11 @@ def main_worker(gpu, ngpus_per_node, args):
                    args=args)
 
         # Test for every epoch.
-        psnr_value, ssim_value, lpips_value, gmsd_value = test(generator, test_dataloader, args.gpu)
-        gan_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
-        gan_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
-        gan_writer.add_scalar("Test/LPIPS", lpips_value, epoch + 1)
-        gan_writer.add_scalar("Test/GMSD", gmsd_value, epoch + 1)
+        psnr, ssim, lpips, gmsd = test(generator, test_dataloader, args.gpu)
+        gan_writer.add_scalar("Test/PSNR", psnr, epoch + 1)
+        gan_writer.add_scalar("Test/SSIM", ssim, epoch + 1)
+        gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
+        gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
 
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
@@ -354,12 +360,12 @@ def main_worker(gpu, ngpus_per_node, args):
                         "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
                         "optimizer": psnr_optimizer.state_dict(),
                         }, os.path.join("weights", f"PSNR_epoch{epoch}.pth"))
-            if psnr_value > best_psnr_value:
-                best_psnr_value = max(psnr_value, best_psnr_value)
+            if psnr > best_psnr:
+                best_psnr = max(psnr, best_psnr)
                 torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
 
     # Load best model weight.
-    best_psnr_value = 0.0
+    best_psnr = 0.0
     generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
@@ -382,11 +388,11 @@ def main_worker(gpu, ngpus_per_node, args):
         generator_scheduler.step()
 
         # Test for every epoch.
-        psnr_value, ssim_value, lpips_value, gmsd_value = test(generator, test_dataloader, args.gpu)
-        gan_writer.add_scalar("Test/PSNR", psnr_value, epoch + 1)
-        gan_writer.add_scalar("Test/SSIM", ssim_value, epoch + 1)
-        gan_writer.add_scalar("Test/LPIPS", lpips_value, epoch + 1)
-        gan_writer.add_scalar("Test/GMSD", gmsd_value, epoch + 1)
+        psnr, ssim, lpips, gmsd = test(generator, test_dataloader, args.gpu)
+        gan_writer.add_scalar("Test/PSNR", psnr, epoch + 1)
+        gan_writer.add_scalar("Test/SSIM", ssim, epoch + 1)
+        gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
+        gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
 
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
@@ -400,8 +406,8 @@ def main_worker(gpu, ngpus_per_node, args):
                         "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
                         "optimizer": generator_optimizer.state_dict()
                         }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
-            if psnr_value > best_psnr_value:
-                best_psnr_value = max(psnr_value, best_psnr_value)
+            if psnr > best_psnr:
+                best_psnr = max(psnr, best_psnr)
                 torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
 
 
