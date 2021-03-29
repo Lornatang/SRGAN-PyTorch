@@ -408,7 +408,7 @@ def main_worker(gpu, ngpus_per_node, args):
                         }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
             if psnr > best_psnr:
                 best_psnr = max(psnr, best_psnr)
-                torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
+                torch.save(generator.state_dict(), os.path.join("weights", f"GAN.pth"))
 
 
 def train_psnr(train_dataloader: torch.utils.data.DataLoader,
