@@ -564,7 +564,7 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
 
         iters = i + epoch * len(train_dataloader) + 1
         writer.add_scalar("Train/D Loss", d_loss.item(), iters)
-        writer.add_scalar("Train/G Loss", d_loss.item(), iters)
+        writer.add_scalar("Train/G Loss", g_loss.item(), iters)
         writer.add_scalar("Train/Content Loss", content_loss.item(), iters)
         writer.add_scalar("Train/Adversarial Loss", adversarial_loss.item(), iters)
         writer.add_scalar("Train/D(LR)", d_hr, iters)
