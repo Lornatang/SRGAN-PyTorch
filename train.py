@@ -593,7 +593,7 @@ if __name__ == "__main__":
 
     logger.info("TrainingEngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.03.25")
+    print("\tBuild ................ 2021.03.30")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")
