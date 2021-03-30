@@ -20,6 +20,7 @@ import warnings
 
 import torch
 import torch.backends.cudnn as cudnn
+import torch.cuda.amp as amp
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
@@ -325,6 +326,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
     cudnn.benchmark = True
 
+    # The mixed precision training is used in PSNR-oral.
+    scaler = amp.GradScaler()
+    logger.info("Turn on mixed precision training.")
+
     # Create a SummaryWriter at the beginning of training.
     psnr_writer = SummaryWriter(f"runs/{args.arch}_psnr_logs")
     gan_writer = SummaryWriter(f"runs/{args.arch}_gan_logs")
@@ -344,6 +349,7 @@ def main_worker(gpu, ngpus_per_node, args):
                    psnr_optimizer=psnr_optimizer,
                    epoch=epoch,
                    writer=psnr_writer,
+                   scaler=scaler,
                    args=args)
 
         # Test for every epoch.
@@ -417,6 +423,7 @@ def train_psnr(train_dataloader: torch.utils.data.DataLoader,
                psnr_optimizer: torch.optim.Adam,
                epoch: int,
                writer: SummaryWriter,
+               scaler: amp.GradScaler,
                args: argparse.ArgumentParser.parse_args):
     batch_time = AverageMeter("Time", ":6.4f")
     mse_losses = AverageMeter("MSE Loss", ":.6f")
@@ -432,14 +439,15 @@ def train_psnr(train_dataloader: torch.utils.data.DataLoader,
             lr = lr.cuda(args.gpu, non_blocking=True)
             hr = hr.cuda(args.gpu, non_blocking=True)
 
-        generator.zero_grad()
+        psnr_optimizer.zero_grad()
 
-        # Generating fake high resolution images from real low resolution images.
-        sr = generator(lr)
-        # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
-        mse_loss = pixel_criterion(sr, hr)
-        mse_loss.backward()
-        psnr_optimizer.step()
+        with amp.autocast():
+            sr = generator(lr)
+            mse_loss = pixel_criterion(sr, hr)
+
+        scaler.scale(mse_loss).backward()
+        scaler.step(psnr_optimizer)
+        scaler.update()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
