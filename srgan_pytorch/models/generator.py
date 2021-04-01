@@ -61,10 +61,7 @@ class Generator(nn.Module):
         self.subpixel_conv = nn.Sequential(*subpixel_conv_layers)
 
         # Final output layer.
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 3, 9, 1, 4),
-            nn.Tanh()
-        )
+        self.conv3 = nn.Conv2d(64, 3, 9, 1, 4)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         conv1 = self.conv1(x)

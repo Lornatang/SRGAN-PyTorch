@@ -135,9 +135,9 @@ data/test
 KernelGAN
 
 # Program run create directory.
-benchmark
-test
-video
+benchmarks
+tests
+videos
 runs
 weights
 

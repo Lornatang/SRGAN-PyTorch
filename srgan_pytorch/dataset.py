@@ -35,10 +35,7 @@ def check_image_file(filename):
     Returns:
         Return True if bool(x) is True for any x in the iterable.
     """
-    return any(filename.endswith(extension) for extension in [".jpg", ".JPG",
-                                                              ".jpeg", ".JPEG",
-                                                              ".png", ".PNG",
-                                                              ".bmp", ".BMP"])
+    return any(filename.endswith(extension) for extension in [".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"])
 
 
 class BaseTrainDataset(torch.utils.data.dataset.Dataset):

@@ -19,7 +19,7 @@ Usage:
 import torch
 from torch.hub import load_state_dict_from_url
 
-from srgan_pytorch import Generator
+from srgan_pytorch.models.generator import Generator
 
 model_urls = {
     "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_2x2_DIV2K-40b1f27b.pth",
@@ -33,9 +33,7 @@ dependencies = ["torch"]
 def create(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
     model = Generator(upscale_factor)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress,
-                                              map_location=torch.device("cpu"))
+        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
 
