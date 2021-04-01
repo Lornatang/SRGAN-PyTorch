@@ -25,65 +25,67 @@ model_urls = {
 
 
 class Generator(nn.Module):
-    r"""The main architecture of the generator."""
+    r""""""
 
-    def __init__(self, upscale_factor: int = 4) -> None:
-        """ PyTorch implementation SRGAN.
+    def __init__(self, upscale_factor: int) -> None:
+        """
         Args:
-            upscale_factor (int): How many times to enlarge the picture. (default: 4)
+            upscale_factor (int): How many times to upscale the picture.
         """
         super(Generator, self).__init__()
-        num_upsampling_block = int(math.log(upscale_factor, 2))
+        # Calculating the number of subpixel convolution layers.
+        num_subpixel_convolution_layers = int(math.log(upscale_factor, 2))
+
         # First layer.
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4),
+            nn.Conv2d(3, 64, 9, 1, 4),
             nn.PReLU()
         )
 
         # 16 Residual blocks.
-        residual_blocks = []
+        trunk = []
         for _ in range(16):
-            residual_blocks.append(ResidualBlock(64))
-        self.trunk = nn.Sequential(*residual_blocks)
+            trunk.append(ResidualBlock(64))
+        self.trunk = nn.Sequential(*trunk)
 
         # Second conv layer post residual blocks.
         self.conv2 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(64, 64, 3, 1, 1, bias=False),
             nn.BatchNorm2d(64)
         )
 
-        # 2 Upsampling layers.
-        upsampling = []
-        for _ in range(num_upsampling_block):
-            upsampling.append(UpsampleBlock(256))
-        self.upsampling = nn.Sequential(*upsampling)
+        # 2 Sub-pixel convolution layers.
+        subpixel_conv_layers = []
+        for _ in range(num_subpixel_convolution_layers):
+            subpixel_conv_layers.append(SubpixelConvolutionLayer(64))
+        self.subpixel_conv = nn.Sequential(*subpixel_conv_layers)
 
         # Final output layer.
-        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(64, 3, 9, 1, 4),
+            nn.Tanh()
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out1 = self.conv1(x)
-        out = self.trunk(out1)
-        out2 = self.conv2(out)
-        out = torch.add(out1, out2)
-        out = self.upsampling(out)
+        conv1 = self.conv1(x)
+        trunk = self.trunk(conv1)
+        conv2 = self.conv2(trunk)
+        out = torch.add(conv1, conv2)
+        out = self.subpixel_conv(out)
         out = self.conv3(out)
 
         return out
 
 
-class UpsampleBlock(nn.Module):
-    r"""Main upsample block structure"""
-
-    def __init__(self, channels: int = 256) -> None:
-        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
-
-        Args:
-            channels (int): Number of channels in the input image. (default: 256)
+class SubpixelConvolutionLayer(nn.Module):
+    def __init__(self, channels: int) -> None:
         """
-        super(UpsampleBlock, self).__init__()
-        self.conv = nn.Conv2d(channels // 4, channels, kernel_size=3, stride=1, padding=1)
-        self.pixel_shuffle = nn.PixelShuffle(upscale_factor=2)
+        Args:
+            channels (int): Number of channels in the input image.
+        """
+        super(SubpixelConvolutionLayer, self).__init__()
+        self.conv = nn.Conv2d(channels, channels * 4, 3, 1, 1)
+        self.pixel_shuffle = nn.PixelShuffle(2)
         self.prelu = nn.PReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -95,13 +97,10 @@ class UpsampleBlock(nn.Module):
 
 
 class ResidualBlock(nn.Module):
-    r"""Main residual block structure"""
-
-    def __init__(self, channels: int = 64) -> None:
-        r"""Initializes internal Module state, shared by both nn.Module and ScriptModule.
-
+    def __init__(self, channels: int) -> None:
+        """
         Args:
-            channels (int): Number of channels in the input image. (default: 64)
+            channels (int): Number of channels in the input image.
         """
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
@@ -117,17 +116,13 @@ class ResidualBlock(nn.Module):
         out = self.conv2(out)
         out = self.bn2(out)
 
-        out = torch.add(out, x)
-
-        return out
+        return out + x
 
 
 def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
     model = Generator(upscale_factor)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress,
-                                              map_location=torch.device("cpu"))
+        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
 

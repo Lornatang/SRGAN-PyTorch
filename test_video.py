@@ -40,7 +40,6 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network")
-
 parser.add_argument("--file", type=str, required=True,
                     help="Test low resolution video name.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
@@ -112,13 +111,8 @@ def main_worker(gpu, args):
     sr_size = (size[0] * args.upscale_factor, size[1] * args.upscale_factor)
     pare_size = (sr_size[0] * 2 + 10, sr_size[1] + 10 + sr_size[0] // 5 - 9)
     # Video write loader.
-    sr_writer = cv2.VideoWriter(os.path.join("video", f"sr_{args.upscale_factor}x_{filename}"),
-                                cv2.VideoWriter_fourcc(*"MPEG"),
-                                fps,
-                                sr_size)
-    compare_writer = cv2.VideoWriter(os.path.join("video", f"compare_{args.upscale_factor}x_{filename}"),
-                                     cv2.VideoWriter_fourcc(*"MPEG"),
-                                     fps,
+    sr_writer = cv2.VideoWriter(os.path.join("videos", f"sr_{args.upscale_factor}x_{filename}"), cv2.VideoWriter_fourcc(*"MPEG"), fps, sr_size)
+    compare_writer = cv2.VideoWriter(os.path.join("videos", f"compare_{args.upscale_factor}x_{filename}"), cv2.VideoWriter_fourcc(*"MPEG"), fps,
                                      pare_size)
 
     # read frame
@@ -126,7 +120,7 @@ def main_worker(gpu, args):
     progress_bar = tqdm(range(total_frames), desc="[processing video and saving/view result videos]")
     for _ in progress_bar:
         if success:
-            # Read img to tensor and transfer to the specified device for processing.
+            # Read image to tensor and transfer to the specified device for processing.
             lr = process_image(raw_frame, args.gpu)
 
             with torch.no_grad():
@@ -142,26 +136,25 @@ def main_worker(gpu, args):
             # make compared video and crop shot of left top\right top\center\left bottom\right bottom
             sr = tensor2pil(sr)
             # Five areas are selected as the bottom contrast map.
-            crop_sr_imgs = transforms.FiveCrop(size=sr.width // 5 - 9)(sr)
-            crop_sr_imgs = [np.asarray(transforms.Pad(padding=(10, 5, 0, 0))(img)) for img in crop_sr_imgs]
+            crop_sr_images = transforms.FiveCrop(size=sr.width // 5 - 9)(sr)
+            crop_sr_images = [np.asarray(transforms.Pad(padding=(10, 5, 0, 0))(image)) for image in crop_sr_images]
             sr = transforms.Pad(padding=(5, 0, 0, 5))(sr)
             # Five areas in the contrast map are selected as the bottom contrast map
-            compare_img = transforms.Resize((sr_size[1], sr_size[0]), interpolation=Mode.BICUBIC)(tensor2pil(raw_frame))
-            crop_compare_imgs = transforms.FiveCrop(size=compare_img.width // 5 - 9)(compare_img)
-            crop_compare_imgs = [np.asarray(transforms.Pad((0, 5, 10, 0))(img)) for img in crop_compare_imgs]
-            compare_img = transforms.Pad(padding=(0, 0, 5, 5))(compare_img)
+            compare_image = transforms.Resize((sr_size[1], sr_size[0]), interpolation=Mode.BICUBIC)(tensor2pil(raw_frame))
+            crop_compare_images = transforms.FiveCrop(size=compare_image.width // 5 - 9)(compare_image)
+            crop_compare_images = [np.asarray(transforms.Pad((0, 5, 10, 0))(image)) for image in crop_compare_images]
+            compare_image = transforms.Pad(padding=(0, 0, 5, 5))(compare_image)
             # concatenate all the pictures to one single picture
             # 1. Mosaic the left and right images of the video.
-            top_img = np.concatenate((np.asarray(compare_img), np.asarray(sr)), axis=1)
+            top_image = np.concatenate((np.asarray(compare_image), np.asarray(sr)), axis=1)
             # 2. Mosaic the bottom left and bottom right images of the video.
-            bottom_img = np.concatenate(crop_compare_imgs + crop_sr_imgs, axis=1)
-            bottom_img_height = int(top_img.shape[1] / bottom_img.shape[1] * bottom_img.shape[0])
-            bottom_img_width = top_img.shape[1]
+            bottom_image = np.concatenate(crop_compare_images + crop_sr_images, axis=1)
+            bottom_image_height = int(top_image.shape[1] / bottom_image.shape[1] * bottom_image.shape[0])
+            bottom_image_width = top_image.shape[1]
             # 3. Adjust to the right size.
-            bottom_img = np.asarray(
-                transforms.Resize((bottom_img_height, bottom_img_width))(tensor2pil(bottom_img)))
+            bottom_image = np.asarray(transforms.Resize((bottom_image_height, bottom_image_width))(tensor2pil(bottom_image)))
             # 4. Combine the bottom zone with the upper zone.
-            final_image = np.concatenate((top_img, bottom_img))
+            final_image = np.concatenate((top_image, bottom_image))
 
             # save compare video
             compare_writer.write(final_image)
@@ -180,11 +173,11 @@ if __name__ == "__main__":
     print("##################################################\n")
     print("Run SR Engine.\n")
 
-    create_folder("video")
+    create_folder("videos")
 
     logger.info("SREngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.03.23")
+    print("\tBuild ................ 2021.04.01")
     print("##################################################\n")
     main()
 

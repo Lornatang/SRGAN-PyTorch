@@ -49,8 +49,7 @@ model_names = sorted(name for name in models.__dict__
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.DEBUG)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using "
-                                 "a Generative Adversarial Network.")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.")
 parser.add_argument("data", metavar="DIR",
                     help="Path to dataset")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
@@ -163,10 +162,7 @@ def main_worker(gpu, ngpus_per_node, args):
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
             args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend,
-                                init_method=args.dist_url,
-                                world_size=args.world_size,
-                                rank=args.rank)
+        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
     # create model
     generator = configure(args)
     discriminator = discriminator_for_vgg(args.image_size)
@@ -186,10 +182,8 @@ def main_worker(gpu, ngpus_per_node, args):
             # ourselves based on the total number of GPUs we have
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-            discriminator = nn.parallel.DistributedDataParallel(module=discriminator,
-                                                                device_ids=[args.gpu])
-            generator = nn.parallel.DistributedDataParallel(module=generator,
-                                                            device_ids=[args.gpu])
+            discriminator = nn.parallel.DistributedDataParallel(module=discriminator, device_ids=[args.gpu])
+            generator = nn.parallel.DistributedDataParallel(module=generator, device_ids=[args.gpu])
         else:
             discriminator.cuda()
             generator.cuda()
@@ -212,12 +206,11 @@ def main_worker(gpu, ngpus_per_node, args):
             discriminator = torch.nn.DataParallel(discriminator).cuda()
             generator = torch.nn.DataParallel(generator).cuda()
 
-    # Loss = content loss + 0.001 * adversarial loss
+    # Perceptual Loss = content loss + 0.001 * adversarial loss
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
-    # We use VGG5.4 as our feature extraction method by default.
     content_criterion = VGGLoss().cuda(args.gpu)
     adversarial_criterion = nn.BCELoss().cuda(args.gpu)
-    logger.info(f"Losses function information:\n"
+    logger.info(f"Losses function information:"
                 f"\tPixel:       MSELoss\n"
                 f"\tContent:     VGG19_36th\n"
                 f"\tAdversarial: BCELoss")
@@ -241,12 +234,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     logger.info("Load training dataset")
     # Selection of appropriate treatment equipment.
-    train_dataset = BaseTrainDataset(root=os.path.join(args.data, "train"),
-                                     image_size=args.image_size,
-                                     upscale_factor=args.upscale_factor)
-    test_dataset = BaseTestDataset(root=os.path.join(args.data, "test"),
-                                   image_size=args.image_size,
-                                   upscale_factor=args.upscale_factor)
+    train_dataset = BaseTrainDataset(root=os.path.join(args.data, "train"), image_size=args.image_size, upscale_factor=args.upscale_factor)
+    test_dataset = BaseTestDataset(root=os.path.join(args.data, "test"), image_size=args.image_size, upscale_factor=args.upscale_factor)
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -343,14 +332,7 @@ def main_worker(gpu, ngpus_per_node, args):
             train_sampler.set_epoch(epoch)
 
         # train for one epoch
-        train_psnr(train_dataloader=train_dataloader,
-                   generator=generator,
-                   pixel_criterion=pixel_criterion,
-                   psnr_optimizer=psnr_optimizer,
-                   epoch=epoch,
-                   writer=psnr_writer,
-                   scaler=scaler,
-                   args=args)
+        train_psnr(train_dataloader, generator, pixel_criterion, psnr_optimizer, epoch, psnr_writer, scaler, args)
 
         # Test for every epoch.
         psnr, ssim, lpips, gmsd = test(generator, test_dataloader, args.gpu)
@@ -359,11 +341,10 @@ def main_worker(gpu, ngpus_per_node, args):
         gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
         gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
 
-        if not args.multiprocessing_distributed or (
-                args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+        if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
             torch.save({"epoch": epoch + 1,
                         "arch": args.arch,
-                        "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
+                        "state_dict": generator.state_dict(),
                         "optimizer": psnr_optimizer.state_dict(),
                         }, os.path.join("weights", f"PSNR_epoch{epoch}.pth"))
             if psnr > best_psnr:
@@ -371,7 +352,6 @@ def main_worker(gpu, ngpus_per_node, args):
                 torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
 
     # Load best model weight.
-    best_psnr = 0.0
     generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
@@ -379,16 +359,8 @@ def main_worker(gpu, ngpus_per_node, args):
             train_sampler.set_epoch(epoch)
 
         # train for one epoch
-        train_gan(train_dataloader=train_dataloader,
-                  discriminator=discriminator,
-                  generator=generator,
-                  content_criterion=content_criterion,
-                  adversarial_criterion=adversarial_criterion,
-                  discriminator_optimizer=discriminator_optimizer,
-                  generator_optimizer=generator_optimizer,
-                  epoch=epoch,
-                  writer=gan_writer,
-                  args=args)
+        train_gan(train_dataloader, discriminator, generator, content_criterion, adversarial_criterion, discriminator_optimizer, generator_optimizer,
+                  epoch, gan_writer, args)
 
         discriminator_scheduler.step()
         generator_scheduler.step()
@@ -400,21 +372,17 @@ def main_worker(gpu, ngpus_per_node, args):
         gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
         gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
 
-        if not args.multiprocessing_distributed or (
-                args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+        if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
             torch.save({"epoch": epoch + 1,
                         "arch": "vgg",
-                        "state_dict": discriminator.module.state_dict() if args.multiprocessing_distributed else discriminator.state_dict(),
+                        "state_dict": discriminator.state_dict(),
                         "optimizer": discriminator_optimizer.state_dict()
                         }, os.path.join("weights", f"Discriminator_epoch{epoch}.pth"))
             torch.save({"epoch": epoch + 1,
                         "arch": args.arch,
-                        "state_dict": generator.module.state_dict() if args.multiprocessing_distributed else generator.state_dict(),
+                        "state_dict": generator.state_dict(),
                         "optimizer": generator_optimizer.state_dict()
                         }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
-            if psnr > best_psnr:
-                best_psnr = max(psnr, best_psnr)
-                torch.save(generator.state_dict(), os.path.join("weights", f"GAN.pth"))
 
 
 def train_psnr(train_dataloader: torch.utils.data.DataLoader,
@@ -530,7 +498,7 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         d_loss_fake = adversarial_criterion(fake_output, fake_label)
 
         # Count all discriminator losses.
-        d_loss = (d_loss_real + d_loss_fake) / 2
+        d_loss = d_loss_real + d_loss_fake
         d_loss.backward()
         d_hr = real_output.mean().item()
         d_sr1 = fake_output.mean().item()
@@ -601,7 +569,7 @@ if __name__ == "__main__":
 
     logger.info("TrainingEngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.03.30")
+    print("\tBuild ................ 2021.04.01")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")

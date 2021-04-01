@@ -12,13 +12,28 @@
 # limitations under the License.
 # ==============================================================================
 """It mainly implements all the losses used in the model."""
+import lpips
 import torch
 import torch.nn.functional
 import torchvision
 
 __all__ = [
-    "TVLoss", "VGGLoss"
+    "LPIPSLoss", "TVLoss", "VGGLoss"
 ]
+
+
+# Reference sources from `https://github.com/richzhang/PerceptualSimilarity`
+class LPIPSLoss(torch.nn.Module):
+    r"""Learned Perceptual Image Patch Similarity (LPIPS) metric"""
+
+    def __init__(self) -> None:
+        super(LPIPSLoss, self).__init__()
+        self.model = lpips.LPIPS(net="vgg", verbose=False).eval()
+
+    def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        lpips_loss = torch.mean(self.model(source, target))
+
+        return lpips_loss
 
 
 # Source from `https://github.com/jxgu1016/Total_Variation_Loss.pytorch/blob/master/TVLoss.py`

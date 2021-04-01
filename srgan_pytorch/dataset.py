@@ -17,7 +17,7 @@ import random
 import torch.utils.data.dataset
 import torchvision.transforms as transforms
 from PIL import Image
-from torchvision.transforms import InterpolationMode as mode
+from torchvision.transforms import InterpolationMode
 
 __all__ = [
     "check_image_file",
@@ -56,7 +56,7 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.hr_transforms = transforms.Compose([
@@ -97,12 +97,12 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
 
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size, image_size), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.hr_transforms = transforms.Compose([
@@ -191,7 +191,7 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         self.transforms = transforms.ToTensor()
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size, image_size), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
 
