@@ -58,6 +58,7 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
+            transforms.AutoAugment(),
             transforms.ToTensor()
         ])
 
@@ -104,6 +105,7 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
+            transforms.AutoAugment(),
             transforms.ToTensor()
         ])
 
@@ -145,7 +147,10 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         self.lr_filenames = [os.path.join(lr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
-        self.transforms = transforms.ToTensor()
+        self.transforms = transforms.Compose([
+            transforms.AutoAugment(),
+            transforms.ToTensor()
+        ])
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -185,7 +190,10 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         self.lr_filenames = [os.path.join(lr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
-        self.transforms = transforms.ToTensor()
+        self.transforms = transforms.Compose([
+            transforms.AutoAugment(),
+            transforms.ToTensor()
+        ])
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
