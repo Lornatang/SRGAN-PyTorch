@@ -22,9 +22,9 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch.models.generator import Generator
 
 model_urls = {
-    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_2x2_DIV2K-9ec9dd11.pth",
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_DIV2K-625da87d.pth",
-    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_8x8_DIV2K-6f732f6d.pth"
+    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.2.0/SRGAN_2x2_DIV2K-9ec9dd11.pth",
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.2.0/SRGAN_DIV2K-6b7848ca.pth",
+    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.2.0/SRGAN_8x8_DIV2K-5ded8368.pth"
 }
 
 dependencies = ["torch"]

@@ -81,10 +81,10 @@ parser.add_argument("--seed", default=None, type=int,
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 parser.add_argument("--multiprocessing-distributed", action="store_true",
-                    help="Use multi-processing distributed training to launch "
+                    help="Use multi-processing distributed testing to launch "
                          "N processes per node, which has N GPUs. This is the "
                          "fastest way to use PyTorch for either single node or "
-                         "multi node data parallel training")
+                         "multi node data parallel testing.")
 
 total_mse_value = 0.0
 total_rmse_value = 0.0
@@ -242,8 +242,8 @@ if __name__ == "__main__":
     create_folder("benchmarks")
 
     logger.info("TestingEngine:")
-    print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.04.01")
+    print("\tAPI version .......... 0.2.0")
+    print("\tBuild ................ 2021.04.02")
     print("##################################################\n")
     main()
 

@@ -31,11 +31,12 @@ URL = "https://github.com/Lornatang/SRGAN-PyTorch"
 EMAIL = "liu_changyu@dakewe.com"
 AUTHOR = "Liu Changyu"
 REQUIRES_PYTHON = ">=3.8.0"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    "torch"
+    "torch",
+    "lpips"
 ]
 
 # What packages are optional?

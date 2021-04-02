@@ -109,7 +109,7 @@ parser.add_argument("--multiprocessing-distributed", action="store_true",
                     help="Use multi-processing distributed training to launch "
                          "N processes per node, which has N GPUs. This is the "
                          "fastest way to use PyTorch for either single node or "
-                         "multi node data parallel training")
+                         "multi node data parallel training.")
 
 best_psnr = 0.0
 
@@ -567,7 +567,7 @@ if __name__ == "__main__":
     create_folder("weights")
 
     logger.info("TrainingEngine:")
-    print("\tAPI version .......... 0.1.0")
+    print("\tAPI version .......... 0.2.0")
     print("\tBuild ................ 2021.04.02")
     print("##################################################\n")
     main()
