@@ -41,12 +41,12 @@ def check_image_file(filename):
 class BaseTrainDataset(torch.utils.data.dataset.Dataset):
     """An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, image_size: int = 96, upscale_factor: int = 4):
+    def __init__(self, root: str, image_size: int, upscale_factor: int):
         """
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 96).
-            upscale_factor (optional, int): Image magnification. (Default: 4).
+            image_size (optional, int): The size of image block is randomly cut out from the original image.
+            upscale_factor (optional, int): Image magnification.
         """
         super(BaseTrainDataset, self).__init__()
         self.filenames = [os.path.join(root, x) for x in os.listdir(root) if check_image_file(x)]
@@ -82,12 +82,12 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 class BaseTestDataset(torch.utils.data.dataset.Dataset):
     """An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, image_size: int = 96, upscale_factor: int = 4):
+    def __init__(self, root: str, image_size: int, upscale_factor: int):
         """
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 96).
-            upscale_factor (optional, int): Image magnification. (Default: 4).
+            image_size (optional, int): The size of image block is randomly cut out from the original image.
+            upscale_factor (optional, int): Image magnification.
         """
         super(BaseTestDataset, self).__init__()
         self.filenames = [os.path.join(root, x) for x in os.listdir(root) if check_image_file(x)]
@@ -129,7 +129,7 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
 class CustomTrainDataset(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, sampler_frequency: int = 1):
+    def __init__(self, root: str, sampler_frequency: int):
         """
 
         Args:
@@ -168,7 +168,7 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
 class CustomTestDataset(torch.utils.data.dataset.Dataset):
     r"""An abstract class representing a :class:`Dataset`."""
 
-    def __init__(self, root: str, image_size: int, sampler_frequency: int = 1):
+    def __init__(self, root: str, image_size: int, sampler_frequency: int):
         """
 
         Args:
