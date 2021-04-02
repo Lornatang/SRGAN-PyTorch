@@ -18,7 +18,7 @@ import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
-    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_2x2_DIV2K-40b1f27b.pth",
+    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_2x2_DIV2K-9ec9dd11.pth",
     "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_DIV2K-625da87d.pth",
     "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/0.1.0/SRGAN_8x8_DIV2K-6f732f6d.pth"
 }
@@ -100,10 +100,10 @@ class ResidualBlock(nn.Module):
             channels (int): Number of channels in the input image.
         """
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(channels, channels, 3, 1, 1, bias=False)
         self.bn1 = nn.BatchNorm2d(channels)
         self.prelu = nn.PReLU()
-        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(channels, channels, 3, 1, 1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
