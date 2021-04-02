@@ -433,8 +433,7 @@ def train_psnr(train_dataloader: torch.utils.data.DataLoader,
 
         # Save image every 1000 batches.
         if iters % 1000 == 0:
-            vutils.save_image(hr, os.path.join("runs", "hr", f"PSNR_{iters}.bmp"))
-            sr = generator(lr)
+            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"PSNR_{iters}.bmp"))
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"PSNR_{iters}.bmp"))
 
 
@@ -490,18 +489,19 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         real_output = discriminator(hr)
         # Let the discriminator realize that the sample is real.
         d_loss_real = adversarial_criterion(real_output, real_label)
+        d_loss_real.backward()
+        d_hr = real_output.mean().item()
 
         # Generating fake high resolution images from real low resolution images.
         sr = generator(lr)
         fake_output = discriminator(sr.detach())
         # Let the discriminator realize that the sample is false.
         d_loss_fake = adversarial_criterion(fake_output, fake_label)
+        d_loss_fake.backward()
+        d_sr1 = fake_output.mean().item()
 
         # Count all discriminator losses.
         d_loss = d_loss_real + d_loss_fake
-        d_loss.backward()
-        d_hr = real_output.mean().item()
-        d_sr1 = fake_output.mean().item()
 
         # Update discriminator optimizer gradient information.
         discriminator_optimizer.step()
@@ -553,8 +553,7 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
 
         # Save image every 1000 batches.
         if iters % 1000 == 0:
-            vutils.save_image(hr, os.path.join("runs", "hr", f"GAN_{iters}.bmp"))
-            sr = generator(lr)
+            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"GAN_{iters}.bmp"))
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
 
 
@@ -569,7 +568,7 @@ if __name__ == "__main__":
 
     logger.info("TrainingEngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.04.01")
+    print("\tBuild ................ 2021.04.02")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")
