@@ -71,12 +71,12 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network [-h] [-a ARCH] [-j N] [-b N] [--sampler-frequency N] [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained] [--world-size WORLD_SIZE] [--rank RANK]
-                                                                                            [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU] [--multiprocessing-distributed]
-                                                                                            DIR
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [-b N] [--sampler-frequency N] [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained]
+                                                                                             [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU] [--multiprocessing-distributed]
+                                                                                             DIR
 
 positional arguments:
-  DIR                   path to dataset
+  DIR                   Path to dataset
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -100,7 +100,7 @@ optional arguments:
   --seed SEED           Seed for initializing training.
   --gpu GPU             GPU id to use.
   --multiprocessing-distributed
-                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training
+                        Use multi-processing distributed testing to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel testing.
                         
 # Example
 $ python3 test_benchmark.py -a srgan --pretrained --gpu 0 [image-folder with train and val folders]
@@ -155,9 +155,10 @@ Low resolution / Recovered High Resolution / Ground Truth
 ### Train (e.g DIV2K)
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [--psnr-epochs N] [--start-psnr-epoch N] [--gan-epochs N] [--start-gan-epoch N] [-b N] [--sampler-frequency N] [--psnr-lr PSNR_LR] [--gan-lr GAN_LR]
-                                                                                             [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--resume_psnr PATH] [--resume_d PATH] [--resume_g PATH] [--pretrained] [--world-size WORLD_SIZE]
-                                                                                             [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU] [--multiprocessing-distributed]
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [--psnr-epochs N] [--start-psnr-epoch N] [--gan-epochs N] [--start-gan-epoch N] [-b N] [--sampler-frequency N] [--psnr-lr PSNR_LR]
+                                                                                             [--gan-lr GAN_LR] [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--resume_psnr PATH] [--resume_d PATH] [--resume_g PATH]
+                                                                                             [--pretrained] [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU]
+                                                                                             [--multiprocessing-distributed]
                                                                                              DIR
 
 positional arguments:
@@ -186,7 +187,7 @@ optional arguments:
   --resume_g PATH       Path to latest psnr-oral checkpoint.
   --pretrained          Use pre-trained model.
   --world-size WORLD_SIZE
-                        Number of nodes for distributed training
+                        Number of nodes for distributed training.
   --rank RANK           Node rank for distributed training
   --dist-url DIST_URL   url used to set up distributed training. (default: tcp://59.110.31.55:12345)
   --dist-backend DIST_BACKEND
@@ -194,8 +195,8 @@ optional arguments:
   --seed SEED           Seed for initializing training.
   --gpu GPU             GPU id to use.
   --multiprocessing-distributed
-                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training
-
+                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training.
+                        
 # Example (e.g DIV2K)
 $ python train.py -a srgan [image-folder with train and val folders]
 # Multi-processing Distributed Data Parallel Training
