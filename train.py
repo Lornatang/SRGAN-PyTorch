@@ -210,7 +210,7 @@ def main_worker(gpu, ngpus_per_node, args):
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
     content_criterion = VGGLoss().cuda(args.gpu)
     adversarial_criterion = nn.BCELoss().cuda(args.gpu)
-    logger.info(f"Losses function information:"
+    logger.info(f"Losses function information:\n"
                 f"\tPixel:       MSELoss\n"
                 f"\tContent:     VGG19_36th\n"
                 f"\tAdversarial: BCELoss")
