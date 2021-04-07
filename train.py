@@ -341,17 +341,21 @@ def main_worker(gpu, ngpus_per_node, args):
         gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
         gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
 
+        is_best = psnr > best_psnr
+        best_psnr = max(psnr, best_psnr)
+
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
             torch.save({"epoch": epoch + 1,
                         "arch": args.arch,
+                        "best_psnr": best_psnr,
                         "state_dict": generator.state_dict(),
                         "optimizer": psnr_optimizer.state_dict(),
                         }, os.path.join("weights", f"PSNR_epoch{epoch}.pth"))
-            if psnr > best_psnr:
-                best_psnr = max(psnr, best_psnr)
+            if is_best:
                 torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
 
     # Load best model weight.
+    best_psnr = 0.0
     generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
@@ -372,6 +376,9 @@ def main_worker(gpu, ngpus_per_node, args):
         gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
         gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
 
+        is_best = psnr > best_psnr
+        best_psnr = max(psnr, best_psnr)
+
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
             torch.save({"epoch": epoch + 1,
                         "arch": "vgg",
@@ -380,9 +387,12 @@ def main_worker(gpu, ngpus_per_node, args):
                         }, os.path.join("weights", f"Discriminator_epoch{epoch}.pth"))
             torch.save({"epoch": epoch + 1,
                         "arch": args.arch,
+                        "best_psnr": best_psnr,
                         "state_dict": generator.state_dict(),
                         "optimizer": generator_optimizer.state_dict()
                         }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
+            if is_best:
+                torch.save(generator.state_dict(), os.path.join("weights", f"GAN.pth"))
 
 
 def train_psnr(train_dataloader: torch.utils.data.DataLoader,
@@ -452,16 +462,12 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
     g_losses = AverageMeter("G Loss", ":.6f")
     content_losses = AverageMeter("Content Loss", ":.4f")
     adversarial_losses = AverageMeter("Adversarial Loss", ":.4f")
-    d_hr_values = AverageMeter("D(x)", ":.4f")
-    d_sr1_values = AverageMeter("D(SR1)", ":.4f")
-    d_sr2_values = AverageMeter("D(SR2)", ":.4f")
 
     progress = ProgressMeter(
         len(train_dataloader),
         [batch_time,
          d_losses, g_losses,
-         content_losses, adversarial_losses,
-         d_hr_values, d_sr1_values, d_sr2_values],
+         content_losses, adversarial_losses],
         prefix=f"Epoch: [{epoch}]")
 
     # switch to train mode
@@ -483,76 +489,60 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         ##############################################
         # (1) Update D network: maximize - E(hr)[log(D(hr))] + E(lr)[log(1- D(G(lr))]
         ##############################################
-        # Set discriminator gradients to zero.
         discriminator.zero_grad()
-
-        real_output = discriminator(hr)
-        # Let the discriminator realize that the sample is real.
-        d_loss_real = adversarial_criterion(real_output, real_label)
-        d_loss_real.backward()
-        d_hr = real_output.mean().item()
 
         # Generating fake high resolution images from real low resolution images.
         sr = generator(lr)
+
+        real_output = discriminator(hr)
         fake_output = discriminator(sr.detach())
-        # Let the discriminator realize that the sample is false.
+
+        # Adversarial loss for real and fake images (origin GAN)
+        d_loss_real = adversarial_criterion(real_output, real_label)
         d_loss_fake = adversarial_criterion(fake_output, fake_label)
-        d_loss_fake.backward()
-        d_sr1 = fake_output.mean().item()
-
         # Count all discriminator losses.
-        d_loss = d_loss_real + d_loss_fake
+        d_loss = (d_loss_real + d_loss_fake) / 2
 
-        # Update discriminator optimizer gradient information.
+        d_loss.backward()
         discriminator_optimizer.step()
 
         ##############################################
         # (2) Update G network: content loss + 0.001 * adversarial loss
         ##############################################
-        # Set discriminator gradients to zero.
         generator.zero_grad()
 
-        # Based on VGG19_36th pre training model to find the maximum square error between feature maps.
         content_loss = content_criterion(sr, hr.detach())
-
         fake_output = discriminator(sr)
-        # Let the discriminator realize that the sample is true.
+        # Adversarial loss for real and fake images (origin GAN).
         adversarial_loss = adversarial_criterion(fake_output, real_label)
+        # Count all generator losses.
         g_loss = content_loss + 0.001 * adversarial_loss
-        g_loss.backward()
-        d_sr2 = fake_output.mean().item()
 
-        # Update generator optimizer gradient information.
+        g_loss.backward()
         generator_optimizer.step()
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
 
         # measure accuracy and record loss
         d_losses.update(d_loss.item(), lr.size(0))
         g_losses.update(g_loss.item(), lr.size(0))
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
-        d_hr_values.update(d_hr, lr.size(0))
-        d_sr1_values.update(d_sr1, lr.size(0))
-        d_sr2_values.update(d_sr2, lr.size(0))
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
 
         iters = i + epoch * len(train_dataloader) + 1
         writer.add_scalar("Train/D Loss", d_loss.item(), iters)
         writer.add_scalar("Train/G Loss", g_loss.item(), iters)
         writer.add_scalar("Train/Content Loss", content_loss.item(), iters)
         writer.add_scalar("Train/Adversarial Loss", adversarial_loss.item(), iters)
-        writer.add_scalar("Train/D(LR)", d_hr, iters)
-        writer.add_scalar("Train/D(SR1)", d_sr1, iters)
-        writer.add_scalar("Train/D(SR2)", d_sr2, iters)
 
         # Output results every 100 batches.
         if i % 100 == 0:
             progress.display(i)
 
-        # Save image every 1000 batches.
-        if iters % 1000 == 0:
+        # Save image every 300 batches.
+        if iters % 300 == 0:
             vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"GAN_{iters}.bmp"))
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
 
@@ -568,7 +558,7 @@ if __name__ == "__main__":
 
     logger.info("TrainingEngine:")
     print("\tAPI version .......... 0.2.0")
-    print("\tBuild ................ 2021.04.02")
+    print("\tBuild ................ 2021.04.07")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")
