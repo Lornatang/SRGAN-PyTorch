@@ -94,7 +94,7 @@ parser.add_argument("--resume_g", default="", type=str, metavar="PATH",
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
 parser.add_argument("--world-size", default=-1, type=int,
-                    help="Number of nodes for distributed training")
+                    help="Number of nodes for distributed training.")
 parser.add_argument("--rank", default=-1, type=int,
                     help="Node rank for distributed training")
 parser.add_argument("--dist-url", default="tcp://59.110.31.55:12345", type=str,
@@ -206,7 +206,7 @@ def main_worker(gpu, ngpus_per_node, args):
             discriminator = torch.nn.DataParallel(discriminator).cuda()
             generator = torch.nn.DataParallel(generator).cuda()
 
-    # Perceptual Loss = content loss + 0.001 * adversarial loss
+    # Loss = content loss + 0.001 * adversarial loss
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
     content_criterion = VGGLoss().cuda(args.gpu)
     adversarial_criterion = nn.BCELoss().cuda(args.gpu)
@@ -234,8 +234,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     logger.info("Load training dataset")
     # Selection of appropriate treatment equipment.
-    train_dataset = BaseTrainDataset(root=os.path.join(args.data, "train"), image_size=args.image_size, upscale_factor=args.upscale_factor)
-    test_dataset = BaseTestDataset(root=os.path.join(args.data, "test"), image_size=args.image_size, upscale_factor=args.upscale_factor)
+    train_dataset = BaseTrainDataset(os.path.join(args.data, "train"), args.image_size, args.upscale_factor)
+    test_dataset = BaseTestDataset(os.path.join(args.data, "test"), args.image_size, args.upscale_factor)
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -332,7 +332,7 @@ def main_worker(gpu, ngpus_per_node, args):
             train_sampler.set_epoch(epoch)
 
         # train for one epoch
-        train_psnr(train_dataloader, generator, pixel_criterion, psnr_optimizer, epoch, psnr_writer, scaler, args)
+        train_psnr(train_dataloader, generator, pixel_criterion, psnr_optimizer, epoch, scaler, psnr_writer, args)
 
         # Test for every epoch.
         psnr, ssim, lpips, gmsd = test(generator, test_dataloader, args.gpu)
@@ -400,8 +400,8 @@ def train_psnr(train_dataloader: torch.utils.data.DataLoader,
                pixel_criterion: nn.MSELoss,
                psnr_optimizer: torch.optim.Adam,
                epoch: int,
-               writer: SummaryWriter,
                scaler: amp.GradScaler,
+               writer: SummaryWriter,
                args: argparse.ArgumentParser.parse_args):
     batch_time = AverageMeter("Time", ":6.4f")
     mse_losses = AverageMeter("MSE Loss", ":.6f")
@@ -421,9 +421,9 @@ def train_psnr(train_dataloader: torch.utils.data.DataLoader,
 
         with amp.autocast():
             sr = generator(lr)
-            mse_loss = pixel_criterion(sr, hr)
+            loss = pixel_criterion(sr, hr)
 
-        scaler.scale(mse_loss).backward()
+        scaler.scale(loss).backward()
         scaler.step(psnr_optimizer)
         scaler.update()
 
@@ -432,17 +432,17 @@ def train_psnr(train_dataloader: torch.utils.data.DataLoader,
         end = time.time()
 
         # measure accuracy and record loss
-        mse_losses.update(mse_loss.item(), lr.size(0))
+        mse_losses.update(loss.item(), lr.size(0))
 
         iters = i + epoch * len(train_dataloader) + 1
-        writer.add_scalar("Train/MSE Loss", mse_loss.item(), iters)
+        writer.add_scalar("Train/MSE Loss", loss.item(), iters)
 
         # Output results every 100 batches.
         if i % 100 == 0:
             progress.display(i)
 
-        # Save image every 1000 batches.
-        if iters % 1000 == 0:
+        # Save image every 300 batches.
+        if iters % 300 == 0:
             vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"PSNR_{iters}.bmp"))
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"PSNR_{iters}.bmp"))
 
@@ -494,12 +494,9 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         # Generating fake high resolution images from real low resolution images.
         sr = generator(lr)
 
-        real_output = discriminator(hr)
-        fake_output = discriminator(sr.detach())
-
         # Adversarial loss for real and fake images (origin GAN)
-        d_loss_real = adversarial_criterion(real_output, real_label)
-        d_loss_fake = adversarial_criterion(fake_output, fake_label)
+        d_loss_real = adversarial_criterion(discriminator(hr), real_label)
+        d_loss_fake = adversarial_criterion(discriminator(sr.detach()), fake_label)
         # Count all discriminator losses.
         d_loss = (d_loss_real + d_loss_fake) / 2
 
@@ -511,10 +508,10 @@ def train_gan(train_dataloader: torch.utils.data.DataLoader,
         ##############################################
         generator.zero_grad()
 
+        # The 36th layer in VGG19 is used as the feature extractor by default
         content_loss = content_criterion(sr, hr.detach())
-        fake_output = discriminator(sr)
         # Adversarial loss for real and fake images (origin GAN).
-        adversarial_loss = adversarial_criterion(fake_output, real_label)
+        adversarial_loss = adversarial_criterion(discriminator(sr), real_label)
         # Count all generator losses.
         g_loss = content_loss + 0.001 * adversarial_loss
 
