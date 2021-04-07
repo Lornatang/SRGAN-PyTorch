@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-# Reference sources from `https://github.com/richzhang/PerceptualSimilarity`
+# Source code reference from `https://github.com/richzhang/PerceptualSimilarity`.
 class LPIPSLoss(torch.nn.Module):
     r"""Learned Perceptual Image Patch Similarity (LPIPS) metric"""
 
@@ -36,7 +36,7 @@ class LPIPSLoss(torch.nn.Module):
         return lpips_loss
 
 
-# Source from `https://github.com/jxgu1016/Total_Variation_Loss.pytorch/blob/master/TVLoss.py`
+# Source code reference from `https://github.com/jxgu1016/Total_Variation_Loss.pytorch/blob/master/TVLoss.py`.
 class TVLoss(torch.nn.Module):
     r"""Regularization loss based on Li FeiFei."""
 
@@ -79,10 +79,10 @@ class VGGLoss(torch.nn.Module):
     """
 
     def __init__(self, feature_layer: int = 36) -> None:
-        """ Constructing characteristic loss function of VGG network. For VGG19 36th layer.
+        """ Constructing characteristic loss function of VGG network. For VGG19 35th layer.
 
         Args:
-            feature_layer (int): How many layers in VGG19. (Default:36).
+            feature_layer (int): How many layers in VGG19. (Default: 36).
 
         Notes:
             features(
