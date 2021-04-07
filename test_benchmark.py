@@ -42,9 +42,9 @@ model_names = sorted(name for name in models.__dict__
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.")
 parser.add_argument("data", metavar="DIR",
-                    help="path to dataset")
+                    help="Path to dataset")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
@@ -129,8 +129,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    global total_mse_value, total_rmse_value, total_psnr_value
-    global total_ssim_value, total_lpips_value, total_gmsd_value
+    global total_mse_value, total_rmse_value, total_psnr_value, total_ssim_value, total_lpips_value, total_gmsd_value
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -179,7 +178,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     logger.info("Load testing dataset")
     # Selection of appropriate treatment equipment.
-    dataset = BaseTestDataset(root=os.path.join(args.data, "test"), image_size=args.image_size, upscale_factor=args.upscale_factor)
+    dataset = BaseTestDataset(os.path.join(args.data, "test"), args.image_size, args.upscale_factor)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, pin_memory=True, num_workers=args.workers)
     logger.info(f"Dataset information:\n"
                 f"\tPath:              {os.getcwd()}/{args.data}/test\n"
@@ -221,7 +220,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                      f"PSNR: {total_psnr_value / (i + 1):6.2f} "
                                      f"SSIM: {total_ssim_value / (i + 1):6.4f}")
 
-        images = torch.cat([bicubic, sr, hr], dim=-1)
+        images = torch.cat([bicubic, sr, hr], -1)
         vutils.save_image(images, os.path.join("benchmarks", f"{i + 1}.bmp"), padding=10)
 
     print(f"Performance average results:\n")
@@ -243,7 +242,7 @@ if __name__ == "__main__":
 
     logger.info("TestingEngine:")
     print("\tAPI version .......... 0.2.0")
-    print("\tBuild ................ 2021.04.02")
+    print("\tBuild ................ 2021.04.07")
     print("##################################################\n")
     main()
 
