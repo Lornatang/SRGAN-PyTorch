@@ -22,41 +22,41 @@ class DiscriminatorForVGG(nn.Module):
         feature_map_size = int(image_size // 16)
 
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, 3, 1, 1),  # input is (3) x 96 x 96
-            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),  # input is (3) x 96 x 96
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 64, 3, 2, 1, bias=False),  # state size. (64) x 48 x 48
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (64) x 48 x 48
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 128, 3, 1, 1, bias=False),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 128, 3, 2, 1, bias=False),  # state size. (128) x 24 x 24
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (128) x 24 x 24
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 256, 3, 1, 1, bias=False),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 256, 3, 2, 1, bias=False),  # state size. (256) x 12 x 12
+            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (256) x 12 x 12
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 512, 3, 1, 1, bias=False),
+            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(512, 512, 3, 2, 1, bias=False),  # state size. (512) x 6 x 6
+            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (512) x 6 x 6
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True)
+            nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
         self.classifier = nn.Sequential(
             nn.Linear(512 * feature_map_size * feature_map_size, 1024),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Linear(1024, 1),
             nn.Sigmoid()
         )

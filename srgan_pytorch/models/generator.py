@@ -46,7 +46,7 @@ class Generator(nn.Module):
         # 16 Residual blocks.
         trunk = []
         for _ in range(16):
-            trunk.append(ResidualBlock(64))
+            trunk.append(ResidualBlock(channels=64))
         self.trunk = nn.Sequential(*trunk)
 
         # Second conv layer post residual blocks.
