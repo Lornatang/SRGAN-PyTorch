@@ -15,7 +15,6 @@ import argparse
 import logging
 import os
 import random
-import warnings
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -46,24 +45,24 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         " (default: srgan)")
+                         " .(Default: srgan)")
 parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
-                    help="Number of data loading workers. (default: 8)")
+                    help="Number of data loading workers. (Default: 8)")
 parser.add_argument("-b", "--batch-size", default=32, type=int,
                     metavar="N",
                     help="mini-batch size (default: 32), this is the total "
                          "batch size of all GPUs on the current node when "
                          "using Data Parallel or Distributed Data Parallel")
 parser.add_argument("--image-size", type=int, default=96,
-                    help="Image size of high resolution image. (default: 96)")
+                    help="Image size of high resolution image. (Default: 96)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
-                    help="Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)")
-parser.add_argument("--model-path", default="", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model.")
+                    help="Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)")
+parser.add_argument("--model-path", default="./weights/GAN.pth", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
-parser.add_argument("--seed", default=None, type=int,
-                    help="Seed for initializing training.")
+parser.add_argument("--seed", default=666, type=int,
+                    help="Seed for initializing training. (default: 666).")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 
@@ -78,18 +77,9 @@ total_gmsd_value = 0.0
 def main():
     args = parser.parse_args()
 
-    if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        cudnn.deterministic = True
-        warnings.warn("You have chosen to seed testing. "
-                      "This will turn on the CUDNN deterministic setting, "
-                      "which can slow down your training considerably! "
-                      "You may see unexpected behavior when restarting "
-                      "from checkpoints.")
-
-    if args.gpu is not None:
-        logger.warning("You have chosen a specific GPU. This will completely disable data parallelism.")
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    cudnn.deterministic = True
 
     main_worker(args.gpu, args)
 
@@ -126,35 +116,34 @@ def main_worker(gpu, args):
     # Set eval mode.
     model.eval()
 
-    # Start evaluate model performance.
-    progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+    with torch.no_grad():
+        # Start evaluate model performance.
+        progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+        for i, (lr, bicubic, hr) in progress_bar:
+            # Move data to special device.
+            if args.gpu is not None:
+                lr = lr.cuda(args.gpu, non_blocking=True)
+                bicubic = bicubic.cuda(args.gpu, non_blocking=True)
+                hr = hr.cuda(args.gpu, non_blocking=True)
 
-    for i, (lr, bicubic, hr) in progress_bar:
-        # Move data to special device.
-        if args.gpu is not None:
-            lr = lr.cuda(args.gpu, non_blocking=True)
-            bicubic = bicubic.cuda(args.gpu, non_blocking=True)
-            hr = hr.cuda(args.gpu, non_blocking=True)
-
-        with torch.no_grad():
             sr = model(lr)
 
-        # Evaluate performance
-        value = iqa(sr, hr, args.gpu)
+            # Evaluate performance
+            value = iqa(sr, hr, args.gpu)
 
-        total_mse_value += value[0]
-        total_rmse_value += value[1]
-        total_psnr_value += value[2]
-        total_ssim_value += value[3]
-        total_lpips_value += value[4]
-        total_gmsd_value += value[5]
+            total_mse_value += value[0]
+            total_rmse_value += value[1]
+            total_psnr_value += value[2]
+            total_ssim_value += value[3]
+            total_lpips_value += value[4]
+            total_gmsd_value += value[5]
 
-        progress_bar.set_description(f"[{i + 1}/{len(dataloader)}] "
-                                     f"PSNR: {total_psnr_value / (i + 1):6.2f} "
-                                     f"SSIM: {total_ssim_value / (i + 1):6.4f}")
+            progress_bar.set_description(f"[{i + 1}/{len(dataloader)}] "
+                                         f"PSNR: {total_psnr_value / (i + 1):6.2f} "
+                                         f"SSIM: {total_ssim_value / (i + 1):6.4f}")
 
-        images = torch.cat([bicubic, sr, hr], -1)
-        vutils.save_image(images, os.path.join("benchmarks", f"{i + 1}.bmp"), padding=10)
+            images = torch.cat([bicubic, sr, hr], -1)
+            vutils.save_image(images, os.path.join("benchmarks", f"{i + 1}.bmp"), padding=10)
 
     print(f"Performance average results:\n")
     print(f"indicator Score\n")
