@@ -24,7 +24,7 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
-from torchvision.transforms import InterpolationMode as Mode
+from torchvision.transforms import InterpolationMode
 
 import srgan_pytorch.models as models
 from srgan_pytorch.utils.common import configure
@@ -32,9 +32,7 @@ from srgan_pytorch.utils.common import create_folder
 from srgan_pytorch.utils.estimate import iqa
 from srgan_pytorch.utils.transform import process_image
 
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__")
-                     and callable(models.__dict__[name]))
+model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
@@ -48,15 +46,15 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         " (default: srgan)")
+                         ". (Default: srgan)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
-                    help="Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)")
-parser.add_argument("--model-path", default="", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model.")
+                    help="Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)")
+parser.add_argument("--model-path", default="./weights/GAN.pth", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
-parser.add_argument("--seed", default=None, type=int,
-                    help="Seed for initializing training.")
+parser.add_argument("--seed", default=666, type=int,
+                    help="Seed for initializing training. (Default: 666)")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 
@@ -64,15 +62,9 @@ parser.add_argument("--gpu", default=None, type=int,
 def main():
     args = parser.parse_args()
 
-    if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        cudnn.deterministic = True
-        warnings.warn("You have chosen to seed training. "
-                      "This will turn on the CUDNN deterministic setting, "
-                      "which can slow down your training considerably! "
-                      "You may see unexpected behavior when restarting "
-                      "from checkpoints.")
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    cudnn.deterministic = True
 
     main_worker(args.gpu, args)
 
@@ -87,7 +79,7 @@ def main_worker(gpu, args):
 
     if not torch.cuda.is_available():
         logger.warning("Using CPU, this will be slow.")
-    elif args.gpu is not None:
+    if args.gpu is not None:
         torch.cuda.set_device(args.gpu)
         model = model.cuda(args.gpu)
 
@@ -101,7 +93,7 @@ def main_worker(gpu, args):
 
     # Read all pictures.
     lr = Image.open(args.lr)
-    bicubic = transforms.Resize((lr.size[1] * args.upscale_factor, lr.size[0] * args.upscale_factor), Mode.BICUBIC)(lr)
+    bicubic = transforms.Resize((lr.size[1] * args.upscale_factor, lr.size[0] * args.upscale_factor), InterpolationMode.BICUBIC)(lr)
     lr = process_image(lr, args.gpu)
     bicubic = process_image(bicubic, args.gpu)
 
@@ -139,8 +131,8 @@ if __name__ == "__main__":
     create_folder("tests")
 
     logger.info("TestingEngine:")
-    print("\tAPI version .......... 0.2.0")
-    print("\tBuild ................ 2021.04.02")
+    print("\tAPI version .......... 0.2.1")
+    print("\tBuild ................ 2021.04.09")
     print("##################################################\n")
     main()
 

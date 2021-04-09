@@ -21,7 +21,7 @@ __all__ = [
 
 
 def gaussian_filter(x: torch.Tensor, filter_weight: torch.Tensor) -> torch.Tensor:
-    """Gaussian filtering using two dimensional convolution.
+    r"""Gaussian filtering using two dimensional convolution.
 
     Args:
         x (torch.Tensor): Input tensor.
@@ -34,8 +34,8 @@ def gaussian_filter(x: torch.Tensor, filter_weight: torch.Tensor) -> torch.Tenso
     return out
 
 
-def fspecial_gauss(size: int, sigma):
-    """ Implementation of Gaussian filter(MATLAB) in Python
+def fspecial_gauss(size: int, sigma: float):
+    r"""Implementation of Gaussian filter(MATLAB) in Python.
 
     Args:
         size (int): Wave filter size.

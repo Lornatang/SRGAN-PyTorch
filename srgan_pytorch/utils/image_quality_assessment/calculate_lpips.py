@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-# Reference sources from https://github.com/richzhang/PerceptualSimilarity
+# Source code reference from `https://github.com/richzhang/PerceptualSimilarity`.
 class LPIPS(torch.nn.Module):
     def __init__(self, gpu: int = None) -> None:
         super(LPIPS, self).__init__()
@@ -57,8 +57,7 @@ class LPIPS(torch.nn.Module):
             self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"))
         else:
             # Map model to be loaded to specified single gpu.
-            self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"),
-                                      map_location=f"cuda:{gpu}")
+            self.weights = torch.load(os.path.join(os.path.abspath("weights"), "lpips_vgg.pth"), map_location=f"cuda:{gpu}")
         self.weights = list(self.weights.items())
 
     def forward_once(self, x: torch.Tensor) -> torch.Tensor:
@@ -75,13 +74,14 @@ class LPIPS(torch.nn.Module):
 
         return out
 
-    def forward(self, image1_tensor: torch.Tensor, image2_tensor: torch.Tensor) -> torch.Tensor:
-        assert image1_tensor.shape == image2_tensor.shape
-        feats0 = self.forward_once(image1_tensor)
-        feats1 = self.forward_once(image2_tensor)
+    def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        assert source.shape == target.shape
+        source_features = self.forward_once(source)
+        target_features = self.forward_once(target)
         out = 0
         for k in range(len(self.channels)):
-            out = out + (self.weights[k][1] * (feats0[k] - feats1[k]) ** 2).mean([2, 3]).sum(1)
+            out = out + (self.weights[k][1] * (source_features[k] - target_features[k]) ** 2).mean([2, 3]).sum(1)
 
         out = torch.mean(out)
+
         return out

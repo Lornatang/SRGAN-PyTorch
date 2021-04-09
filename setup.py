@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -11,56 +11,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# !/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Note: To use the "upload" functionality of this file, you must:
-#   $ pipenv install twine --dev
-
 import io
 import os
 import sys
 from shutil import rmtree
 
-from setuptools import find_packages, setup, Command
+from setuptools import Command
+from setuptools import find_packages
+from setuptools import setup
 
-# Package meta-data
+# Configure library params.
 NAME = "srgan_pytorch"
 DESCRIPTION = "Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network."
 URL = "https://github.com/Lornatang/SRGAN-PyTorch"
 EMAIL = "liu_changyu@dakewe.com"
-AUTHOR = "Liu Changyu"
+AUTHOR = "Liu Goodfellow"
 REQUIRES_PYTHON = ">=3.8.0"
-VERSION = "v0.2.0"
+VERSION = "0.2.1"
 
-# What packages are required for this module to be executed?
+# Libraries that must be installed.
 REQUIRED = [
     "torch",
+    "torchvision",
+    "pillow",
+    "numpy",
+    "opencv-python",
+    "tqdm",
+    "scipy",
     "lpips"
 ]
 
-# What packages are optional?
+# The following libraries directory need to be installed if you need to run all scripts.
 EXTRAS = {
-    # "fancy feature": ["django"],
+    
 }
 
-# The rest you shouldn"t have to touch too much :)
-# ------------------------------------------------
-# Except, perhaps the License and Trove Classifiers!
-# If you do change the License, remember to change the Trove Classifier
-# for that!
-
+# Find the current running location.
 here = os.path.abspath(os.path.dirname(__file__))
 
-# Import the README and use it as the long-description.
-# Note: this will only work if "README.md" is present in your MANIFEST.in file!
+# About README file description.
 try:
     with io.open(os.path.join(here, "README.md"), encoding="utf-8") as f:
         long_description = "\n" + f.read()
 except FileNotFoundError:
     long_description = DESCRIPTION
 
-# Load the package"s __version__.py module as a dictionary.
+# Set Current Library Version.
 about = {}
 if not VERSION:
     project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
@@ -71,14 +67,11 @@ else:
 
 
 class UploadCommand(Command):
-    """Support setup.py upload."""
-
     description = "Build and publish the package."
     user_options = []
 
     @staticmethod
     def status(s):
-        """Prints things in bold."""
         print("\033[1m{0}\033[0m".format(s))
 
     def initialize_options(self):
@@ -107,40 +100,26 @@ class UploadCommand(Command):
         sys.exit()
 
 
-# Where the magic happens:
-setup(
-    name=NAME,
-    version=about["__version__"],
-    description=DESCRIPTION,
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    author=AUTHOR,
-    author_email=EMAIL,
-    python_requires=REQUIRES_PYTHON,
-    url=URL,
-    packages=find_packages(
-        exclude=[
-            "tests",
-            "*.tests",
-            "*.tests.*",
-            "tests.*"]),
-    # py_modules=["model"], # If your package is a single module, use this
-    # instead of "packages"
-    install_requires=REQUIRED,
-    extras_require=EXTRAS,
-    include_package_data=True,
-    license="Apache",
-    classifiers=[
-        # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8"
-    ],
-    # $ setup.py publish support.
-    cmdclass={
-        "upload": UploadCommand,
-    },
-)
+setup(name=NAME,
+      version=about["__version__"],
+      description=DESCRIPTION,
+      long_description=long_description,
+      long_description_content_type="text/markdown",
+      author=AUTHOR,
+      author_email=EMAIL,
+      python_requires=REQUIRES_PYTHON,
+      url=URL,
+      packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+      install_requires=REQUIRED,
+      extras_require=EXTRAS,
+      include_package_data=True,
+      license="Apache",
+      classifiers=[
+          # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+          "License :: OSI Approved :: Apache Software License",
+          "Programming Language :: Python :: 3 :: Only"
+      ],
+      cmdclass={
+          "upload": UploadCommand,
+      },
+      )

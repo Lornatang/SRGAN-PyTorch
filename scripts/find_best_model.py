@@ -23,18 +23,16 @@ import torch.backends.cudnn as cudnn
 from PIL import Image
 
 import srgan_pytorch.models as models
+from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.estimate import iqa
 from srgan_pytorch.utils.transform import process_image
 
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__")
-                     and callable(models.__dict__[name]))
+model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using "
-                                 "a Generative Adversarial Network.")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.")
 parser.add_argument("--lr", type=str, required=True,
                     help="Test low resolution image name.")
 parser.add_argument("--hr", type=str, required=True,
@@ -43,13 +41,11 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         " (default: srgan)")
+                         ". (Default: srgan)")
 parser.add_argument("--model-dir", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
-parser.add_argument("--pretrained", dest="pretrained", action="store_true",
-                    help="Use pre-trained model.")
-parser.add_argument("--seed", default=None, type=int,
-                    help="Seed for initializing training.")
+parser.add_argument("--seed", default=666, type=int,
+                    help="Seed for initializing training. (default: 666).")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 
@@ -64,15 +60,14 @@ best_gmsd_value = 1.0
 def main():
     args = parser.parse_args()
 
-    if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        cudnn.deterministic = True
-        warnings.warn("You have chosen to seed training. "
-                      "This will turn on the CUDNN deterministic setting, "
-                      "which can slow down your training considerably! "
-                      "You may see unexpected behavior when restarting "
-                      "from checkpoints.")
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    cudnn.deterministic = True
+    warnings.warn("You have chosen to seed training. "
+                  "This will turn on the CUDNN deterministic setting, "
+                  "which can slow down your training considerably! "
+                  "You may see unexpected behavior when restarting "
+                  "from checkpoints.")
 
     main_worker(args.gpu, args)
 
@@ -86,8 +81,7 @@ def main_worker(gpu, args):
 
     cudnn.benchmark = True
 
-    # Configure model
-    model = models.__dict__[args.arch]()
+    model = configure(args)
 
     if not torch.cuda.is_available():
         logger.warning("Using CPU, this will be slow.")
@@ -140,8 +134,7 @@ def inference(lr, hr, model, model_path, gpu: int = None):
 
     with torch.no_grad():
         sr = model(lr)
-
-    value = iqa(sr, hr, gpu)
+        value = iqa(sr, hr, gpu)
 
     return value
 
