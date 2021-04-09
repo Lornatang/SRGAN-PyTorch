@@ -56,7 +56,7 @@ def iqa(source: torch.Tensor, target: torch.Tensor, gpu: int) -> [torch.Tensor, 
     return mse_value, rmse_value, psnr_value, ssim_value, lpips_value, gmsd_value
 
 
-def test(model: nn.Module, dataloader: torch.utils.data.DataLoader, gpu: int) -> [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+def test(dataloader: torch.utils.data.DataLoader, model: nn.Module, gpu: int) -> [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     mse_loss = nn.MSELoss().cuda(gpu).eval()
     # Reference sources from https://hub.fastgit.org/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py
     ssim_loss = SSIM().cuda(gpu).eval()

@@ -57,7 +57,7 @@ parser.add_argument("--model-path", default="./weights/GAN.pth", type=str, metav
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
 parser.add_argument("--seed", default=666, type=int,
-                    help="Seed for initializing training. (default: 666).")
+                    help="Seed for initializing training. (Default: 666)")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 
@@ -92,7 +92,7 @@ def main_worker(gpu, args):
         logger.warning("Using CPU, this will be slow.")
     if args.gpu is not None:
         torch.cuda.set_device(args.gpu)
-        model.cuda(args.gpu)
+        model = model.cuda(args.gpu)
 
     logger.info("Load testing dataset.")
     # Selection of appropriate treatment equipment.
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     create_folder("benchmarks")
 
     logger.info("TestingEngine:")
-    print("\tAPI version .......... 0.2.0")
+    print("\tAPI version .......... 0.2.1")
     print("\tBuild ................ 2021.04.09")
     print("##################################################\n")
     main()
