@@ -18,10 +18,7 @@ import random
 
 import torch
 import torch.backends.cudnn as cudnn
-import torch.nn.parallel
-import torch.optim
 import torch.utils.data
-import torch.utils.data.distributed
 import torchvision.utils as vutils
 from tqdm import tqdm
 
@@ -31,9 +28,7 @@ from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import create_folder
 from srgan_pytorch.utils.estimate import iqa
 
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__")
-                     and callable(models.__dict__[name]))
+model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
