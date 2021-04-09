@@ -150,25 +150,25 @@ usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversar
                                                                                              DIR
 
 positional arguments:
-  DIR                   Path to dataset
+  DIR                   Path to dataset.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 (default: srgan)
-  -j N, --workers N     Number of data loading workers. (default: 4)
-  --psnr-epochs N       Number of total psnr epochs to run. (default: 20000)
-  --start-psnr-epoch N  Manual psnr epoch number (useful on restarts). (default: 0)
-  --gan-epochs N        Number of total gan epochs to run. (default: 4000)
-  --start-gan-epoch N   Manual gan epoch number (useful on restarts). (default: 0)
-  -b N, --batch-size N  Mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: srgan)
+  -j N, --workers N     Number of data loading workers. (Default: 4)
+  --psnr-epochs N       Number of total psnr epochs to run. (Default: 20000)
+  --start-psnr-epoch N  Manual psnr epoch number (useful on restarts). (Default: 0)
+  --gan-epochs N        Number of total gan epochs to run. (Default: 4000)
+  --start-gan-epoch N   Manual gan epoch number (useful on restarts). (Default: 0)
+  -b N, --batch-size N  Mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel.
   --sampler-frequency N
-                        If there are many datasets, this method can be used to increase the number of epochs. (default:1)
-  --psnr-lr PSNR_LR     Learning rate for psnr-oral. (default: 0.0001)
+                        If there are many datasets, this method can be used to increase the number of epochs. (Default:1)
+  --psnr-lr PSNR_LR     Learning rate for psnr-oral. (Default: 0.0001)
   --gan-lr GAN_LR       Learning rate for gan-oral. (default: 0.0001)
   --image-size IMAGE_SIZE
-                        Image size of high resolution image. (default: 96)
+                        Image size of high resolution image. (Default: 96)
   --upscale-factor {2,4,8}
-                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
+                        Low to high resolution scaling factor. Optional: [2, 4, 8] (Default: 4)
   --model-path PATH     Path to latest checkpoint for model.
   --resume_psnr PATH    Path to latest psnr-oral checkpoint.
   --resume_d PATH       Path to latest -oral checkpoint.
@@ -176,10 +176,10 @@ optional arguments:
   --pretrained          Use pre-trained model.
   --world-size WORLD_SIZE
                         Number of nodes for distributed training.
-  --rank RANK           Node rank for distributed training
-  --dist-url DIST_URL   url used to set up distributed training. (default: tcp://59.110.31.55:12345)
+  --rank RANK           Node rank for distributed training. (Default: -1)
+  --dist-url DIST_URL   url used to set up distributed training. (Default: `tcp://59.110.31.55:12345`)
   --dist-backend DIST_BACKEND
-                        Distributed backend. (default: nccl)
+                        Distributed backend. (Default: `nccl`)
   --seed SEED           Seed for initializing training.
   --gpu GPU             GPU id to use.
   --multiprocessing-distributed
