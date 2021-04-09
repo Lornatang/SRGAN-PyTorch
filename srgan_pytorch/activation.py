@@ -32,7 +32,12 @@ class FReLU(nn.Module):
         >>> output = frelu(x)
     """
 
-    def __init__(self, channels: int) -> None:
+    def __init__(self, channels: int = 64) -> None:
+        r"""
+
+        Args:
+            channels (int): Number of channels in the input image. (Default: 64)
+        """
         super().__init__()
         self.FReLU = nn.Sequential(
             nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels, bias=False),

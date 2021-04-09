@@ -17,20 +17,21 @@ import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
+from .utils import ResidualBlock
+from .utils import SubpixelConvolutionLayer
+
 model_urls = {
-    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.0/SRGAN_2x2_DIV2K-9ec9dd11.pth",
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.0/SRGAN_DIV2K-6b7848ca.pth",
-    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.0/SRGAN_8x8_DIV2K-5ded8368.pth"
+    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_2x2_DIV2K-9ec9dd11.pth",
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_DIV2K-6b7848ca.pth",
+    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_8x8_DIV2K-5ded8368.pth"
 }
 
 
 class Generator(nn.Module):
-    r""""""
-
-    def __init__(self, upscale_factor: int) -> None:
-        """
+    def __init__(self, upscale_factor: int = 4) -> None:
+        r"""
         Args:
-            upscale_factor (int): How many times to upscale the picture.
+            upscale_factor (int): How many times to upscale the picture. (Default: 4)
         """
         super(Generator, self).__init__()
         # Calculating the number of subpixel convolution layers.
@@ -38,7 +39,7 @@ class Generator(nn.Module):
 
         # First layer.
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, 9, 1, 4),
+            nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4),
             nn.PReLU()
         )
 
@@ -50,7 +51,7 @@ class Generator(nn.Module):
 
         # Second conv layer post residual blocks.
         self.conv2 = nn.Sequential(
-            nn.Conv2d(64, 64, 3, 1, 1, bias=False),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(64)
         )
 
@@ -61,7 +62,7 @@ class Generator(nn.Module):
         self.subpixel_conv = nn.Sequential(*subpixel_conv_layers)
 
         # Final output layer.
-        self.conv3 = nn.Conv2d(64, 3, 9, 1, 4)
+        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         conv1 = self.conv1(x)
@@ -74,48 +75,6 @@ class Generator(nn.Module):
         return out
 
 
-class SubpixelConvolutionLayer(nn.Module):
-    def __init__(self, channels: int) -> None:
-        """
-        Args:
-            channels (int): Number of channels in the input image.
-        """
-        super(SubpixelConvolutionLayer, self).__init__()
-        self.conv = nn.Conv2d(channels, channels * 4, 3, 1, 1)
-        self.pixel_shuffle = nn.PixelShuffle(2)
-        self.prelu = nn.PReLU()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out = self.conv(x)
-        out = self.pixel_shuffle(out)
-        out = self.prelu(out)
-
-        return out
-
-
-class ResidualBlock(nn.Module):
-    def __init__(self, channels: int) -> None:
-        """
-        Args:
-            channels (int): Number of channels in the input image.
-        """
-        super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(channels, channels, 3, 1, 1, bias=False)
-        self.bn1 = nn.BatchNorm2d(channels)
-        self.prelu = nn.PReLU()
-        self.conv2 = nn.Conv2d(channels, channels, 3, 1, 1, bias=False)
-        self.bn2 = nn.BatchNorm2d(channels)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.prelu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        return out + x
-
-
 def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
     model = Generator(upscale_factor)
     if pretrained:
@@ -125,8 +84,7 @@ def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Ge
 
 
 def srgan_2x2(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
+    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
@@ -136,8 +94,7 @@ def srgan_2x2(pretrained: bool = False, progress: bool = True) -> Generator:
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
+    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
@@ -147,8 +104,7 @@ def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
 
 
 def srgan_8x8(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
+    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet

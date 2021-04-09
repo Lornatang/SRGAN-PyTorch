@@ -59,7 +59,7 @@ def pil2opencv(image: PIL.BmpImagePlugin.BmpImageFile) -> np.ndarray:
     return image
 
 
-def process_image(image: PIL.BmpImagePlugin.BmpImageFile, gpu: int = None) -> torch.Tensor:
+def process_image(image: PIL.BmpImagePlugin.BmpImageFile, gpu: int) -> torch.Tensor:
     """ PIL.Image Convert to PyTorch format.
 
     Args:
