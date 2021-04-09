@@ -71,37 +71,25 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [-b N] [--sampler-frequency N] [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained]
-                                                                                             [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU] [--multiprocessing-distributed]
-                                                                                             DIR
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [-b N] [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained] [--seed SEED] [--gpu GPU] DIR
 
 positional arguments:
-  DIR                   Path to dataset
+  DIR                   Path to dataset.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 (default: srgan)
-  -j N, --workers N     Number of data loading workers. (default: 4)
-  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
-  --sampler-frequency N
-                        If there are many datasets, this method can be used to increase the number of epochs. (default:1)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: srgan)
+  -j N, --workers N     Number of data loading workers. (Default: 8)
+  -b N, --batch-size N  mini-batch size (default: 32), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
   --image-size IMAGE_SIZE
-                        Image size of high resolution image. (default: 96)
+                        Image size of high resolution image. (Default: 96)
   --upscale-factor {2,4,8}
-                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
-  --model-path PATH     Path to latest checkpoint for model.
+                        Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
+  --model-path PATH     Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)
   --pretrained          Use pre-trained model.
-  --world-size WORLD_SIZE
-                        Number of nodes for distributed training
-  --rank RANK           Node rank for distributed training
-  --dist-url DIST_URL   url used to set up distributed training. (default: tcp://59.110.31.55:12345)
-  --dist-backend DIST_BACKEND
-                        Distributed backend. (default: nccl)
-  --seed SEED           Seed for initializing training.
+  --seed SEED           Seed for initializing training. (Default: 666)
   --gpu GPU             GPU id to use.
-  --multiprocessing-distributed
-                        Use multi-processing distributed testing to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel testing.
-                        
+                     
 # Example
 $ python3 test_benchmark.py -a srgan --pretrained --gpu 0 [image-folder with train and val folders]
 ```
@@ -115,12 +103,12 @@ optional arguments:
   -h, --help            show this help message and exit
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 (default: srgan)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: srgan)
   --upscale-factor {2,4,8}
-                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
-  --model-path PATH     Path to latest checkpoint for model.
+                        Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
+  --model-path PATH     Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)
   --pretrained          Use pre-trained model.
-  --seed SEED           Seed for initializing training.
+  --seed SEED           Seed for initializing training. (Default: 666)
   --gpu GPU             GPU id to use.
 
 # Example
@@ -135,12 +123,12 @@ usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversar
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 (default: srgan)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: srgan)
   --upscale-factor {2,4,8}
-                        Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)
-  --model-path PATH     Path to latest checkpoint for model.
+                        Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
+  --model-path PATH     Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)
   --pretrained          Use pre-trained model.
-  --seed SEED           Seed for initializing training.
+  --seed SEED           Seed for initializing training. (Default: 666)
   --gpu GPU             GPU id to use.
   --view                Do you want to show SR video synchronously.
                         
@@ -196,9 +184,9 @@ optional arguments:
   --gpu GPU             GPU id to use.
   --multiprocessing-distributed
                         Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training.
-                        
+                   
 # Example (e.g DIV2K)
-$ python train.py -a srgan [image-folder with train and val folders]
+$ python train.py -a srgan --gpu 0 [image-folder with train and val folders]
 # Multi-processing Distributed Data Parallel Training
 $ python3 train.py -a srgan --dist-url 'tcp://127.0.0.1:12345' --dist-backend 'nccl' --multiprocessing-distributed --world-size 1 --rank 0 [image-folder with train and val folders]
 ```
