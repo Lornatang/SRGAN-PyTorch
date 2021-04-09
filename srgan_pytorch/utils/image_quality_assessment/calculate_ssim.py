@@ -23,12 +23,12 @@ __all__ = [
 
 
 # Reference sources from https://hub.fastgit.org/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py
-def ssim(image1: torch.Tensor, image2: torch.Tensor, filter_weight: torch.Tensor, cs=False) -> float:
+def ssim(source: torch.Tensor, target: torch.Tensor, filter_weight: torch.Tensor, cs=False) -> float:
     """Python implements structural similarity.
 
     Args:
-        image1 (np.array): Original tensor picture.
-        image2 (np.array): Target tensor picture.
+        source (np.array): Original tensor picture.
+        target (np.array): Target tensor picture.
         filter_weight (torch.Tensor): Gaussian filter weight.
         cs (bool): It is mainly used to calculate ms-ssim value. (default: False)
 
@@ -38,16 +38,16 @@ def ssim(image1: torch.Tensor, image2: torch.Tensor, filter_weight: torch.Tensor
     k1 = 0.01 ** 2
     k2 = 0.03 ** 2
 
-    filter_weight = filter_weight.to(image1.device)
+    filter_weight = filter_weight.to(source.device)
 
-    mu1 = gaussian_filter(image1, filter_weight)
-    mu2 = gaussian_filter(image2, filter_weight)
+    mu1 = gaussian_filter(source, filter_weight)
+    mu2 = gaussian_filter(target, filter_weight)
     mu1_sq = mu1.pow(2)
     mu2_sq = mu2.pow(2)
     mu1_mu2 = mu1 * mu2
-    sigma1_sq = gaussian_filter(image1 * image1, filter_weight) - mu1_sq
-    sigma2_sq = gaussian_filter(image2 * image2, filter_weight) - mu2_sq
-    sigma12 = gaussian_filter(image1 * image2, filter_weight) - mu1_mu2
+    sigma1_sq = gaussian_filter(source * source, filter_weight) - mu1_sq
+    sigma2_sq = gaussian_filter(target * target, filter_weight) - mu2_sq
+    sigma12 = gaussian_filter(source * target, filter_weight) - mu1_mu2
 
     cs_map = (2 * sigma12 + k2) / (sigma1_sq + sigma2_sq + k2)
     cs_map = torch.nn.functional.relu(cs_map)
@@ -66,16 +66,16 @@ class SSIM(torch.nn.Module):
         super(SSIM, self).__init__()
         self.filter_weight = fspecial_gauss(11, 1.5)
 
-    def forward(self, image1_tensor: torch.Tensor, image2_tensor: torch.Tensor) -> torch.Tensor:
+    def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            image1_tensor (torch.Tensor): Original tensor picture.
-            image2_tensor (torch.Tensor): Target tensor picture.
+            source (torch.Tensor): Original tensor picture.
+            target (torch.Tensor): Target tensor picture.
 
         Returns:
             torch.Tensor.
         """
-        assert image1_tensor.shape == image2_tensor.shape
-        out = torch.mean(ssim(image1_tensor, image2_tensor, filter_weight=self.filter_weight))
+        assert source.shape == target.shape
+        out = torch.mean(ssim(source, target, filter_weight=self.filter_weight))
 
         return out
