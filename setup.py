@@ -16,9 +16,9 @@ import os
 import sys
 from shutil import rmtree
 
+from setuptools import Command
 from setuptools import find_packages
 from setuptools import setup
-from setuptools import Command
 
 # Configure library params.
 NAME = "srgan_pytorch"
