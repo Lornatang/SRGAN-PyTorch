@@ -34,15 +34,16 @@ REQUIRED = [
     "torch",
     "torchvision",
     "pillow",
-    "numpy"
-]
-
-# The following libraries need to be installed if you need to run all scripts.
-EXTRAS = {
+    "numpy",
     "opencv-python",
     "tqdm",
     "scipy",
     "lpips"
+]
+
+# The following libraries directory need to be installed if you need to run all scripts.
+EXTRAS = {
+    
 }
 
 # Find the current running location.
