@@ -51,38 +51,38 @@ logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.DEBUG)
 
 parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.")
 parser.add_argument("data", metavar="DIR",
-                    help="Path to dataset")
+                    help="Path to dataset.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         " (default: srgan)")
+                         ". (Default: srgan)")
 parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
-                    help="Number of data loading workers. (default: 4)")
+                    help="Number of data loading workers. (Default: 4)")
 parser.add_argument("--psnr-epochs", default=20000, type=int, metavar="N",
-                    help="Number of total psnr epochs to run. (default: 20000)")
+                    help="Number of total psnr epochs to run. (Default: 20000)")
 parser.add_argument("--start-psnr-epoch", default=0, type=int, metavar='N',
-                    help="Manual psnr epoch number (useful on restarts). (default: 0)")
+                    help="Manual psnr epoch number (useful on restarts). (Default: 0)")
 parser.add_argument("--gan-epochs", default=4000, type=int, metavar="N",
-                    help="Number of total gan epochs to run. (default: 4000)")
+                    help="Number of total gan epochs to run. (Default: 4000)")
 parser.add_argument("--start-gan-epoch", default=0, type=int, metavar='N',
-                    help="Manual gan epoch number (useful on restarts). (default: 0)")
+                    help="Manual gan epoch number (useful on restarts). (Default: 0)")
 parser.add_argument("-b", "--batch-size", default=16, type=int,
                     metavar="N",
                     help="Mini-batch size (default: 16), this is the total "
                          "batch size of all GPUs on the current node when "
-                         "using Data Parallel or Distributed Data Parallel")
+                         "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--sampler-frequency", default=1, type=int, metavar="N",
                     help="If there are many datasets, this method can be used "
-                         "to increase the number of epochs. (default:1)")
+                         "to increase the number of epochs. (Default:1)")
 parser.add_argument("--psnr-lr", type=float, default=0.0001,
-                    help="Learning rate for psnr-oral. (default: 0.0001)")
+                    help="Learning rate for psnr-oral. (Default: 0.0001)")
 parser.add_argument("--gan-lr", type=float, default=0.0001,
                     help="Learning rate for gan-oral. (default: 0.0001)")
 parser.add_argument("--image-size", type=int, default=96,
-                    help="Image size of high resolution image. (default: 96)")
+                    help="Image size of high resolution image. (Default: 96)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
-                    help="Low to high resolution scaling factor. Optional: [2, 4, 8] (default: 4)")
+                    help="Low to high resolution scaling factor. Optional: [2, 4, 8] (Default: 4)")
 parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
 parser.add_argument("--resume_psnr", default="", type=str, metavar="PATH",
@@ -96,11 +96,11 @@ parser.add_argument("--pretrained", dest="pretrained", action="store_true",
 parser.add_argument("--world-size", default=-1, type=int,
                     help="Number of nodes for distributed training.")
 parser.add_argument("--rank", default=-1, type=int,
-                    help="Node rank for distributed training")
+                    help="Node rank for distributed training. (Default: -1)")
 parser.add_argument("--dist-url", default="tcp://59.110.31.55:12345", type=str,
-                    help="url used to set up distributed training. (default: tcp://59.110.31.55:12345)")
+                    help="url used to set up distributed training. (Default: `tcp://59.110.31.55:12345`)")
 parser.add_argument("--dist-backend", default="nccl", type=str,
-                    help="Distributed backend. (default: nccl)")
+                    help="Distributed backend. (Default: `nccl`)")
 parser.add_argument("--seed", default=None, type=int,
                     help="Seed for initializing training.")
 parser.add_argument("--gpu", default=None, type=int,
@@ -418,9 +418,9 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
                writer: SummaryWriter,
                args: argparse.ArgumentParser.parse_args):
     batch_time = AverageMeter("Time", ":6.4f")
-    mse_losses = AverageMeter("MSE Loss", ":.6f")
+    losses = AverageMeter("Loss", ":.6f")
     progress = ProgressMeter(num_batches=len(dataloader),
-                             meters=[batch_time, mse_losses],
+                             meters=[batch_time, losses],
                              prefix=f"Epoch: [{epoch}]")
 
     # switch to train mode
@@ -448,10 +448,10 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
         end = time.time()
 
         # measure accuracy and record loss
-        mse_losses.update(loss.item(), lr.size(0))
+        losses.update(loss.item(), lr.size(0))
 
         iters = i + epoch * len(dataloader) + 1
-        writer.add_scalar("Train/MSE Loss", loss.item(), iters)
+        writer.add_scalar("Train/Loss", loss.item(), iters)
 
         # Output results every 100 batches.
         if i % 100 == 0:
