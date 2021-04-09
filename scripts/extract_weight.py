@@ -17,27 +17,24 @@ import logging
 import torch
 
 import srgan_pytorch.models as models
+from srgan_pytorch.utils.common import configure
 
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__")
-                     and callable(models.__dict__[name]))
+model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using "
-                                 "a Generative Adversarial Network.")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         " (default: srgan)")
+                         ". (Default: srgan)")
 parser.add_argument("--model-path", type=str, metavar="PATH", required=True,
                     help="Path to latest checkpoint for model.")
 args = parser.parse_args()
 
-# Configure model
-model = models.__dict__[args.arch]()
+model = configure(args)
 model.load_state_dict(torch.load(args.model_path)["state_dict"])
 torch.save(model.state_dict(), "Generator.pth")
 logger.info("Model convert done.")
