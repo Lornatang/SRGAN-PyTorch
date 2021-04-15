@@ -45,7 +45,7 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         " .(Default: `srgan`)")
+                         ". (Default: `srgan`)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
                     help="Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)")
 parser.add_argument("--model-path", default="./weights/GAN.pth", type=str, metavar="PATH",

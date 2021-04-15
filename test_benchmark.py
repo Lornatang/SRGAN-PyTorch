@@ -40,7 +40,7 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         " .(Default: `srgan`)")
+                         ". (Default: `srgan`)")
 parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
                     help="Number of data loading workers. (Default: 8)")
 parser.add_argument("-b", "--batch-size", default=32, type=int,

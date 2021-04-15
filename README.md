@@ -75,7 +75,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: `srgan`)
   -j N, --workers N     Number of data loading workers. (Default: 8)
   -b N, --batch-size N  mini-batch size (default: 32), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
   --sampler-frequency N
@@ -102,7 +102,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: `srgan`)
   --upscale-factor {2,4,8}
                         Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
   --model-path PATH     Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)
@@ -122,7 +122,7 @@ usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversar
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: `srgan`)
   --upscale-factor {2,4,8}
                         Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
   --model-path PATH     Path to latest checkpoint for model. (Default: ``)
@@ -174,7 +174,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: `srgan`)
   -j N, --workers N     Number of data loading workers. (Default: 4)
   --psnr-epochs N       Number of total psnr epochs to run. (Default: 20000)
   --start-psnr-epoch N  Manual psnr epoch number (useful on restarts). (Default: 0)
