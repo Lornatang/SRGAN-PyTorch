@@ -16,6 +16,7 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
     * [Test benchmark](#test-benchmark)
     * [Test image](#test-image)
     * [Test video](#test-video)
+    * [Test model performance](#test-model-performance)
 4. [Train](#train-eg-div2k)
 5. [Contributing](#contributing)
 6. [Credit](#credit)
@@ -132,6 +133,28 @@ optional arguments:
                         
 # Example
 $ python3 test_video.py -a srgan --file [path-to-video] --pretrained --gpu 0 --view 
+```
+
+#### Test model performance
+
+|      Model      | Params | FLOPs | CPU Speed | GPU Speed |
+|:---------------:|:------:|:-----:|:---------:|:---------:|
+|      srgan      | 1.55M  |  2.6G |      9ms  |      7ms  |
+|    srgan_2x2    | 1.40M  |  1.7G |     15ms  |      3ms  |
+|    srgan_8x8    | 1.70M  |  6.1G |     18ms  |      3ms  |
+
+```text
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-i IMAGE_SIZE] [--gpu GPU]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i IMAGE_SIZE, --image-size IMAGE_SIZE
+                        Image size of low-resolution. (Default: 24)
+  --gpu GPU             GPU id to use.
+  
+# Example (CPU: Intel i9-10900X/GPU: Nvidia GeForce RTX 2080Ti)
+$ python3 setup.py install
+$ python3 scripts/cal_model_complexity.py --gpu 0
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
