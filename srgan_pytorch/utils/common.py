@@ -19,7 +19,7 @@ import torch
 import srgan_pytorch.models as models
 
 __all__ = [
-    "create_folder", "configure", "AverageMeter", "ProgressMeter"
+    "create_folder", "configure", "check_image_file", "AverageMeter", "ProgressMeter"
 ]
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,18 @@ def configure(args):
         model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu")))
 
     return model
+
+
+def check_image_file(filename: str):
+    r"""Filter non image files in directory.
+
+    Args:
+        filename (str): File name under path.
+
+    Returns:
+        Return True if bool(x) is True for any x in the iterable.
+    """
+    return any(filename.endswith(extension) for extension in [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".JPG", ".JPEG", ".PNG", ".BMP"])
 
 
 # Copy from https://github.com/pytorch/examples/blob/master/imagenet/main.py

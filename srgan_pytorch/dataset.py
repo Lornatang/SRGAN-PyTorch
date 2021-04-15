@@ -14,28 +14,18 @@
 import os
 import random
 
-import torch.utils.data.dataset
+import torch.utils.data
 import torchvision.transforms as transforms
 from PIL import Image
 from torchvision.transforms import InterpolationMode
 
+from .utils.common import check_image_file
+from .utils.transform import train_transform
+
 __all__ = [
-    "check_image_file",
     "BaseTrainDataset", "BaseTestDataset",
     "CustomTrainDataset", "CustomTestDataset"
 ]
-
-
-def check_image_file(filename: str):
-    r"""Filter non image files in directory.
-
-    Args:
-        filename (str): File name under path.
-
-    Returns:
-        Return True if bool(x) is True for any x in the iterable.
-    """
-    return any(filename.endswith(extension) for extension in [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".JPG", ".JPEG", ".PNG", ".BMP"])
 
 
 class BaseTrainDataset(torch.utils.data.dataset.Dataset):
@@ -101,7 +91,6 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
-            transforms.AutoAugment(),
             transforms.ToTensor()
         ])
 
@@ -139,8 +128,6 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         self.lr_filenames = [os.path.join(lr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
-        self.transforms = transforms.ToTensor()
-
     def __getitem__(self, index):
         r""" Get image source file.
 
@@ -150,8 +137,9 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         Returns:
             Low resolution image, high resolution image.
         """
-        lr = self.transforms(Image.open(self.lr_filenames[index]))
-        hr = self.transforms(Image.open(self.hr_filenames[index]))
+        lr = Image.open(self.lr_filenames[index])
+        hr = Image.open(self.hr_filenames[index])
+        lr, hr = train_transform(lr, hr)
 
         return lr, hr
 
