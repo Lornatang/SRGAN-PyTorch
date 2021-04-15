@@ -12,10 +12,8 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
-import os
 import time
 
-import numpy as np
 import torch
 
 import srgan_pytorch.models as models
