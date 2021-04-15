@@ -15,7 +15,6 @@ import argparse
 import logging
 import os
 import random
-import warnings
 
 import cv2
 import numpy as np
@@ -37,18 +36,18 @@ model_names = sorted(name for name in models.__dict__ if name.islower() and not 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network")
+parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.")
 parser.add_argument("--file", type=str, required=True,
                     help="Test low resolution video name.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         ". (Default: srgan)")
+                         " .(Default: `srgan`)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
                     help="Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)")
-parser.add_argument("--model-path", default="./weights/GAN.pth", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)")
+parser.add_argument("--model-path", default="", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model. (Default: ``)")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
 parser.add_argument("--seed", default=666, type=int,
@@ -169,7 +168,7 @@ if __name__ == "__main__":
 
     logger.info("SREngine:")
     print("\tAPI version .......... 0.2.1")
-    print("\tBuild ................ 2021.04.09")
+    print("\tBuild ................ 2021.04.15")
     print("##################################################\n")
     main()
 

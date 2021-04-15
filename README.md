@@ -3,8 +3,7 @@
 ### Overview
 
 This repository contains an op-for-op PyTorch reimplementation
-of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802)
-.
+of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802).
 
 ### Table of contents
 
@@ -25,29 +24,24 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 
 If you're new to SRGAN, here's an abstract straight from the paper:
 
-Despite the breakthroughs in accuracy and speed of single image super-resolution using faster and deeper convolutional
-neural networks, one central problem remains largely unsolved: how do we recover the finer texture details when we
-super-resolve at large upscaling factors? The behavior of optimization-based super-resolution methods is principally
-driven by the choice of the objective function. Recent work has largely focused on minimizing the mean squared
-reconstruction error. The resulting estimates have high peak signal-to-noise ratios, but they are often lacking
-high-frequency details and are perceptually unsatisfying in the sense that they fail to match the fidelity expected at
-the higher resolution. In this paper, we present SRGAN, a generative adversarial network (GAN) for image
-super-resolution (SR). To our knowledge, it is the first framework capable of inferring photo-realistic natural images
-for 4x upscaling factors. To achieve this, we propose a perceptual loss function which consists of an adversarial loss
-and a content loss. The adversarial loss pushes our solution to the natural image manifold using a discriminator network
-that is trained to differentiate between the super-resolved images and original photo-realistic images. In addition, we
-use a content loss motivated by perceptual similarity instead of similarity in pixel space. Our deep residual network is
-able to recover photo-realistic textures from heavily downsampled images on public benchmarks. An extensive
-mean-opinion-score (MOS) test shows hugely significant gains in perceptual quality using SRGAN. The MOS scores obtained
-with SRGAN are closer to those of the original high-resolution images than to those obtained with any state-of-the-art
-method.
+Despite the breakthroughs in accuracy and speed of single image super-resolution using faster and deeper convolutional neural networks, one central
+problem remains largely unsolved: how do we recover the finer texture details when we super-resolve at large upscaling factors? The behavior of
+optimization-based super-resolution methods is principally driven by the choice of the objective function. Recent work has largely focused on
+minimizing the mean squared reconstruction error. The resulting estimates have high peak signal-to-noise ratios, but they are often lacking
+high-frequency details and are perceptually unsatisfying in the sense that they fail to match the fidelity expected at the higher resolution. In this
+paper, we present SRGAN, a generative adversarial network (GAN) for image super-resolution (SR). To our knowledge, it is the first framework capable
+of inferring photo-realistic natural images for 4x upscaling factors. To achieve this, we propose a perceptual loss function which consists of an
+adversarial loss and a content loss. The adversarial loss pushes our solution to the natural image manifold using a discriminator network that is
+trained to differentiate between the super-resolved images and original photo-realistic images. In addition, we use a content loss motivated by
+perceptual similarity instead of similarity in pixel space. Our deep residual network is able to recover photo-realistic textures from heavily
+downsampled images on public benchmarks. An extensive mean-opinion-score (MOS) test shows hugely significant gains in perceptual quality using SRGAN.
+The MOS scores obtained with SRGAN are closer to those of the original high-resolution images than to those obtained with any state-of-the-art method.
 
 ### Model Description
 
-We have two networks, G (Generator) and D (Discriminator).The Generator is a network for generating images. It receives
-a random noise z and generates images from this noise, which is called G(z).Discriminator is a discriminant network that
-discriminates whether an image is real. The input is x, x is a picture, and the output is D of x is the probability that
-x is a real picture, and if it's 1, it's 100% real, and if it's 0, it's not real.
+We have two networks, G (Generator) and D (Discriminator).The Generator is a network for generating images. It receives a random noise z and generates
+images from this noise, which is called G(z).Discriminator is a discriminant network that discriminates whether an image is real. The input is x, x is
+a picture, and the output is D of x is the probability that x is a real picture, and if it's 1, it's 100% real, and if it's 0, it's not real.
 
 ### Installation
 
@@ -71,21 +65,25 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [-b N] [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained] [--seed SEED] [--gpu GPU] DIR
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-a ARCH] [-j N] [-b N] [--sampler-frequency N] [--image-size IMAGE_SIZE] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained]
+                                                                                             [--seed SEED] [--gpu GPU]
+                                                                                             DIR
 
 positional arguments:
   DIR                   Path to dataset.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: srgan)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
   -j N, --workers N     Number of data loading workers. (Default: 8)
   -b N, --batch-size N  mini-batch size (default: 32), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
+  --sampler-frequency N
+                        If there are many datasets, this method can be used to increase the number of epochs. (Default:1)
   --image-size IMAGE_SIZE
                         Image size of high resolution image. (Default: 96)
   --upscale-factor {2,4,8}
                         Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
-  --model-path PATH     Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)
+  --model-path PATH     Path to latest checkpoint for model. (Default: ``)
   --pretrained          Use pre-trained model.
   --seed SEED           Seed for initializing training. (Default: 666)
   --gpu GPU             GPU id to use.
@@ -97,13 +95,13 @@ $ python3 test_benchmark.py -a srgan --pretrained --gpu 0 [image-folder with tra
 #### Test image
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network [-h] --lr LR [--hr HR] [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained] [--seed SEED] [--gpu GPU]
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] --lr LR [--hr HR] [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained] [--seed SEED] [--gpu GPU]
 
 optional arguments:
   -h, --help            show this help message and exit
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: srgan)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
   --upscale-factor {2,4,8}
                         Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
   --model-path PATH     Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)
@@ -118,15 +116,15 @@ $ python3 test_image.py -a srgan --lr [path-to-lr-image] --hr [Optional, path-to
 #### Test video
 
 ```text
-usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network [-h] --file FILE [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained] [--seed SEED] [--gpu GPU] [--view]
+usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] --file FILE [-a ARCH] [--upscale-factor {2,4,8}] [--model-path PATH] [--pretrained] [--seed SEED] [--gpu GPU] [--view]
 
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: srgan)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
   --upscale-factor {2,4,8}
                         Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)
-  --model-path PATH     Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)
+  --model-path PATH     Path to latest checkpoint for model. (Default: ``)
   --pretrained          Use pre-trained model.
   --seed SEED           Seed for initializing training. (Default: 666)
   --gpu GPU             GPU id to use.
@@ -137,8 +135,7 @@ $ python3 test_video.py -a srgan --file [path-to-video] --pretrained --gpu 0 --v
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
-<span align="center"><img src="assets/result.png" alt="">
-</span>
+<span align="center"><img src="assets/result.png" alt=""></span>
 
 ### Train (e.g DIV2K)
 
@@ -154,7 +151,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8. (Default: srgan)
+  -a ARCH, --arch ARCH  Model architecture: srgan | srgan_2x2 | srgan_8x8 .(Default: `srgan`)
   -j N, --workers N     Number of data loading workers. (Default: 4)
   --psnr-epochs N       Number of total psnr epochs to run. (Default: 20000)
   --start-psnr-epoch N  Manual psnr epoch number (useful on restarts). (Default: 0)
@@ -186,7 +183,7 @@ optional arguments:
                         Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training.
                    
 # Example (e.g DIV2K)
-$ python train.py -a srgan --gpu 0 [image-folder with train and val folders]
+$ python3 train.py -a srgan --gpu 0 [image-folder with train and val folders]
 # Multi-processing Distributed Data Parallel Training
 $ python3 train.py -a srgan --dist-url 'tcp://127.0.0.1:12345' --dist-backend 'nccl' --multiprocessing-distributed --world-size 1 --rank 0 [image-folder with train and val folders]
 ```
@@ -199,8 +196,7 @@ $ python3 train.py -a srgan --start-psnr-epoch 10 --resume-psnr weights/PSNR_epo
 
 ### Contributing
 
-If you find a bug, create a GitHub issue, or even better, submit a pull request. Similarly, if you have questions,
-simply post them as GitHub issues.
+If you find a bug, create a GitHub issue, or even better, submit a pull request. Similarly, if you have questions, simply post them as GitHub issues.
 
 I look forward to seeing what the community does with these models!
 
@@ -208,26 +204,22 @@ I look forward to seeing what the community does with these models!
 
 #### Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network
 
-_Christian Ledig, Lucas Theis, Ferenc Huszar, Jose Caballero, Andrew Cunningham, Alejandro Acosta, Andrew Aitken,
-Alykhan Tejani, Johannes Totz, Zehan Wang, Wenzhe Shi_ <br>
+_Christian Ledig, Lucas Theis, Ferenc Huszar, Jose Caballero, Andrew Cunningham, Alejandro Acosta, Andrew Aitken, Alykhan Tejani, Johannes Totz, Zehan
+Wang, Wenzhe Shi_ <br>
 
 **Abstract** <br>
-Despite the breakthroughs in accuracy and speed of single image super-resolution using faster and deeper convolutional
-neural networks, one central problem remains largely unsolved: how do we recover the finer texture details when we
-super-resolve at large upscaling factors? The behavior of optimization-based super-resolution methods is principally
-driven by the choice of the objective function. Recent work has largely focused on minimizing the mean squared
-reconstruction error. The resulting estimates have high peak signal-to-noise ratios, but they are often lacking
-high-frequency details and are perceptually unsatisfying in the sense that they fail to match the fidelity expected at
-the higher resolution. In this paper, we present SRGAN, a generative adversarial network (GAN) for image
-super-resolution (SR). To our knowledge, it is the first framework capable of inferring photo-realistic natural images
-for 4x upscaling factors. To achieve this, we propose a perceptual loss function which consists of an adversarial loss
-and a content loss. The adversarial loss pushes our solution to the natural image manifold using a discriminator network
-that is trained to differentiate between the super-resolved images and original photo-realistic images. In addition, we
-use a content loss motivated by perceptual similarity instead of similarity in pixel space. Our deep residual network is
-able to recover photo-realistic textures from heavily downsampled images on public benchmarks. An extensive
-mean-opinion-score (MOS) test shows hugely significant gains in perceptual quality using SRGAN. The MOS scores obtained
-with SRGAN are closer to those of the original high-resolution images than to those obtained with any state-of-the-art
-method.
+Despite the breakthroughs in accuracy and speed of single image super-resolution using faster and deeper convolutional neural networks, one central
+problem remains largely unsolved: how do we recover the finer texture details when we super-resolve at large upscaling factors? The behavior of
+optimization-based super-resolution methods is principally driven by the choice of the objective function. Recent work has largely focused on
+minimizing the mean squared reconstruction error. The resulting estimates have high peak signal-to-noise ratios, but they are often lacking
+high-frequency details and are perceptually unsatisfying in the sense that they fail to match the fidelity expected at the higher resolution. In this
+paper, we present SRGAN, a generative adversarial network (GAN) for image super-resolution (SR). To our knowledge, it is the first framework capable
+of inferring photo-realistic natural images for 4x upscaling factors. To achieve this, we propose a perceptual loss function which consists of an
+adversarial loss and a content loss. The adversarial loss pushes our solution to the natural image manifold using a discriminator network that is
+trained to differentiate between the super-resolved images and original photo-realistic images. In addition, we use a content loss motivated by
+perceptual similarity instead of similarity in pixel space. Our deep residual network is able to recover photo-realistic textures from heavily
+downsampled images on public benchmarks. An extensive mean-opinion-score (MOS) test shows hugely significant gains in perceptual quality using SRGAN.
+The MOS scores obtained with SRGAN are closer to those of the original high-resolution images than to those obtained with any state-of-the-art method.
 
 [[Paper]](https://arxiv.org/pdf/1609.04802)
 
