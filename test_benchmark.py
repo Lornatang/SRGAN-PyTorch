@@ -161,7 +161,7 @@ if __name__ == "__main__":
     create_folder("benchmarks")
 
     logger.info("TestingEngine:")
-    print("\tAPI version .......... 0.2.1")
+    print("\tAPI version .......... 0.2.2")
     print("\tBuild ................ 2021.04.15")
     print("##################################################\n")
     main()

@@ -29,7 +29,7 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.utils as vutils
-from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 
 import srgan_pytorch.models as models
 from srgan_pytorch.dataset import BaseTestDataset
@@ -567,8 +567,8 @@ if __name__ == "__main__":
     create_folder("weights")
 
     logger.info("TrainingEngine:")
-    print("\tAPI version .......... 0.2.1")
-    print("\tBuild ................ 2021.04.09")
+    print("\tAPI version .......... 0.2.2")
+    print("\tBuild ................ 2021.04.15")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")
