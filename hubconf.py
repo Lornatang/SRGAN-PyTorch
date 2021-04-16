@@ -22,15 +22,15 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch.models.generator import Generator
 
 model_urls = {
-    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_2x2_DIV2K-9ec9dd11.pth",
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_DIV2K-6b7848ca.pth",
-    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_8x8_DIV2K-5ded8368.pth"
+    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_2x2_DIV2K-9ec9dd11.pth",
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_DIV2K-6b7848ca.pth",
+    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_8x8_DIV2K-5ded8368.pth"
 }
 
 dependencies = ["torch"]
 
 
-def model(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
+def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
     model = Generator(upscale_factor)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
@@ -45,7 +45,7 @@ def srgan_2x2(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return model("srgan_2x2", 2, pretrained, progress)
+    return _gan("srgan_2x2", 2, pretrained, progress)
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -55,7 +55,7 @@ def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return model("srgan", 4, pretrained, progress)
+    return _gan("srgan", 4, pretrained, progress)
 
 
 def srgan_8x8(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -65,4 +65,4 @@ def srgan_8x8(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return model("srgan_8x8", 8, pretrained, progress)
+    return _gan("srgan_8x8", 8, pretrained, progress)

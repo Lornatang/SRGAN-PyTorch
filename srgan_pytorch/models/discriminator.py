@@ -16,7 +16,7 @@ import torch.nn as nn
 
 
 class DiscriminatorForVGG(nn.Module):
-    def __init__(self, image_size: int = 128) -> None:
+    def __init__(self, image_size: int = 96) -> None:
         super(DiscriminatorForVGG, self).__init__()
 
         feature_map_size = int(image_size // 16)
@@ -69,9 +69,8 @@ class DiscriminatorForVGG(nn.Module):
         return out
 
 
-def discriminator_for_vgg(image_size: int = 128) -> DiscriminatorForVGG:
-    r"""GAN model architecture from the
-    `"One weird trick..." <https://arxiv.org/abs/1609.04802>`_ paper.
+def discriminator_for_vgg(image_size: int = 96) -> DiscriminatorForVGG:
+    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
     """
     model = DiscriminatorForVGG(image_size)
     return model

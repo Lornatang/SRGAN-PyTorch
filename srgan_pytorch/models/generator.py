@@ -21,9 +21,9 @@ from .utils import ResidualBlock
 from .utils import SubpixelConvolutionLayer
 
 model_urls = {
-    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_2x2_DIV2K-9ec9dd11.pth",
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_DIV2K-6b7848ca.pth",
-    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.1/SRGAN_8x8_DIV2K-5ded8368.pth"
+    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_2x2_DIV2K-9ec9dd11.pth",
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_DIV2K-6b7848ca.pth",
+    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_8x8_DIV2K-5ded8368.pth"
 }
 
 

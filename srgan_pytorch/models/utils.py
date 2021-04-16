@@ -54,4 +54,6 @@ class ResidualBlock(nn.Module):
         out = self.conv2(out)
         out = self.bn2(out)
 
-        return out + x
+        out = out + x
+
+        return out
