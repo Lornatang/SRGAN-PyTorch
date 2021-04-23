@@ -28,7 +28,9 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
+import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from PIL import Image
 from tensorboardX import SummaryWriter
 
 import srgan_pytorch.models as models
@@ -112,6 +114,9 @@ parser.add_argument("--multiprocessing-distributed", action="store_true",
                          "multi node data parallel training.")
 
 best_psnr = 0.0
+# Load base low-resolution image.
+base_image = transforms.ToTensor()(Image.open(os.path.join("assets", "butterfly.png")))
+logger.info("Loaded `butterfly.png` successful.")
 
 
 def main():
@@ -457,10 +462,9 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
         if i % 100 == 0:
             progress.display(i)
 
-        # Save image every 300 batches.
-        if iters % 300 == 0:
-            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"PSNR_{iters}.png"))
-            vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"PSNR_{iters}.png"))
+    # Each Epoch validates the model once.
+    sr = model(base_image)
+    vutils.save_image(sr.detach(), os.path.join("runs", f"PSNR_epoch_{epoch}.png"))
 
 
 def train_gan(dataloader: torch.utils.data.DataLoader,
@@ -551,10 +555,9 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         if i % 100 == 0:
             progress.display(i)
 
-        # Save image every 300 batches.
-        if iters % 300 == 0:
-            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"GAN_{iters}.png"))
-            vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
+    # Each Epoch validates the model once.
+    sr = generator(base_image)
+    vutils.save_image(sr.detach(), os.path.join("runs", f"GAN_epoch_{epoch}.png"))
 
 
 if __name__ == "__main__":
@@ -562,8 +565,6 @@ if __name__ == "__main__":
     print("Run Training Engine.\n")
 
     create_folder("runs")
-    create_folder("runs/hr")
-    create_folder("runs/sr")
     create_folder("weights")
 
     logger.info("TrainingEngine:")
