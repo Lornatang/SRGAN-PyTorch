@@ -116,6 +116,7 @@ parser.add_argument("--multiprocessing-distributed", action="store_true",
 best_psnr = 0.0
 # Load base low-resolution image.
 base_image = transforms.ToTensor()(Image.open(os.path.join("assets", "butterfly.png")))
+base_image = base_image.unsqueeze(0)
 logger.info("Loaded `butterfly.png` successful.")
 
 
@@ -154,7 +155,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    global best_psnr
+    global best_psnr, base_image
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -219,6 +220,9 @@ def main_worker(gpu, ngpus_per_node, args):
                 f"\tPixel:       MSELoss\n"
                 f"\tContent:     VGG19_36th\n"
                 f"\tAdversarial: BCELoss")
+
+    if args.gpu is not None:
+        base_image = base_image.cuda(args.gpu)
 
     # All optimizer function and scheduler function.
     psnr_optimizer = torch.optim.Adam(generator.parameters(), lr=args.psnr_lr, betas=(0.9, 0.999))
