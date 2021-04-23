@@ -61,7 +61,7 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
         Returns:
             Low resolution image, high resolution image.
         """
-        image = Image.open(self.filenames[index])
+        image = Image.open(self.filenames[index]).convert("RGB")
 
         hr = self.hr_transforms(image)
         lr = self.lr_transforms(hr)
@@ -107,7 +107,7 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         Returns:
             Low resolution image, high resolution image.
         """
-        image = Image.open(self.filenames[index])
+        image = Image.open(self.filenames[index]).convert("RGB")
 
         hr = self.hr_transforms(image)
         lr = self.lr_transforms(hr)
@@ -145,8 +145,8 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         Returns:
             Low resolution image, high resolution image.
         """
-        lr = Image.open(self.lr_filenames[index])
-        hr = Image.open(self.hr_filenames[index])
+        lr = Image.open(self.lr_filenames[index]).convert("RGB")
+        hr = Image.open(self.hr_filenames[index]).convert("RGB")
 
         lr, hr = random_horizontally_flip(lr, hr)
         lr, hr = random_vertically_flip(lr, hr)
@@ -192,8 +192,8 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         Returns:
             Low resolution image, high resolution image.
         """
-        lr = Image.open(self.lr_filenames[index])
-        hr = Image.open(self.hr_filenames[index])
+        lr = Image.open(self.lr_filenames[index]).convert("RGB")
+        hr = Image.open(self.hr_filenames[index]).convert("RGB")
 
         lr = self.transforms(lr)
         bicubic = self.bicubic_transforms(lr)
