@@ -48,8 +48,8 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                          ". (Default: `srgan`)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
                     help="Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)")
-parser.add_argument("--model-path", default="./weights/GAN.pth", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)")
+parser.add_argument("--model-path", default="", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model. (Default: ``)")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
 parser.add_argument("--seed", default=666, type=int,
