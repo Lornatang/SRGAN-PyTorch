@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
     logger.info("TestingEngine:")
     print("\tAPI version .......... 0.2.2")
-    print("\tBuild ................ 2021.04.15")
+    print("\tBuild ................ 2021.04.23")
     print("##################################################\n")
     main()
 
