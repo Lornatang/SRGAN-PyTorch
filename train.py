@@ -459,8 +459,8 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
 
         # Save image every 300 batches.
         if iters % 300 == 0:
-            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"PSNR_{iters}.bmp"))
-            vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"PSNR_{iters}.bmp"))
+            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"PSNR_{iters}.png"))
+            vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"PSNR_{iters}.png"))
 
 
 def train_gan(dataloader: torch.utils.data.DataLoader,
@@ -511,7 +511,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         d_loss_real = adversarial_criterion(discriminator(hr), real_label)
         d_loss_fake = adversarial_criterion(discriminator(sr.detach()), fake_label)
         # Count all discriminator losses.
-        d_loss = (d_loss_real + d_loss_fake) / 2
+        d_loss = d_loss_real + d_loss_fake
 
         d_loss.backward()
         discriminator_optimizer.step()
@@ -553,7 +553,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
 
         # Save image every 300 batches.
         if iters % 300 == 0:
-            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"GAN_{iters}.bmp"))
+            vutils.save_image(hr.detach(), os.path.join("runs", "hr", f"GAN_{iters}.png"))
             vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"GAN_{iters}.bmp"))
 
 
@@ -568,7 +568,7 @@ if __name__ == "__main__":
 
     logger.info("TrainingEngine:")
     print("\tAPI version .......... 0.2.2")
-    print("\tBuild ................ 2021.04.15")
+    print("\tBuild ................ 2021.04.23")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")
