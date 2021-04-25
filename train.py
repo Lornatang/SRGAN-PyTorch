@@ -550,10 +550,10 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
 
         iters = i + epoch * len(dataloader) + 1
-        writer.add_scalar("Train/D Loss", d_loss.item(), iters)
-        writer.add_scalar("Train/G Loss", g_loss.item(), iters)
-        writer.add_scalar("Train/Content Loss", content_loss.item(), iters)
-        writer.add_scalar("Train/Adversarial Loss", adversarial_loss.item(), iters)
+        writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
+        writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
+        writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
+        writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
 
         # Output results every 100 batches.
         if i % 100 == 0:
@@ -573,7 +573,7 @@ if __name__ == "__main__":
 
     logger.info("TrainingEngine:")
     print("\tAPI version .......... 0.2.2")
-    print("\tBuild ................ 2021.04.23")
+    print("\tBuild ................ 2021.04.25")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")
