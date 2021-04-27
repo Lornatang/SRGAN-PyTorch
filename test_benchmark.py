@@ -140,7 +140,7 @@ def main_worker(gpu, args):
                                          f"PSNR: {total_psnr_value / (i + 1):6.2f} "
                                          f"SSIM: {total_ssim_value / (i + 1):6.4f}")
 
-            images = torch.cat([bicubic, sr, hr], -1)
+            images = torch.cat([bicubic, sr, hr], dim=-1)
             vutils.save_image(images, os.path.join("benchmarks", f"{i + 1}.bmp"), padding=10)
 
     print(f"Performance average results:\n")
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     logger.info("TestingEngine:")
     print("\tAPI version .......... 0.2.2")
-    print("\tBuild ................ 2021.04.15")
+    print("\tBuild ................ 2021.04.27")
     print("##################################################\n")
     main()
 
