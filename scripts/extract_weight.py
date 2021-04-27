@@ -17,7 +17,6 @@ import logging
 import torch
 
 import srgan_pytorch.models as models
-from srgan_pytorch.utils.common import configure
 
 model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
 
@@ -29,12 +28,12 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         ". (Default: `srgan`)")
+                         ". (Default: srgan)")
 parser.add_argument("--model-path", type=str, metavar="PATH", required=True,
                     help="Path to latest checkpoint for model.")
 args = parser.parse_args()
 
-model = configure(args)
+model = models.__dict__[args.arch]()
 model.load_state_dict(torch.load(args.model_path)["state_dict"])
 torch.save(model.state_dict(), "Generator.pth")
 logger.info("Model convert done.")

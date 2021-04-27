@@ -14,9 +14,8 @@
 import argparse
 import time
 
-import torch
-
 import srgan_pytorch.models as models
+import torch
 
 model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
 
