@@ -370,7 +370,6 @@ def main_worker(gpu, ngpus_per_node, args):
                 torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
 
     # Load best model weight.
-    best_psnr = 0.0
     generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
@@ -399,9 +398,6 @@ def main_worker(gpu, ngpus_per_node, args):
         gan_writer.add_scalar("GAN_Test/LPIPS", lpips, epoch + 1)
         gan_writer.add_scalar("GAN_Test/GMSD", gmsd, epoch + 1)
 
-        is_best = psnr > best_psnr
-        best_psnr = max(psnr, best_psnr)
-
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
             torch.save({"epoch": epoch + 1,
                         "arch": "vgg",
@@ -414,8 +410,6 @@ def main_worker(gpu, ngpus_per_node, args):
                         "state_dict": generator.state_dict(),
                         "optimizer": generator_optimizer.state_dict()
                         }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
-            if is_best:
-                torch.save(generator.state_dict(), os.path.join("weights", f"GAN.pth"))
 
 
 def train_psnr(dataloader: torch.utils.data.DataLoader,
