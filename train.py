@@ -351,10 +351,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # Test for every epoch.
         psnr, ssim, lpips, gmsd = test(dataloader=test_dataloader, model=generator, gpu=args.gpu)
-        gan_writer.add_scalar("PSNR_Test/PSNR", psnr, epoch + 1)
-        gan_writer.add_scalar("PSNR_Test/SSIM", ssim, epoch + 1)
-        gan_writer.add_scalar("PSNR_Test/LPIPS", lpips, epoch + 1)
-        gan_writer.add_scalar("PSNR_Test/GMSD", gmsd, epoch + 1)
+        psnr_writer.add_scalar("PSNR_Test/PSNR", psnr, epoch + 1)
+        psnr_writer.add_scalar("PSNR_Test/SSIM", ssim, epoch + 1)
+        psnr_writer.add_scalar("PSNR_Test/LPIPS", lpips, epoch + 1)
+        psnr_writer.add_scalar("PSNR_Test/GMSD", gmsd, epoch + 1)
 
         is_best = psnr > best_psnr
         best_psnr = max(psnr, best_psnr)
