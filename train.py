@@ -351,10 +351,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # Test for every epoch.
         psnr, ssim, lpips, gmsd = test(dataloader=test_dataloader, model=generator, gpu=args.gpu)
-        gan_writer.add_scalar("Test/PSNR", psnr, epoch + 1)
-        gan_writer.add_scalar("Test/SSIM", ssim, epoch + 1)
-        gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
-        gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
+        gan_writer.add_scalar("PSNR_Test/PSNR", psnr, epoch + 1)
+        gan_writer.add_scalar("PSNR_Test/SSIM", ssim, epoch + 1)
+        gan_writer.add_scalar("PSNR_Test/LPIPS", lpips, epoch + 1)
+        gan_writer.add_scalar("PSNR_Test/GMSD", gmsd, epoch + 1)
 
         is_best = psnr > best_psnr
         best_psnr = max(psnr, best_psnr)
@@ -394,10 +394,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # Test for every epoch.
         psnr, ssim, lpips, gmsd = test(dataloader=test_dataloader, model=generator, gpu=args.gpu)
-        gan_writer.add_scalar("Test/PSNR", psnr, epoch + 1)
-        gan_writer.add_scalar("Test/SSIM", ssim, epoch + 1)
-        gan_writer.add_scalar("Test/LPIPS", lpips, epoch + 1)
-        gan_writer.add_scalar("Test/GMSD", gmsd, epoch + 1)
+        gan_writer.add_scalar("GAN_Test/PSNR", psnr, epoch + 1)
+        gan_writer.add_scalar("GAN_Test/SSIM", ssim, epoch + 1)
+        gan_writer.add_scalar("GAN_Test/LPIPS", lpips, epoch + 1)
+        gan_writer.add_scalar("GAN_Test/GMSD", gmsd, epoch + 1)
 
         is_best = psnr > best_psnr
         best_psnr = max(psnr, best_psnr)
@@ -460,7 +460,7 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
         losses.update(loss.item(), lr.size(0))
 
         iters = i + epoch * len(dataloader) + 1
-        writer.add_scalar("Train/Loss", loss.item(), iters)
+        writer.add_scalar("PSNR_Train/MSE_Loss", loss.item(), iters)
 
         # Output results every 100 batches.
         if i % 100 == 0:
@@ -550,10 +550,10 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
 
         iters = i + epoch * len(dataloader) + 1
-        writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
-        writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
-        writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
-        writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
+        writer.add_scalar("GAN_Train/D_Loss", d_loss.item(), iters)
+        writer.add_scalar("GAN_Train/G_Loss", g_loss.item(), iters)
+        writer.add_scalar("GAN_Train/Content_Loss", content_loss.item(), iters)
+        writer.add_scalar("GAN_Train/Adversarial_Loss", adversarial_loss.item(), iters)
 
         # Output results every 100 batches.
         if i % 100 == 0:
