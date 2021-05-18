@@ -18,7 +18,7 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional_pil as F
 
 __all__ = ["adjust_brightness", "adjust_contrast", "adjust_saturation",
-           "random_horizontally_flip", "random_vertically_flip", "random_rotate"]
+           "random_horizontally_flip", "random_vertically_flip", "random_rotate", "rotate"]
 
 
 def adjust_brightness(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
@@ -127,5 +127,29 @@ def random_rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.Bm
     angle = transforms.RandomRotation.get_params([-180, 180])
     lr = lr.rotate(angle)
     hr = hr.rotate(angle)
+
+    return lr, hr
+
+
+def rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, p: float = 0.5,
+           angle: int = 90) -> PIL.BmpImagePlugin.BmpImageFile:
+    r"""Randomly select the rotation angle.
+
+    Args:
+        lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution images loaded with PIL.
+        hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution images loaded with PIL.
+        p (float): When the random probability is less than the value, it rotates clockwise.
+            When the random probability is greater than the value, it rotates clockwise. (Default: 0.5)
+        angle (int): How much rotation is specified by the image. (Default: 90)
+
+    Returns:
+        Rotated low-resolution image and rotated high-resolution image.
+    """
+    if torch.randn(1) < p:
+        lr = lr.rotate(angle)
+        hr = hr.rotate(angle)
+    else:
+        lr = lr.transpose(angle)
+        hr = hr.transpose(angle)
 
     return lr, hr
