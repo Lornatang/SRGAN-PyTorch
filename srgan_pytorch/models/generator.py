@@ -21,9 +21,9 @@ from .utils import ResidualBlock
 from .utils import SubpixelConvolutionLayer
 
 model_urls = {
-    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_2x2_ImageNet2012-3f1d605edcbfb83dc836668731cd6135b00ff62ea6f8633559fbb5dffe8413ba.pth",
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_ImageNet2012-158a3f9e70f45aef607e4146e29cde745e8d9a35972cb067f1ee00cb92254e02.pth",
-    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_8x8_ImageNet2012-c8207fead3ec73cdf6772fb60fef759833bae4a535eb8d3287aba470696219c1.pth"
+    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_2x2_ImageNet2012-8a6c37a4f51bd78920271bae11c9ab7882f8df066afba425cde360ff645a681a.pth",
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_ImageNet2012-992702908bcbce3b6e2bc2d15eb5b4eb7a5c816468654819c6efbbd79ce671ea.pth",
+    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_8x8_ImageNet2012-56374e6208b19eebe1a3fb2dd06a50c29fd7e61b75714c037e22de3a97d86135.pth"
 }
 
 
