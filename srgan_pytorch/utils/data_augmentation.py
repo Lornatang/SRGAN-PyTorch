@@ -131,25 +131,25 @@ def random_rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.Bm
     return lr, hr
 
 
-def rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, p: float = 0.5,
-           angle: int = 90) -> PIL.BmpImagePlugin.BmpImageFile:
+def rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, degrees: int, p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
     r"""Randomly select the rotation angle.
 
     Args:
         lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution images loaded with PIL.
         hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution images loaded with PIL.
+        degrees (int): Range of degrees to select from. If degrees is a number instead of sequence like (min, max), the range of degrees
+            will be (-degrees, +degrees).
         p (float): When the random probability is less than the value, it rotates clockwise.
             When the random probability is greater than the value, it rotates clockwise. (Default: 0.5)
-        angle (int): How much rotation is specified by the image. (Default: 90)
 
     Returns:
         Rotated low-resolution image and rotated high-resolution image.
     """
     if torch.randn(1) < p:
-        lr = lr.rotate(angle)
-        hr = hr.rotate(angle)
+        lr = lr.rotate(degrees)
+        hr = hr.rotate(degrees)
     else:
-        lr = lr.transpose(angle)
-        hr = hr.transpose(angle)
+        lr = lr.transpose(degrees)
+        hr = hr.transpose(degrees)
 
     return lr, hr

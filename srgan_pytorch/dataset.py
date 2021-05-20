@@ -20,8 +20,6 @@ from PIL import Image
 from torchvision.transforms import InterpolationMode
 
 from .utils.common import check_image_file
-from .utils.data_augmentation import random_horizontally_flip
-from .utils.data_augmentation import random_vertically_flip
 
 __all__ = [
     "BaseTrainDataset", "BaseTestDataset",
@@ -145,9 +143,6 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         """
         lr = Image.open(self.lr_filenames[index]).convert("RGB")
         hr = Image.open(self.hr_filenames[index]).convert("RGB")
-
-        lr, hr = random_horizontally_flip(lr, hr)
-        lr, hr = random_vertically_flip(lr, hr)
 
         lr = self.transforms(lr)
         hr = self.transforms(hr)
