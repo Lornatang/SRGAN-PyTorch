@@ -28,7 +28,7 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         ". (Default: srgan)")
+                         ". (Default: `srgan`)")
 parser.add_argument("--model-path", type=str, metavar="PATH", required=True,
                     help="Path to latest checkpoint for model.")
 args = parser.parse_args()

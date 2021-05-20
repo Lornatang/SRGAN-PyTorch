@@ -40,7 +40,7 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         ". (Default: srgan)")
+                         ". (Default: `srgan`)")
 parser.add_argument("--model-dir", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
 parser.add_argument("--seed", default=666, type=int,
