@@ -350,10 +350,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # Test for every epoch.
         psnr, ssim, lpips, gmsd = test(dataloader=test_dataloader, model=generator, gpu=args.gpu)
-        psnr_writer.add_scalar("PSNR_Test/PSNR", psnr, epoch + 1)
-        psnr_writer.add_scalar("PSNR_Test/SSIM", ssim, epoch + 1)
-        psnr_writer.add_scalar("PSNR_Test/LPIPS", lpips, epoch + 1)
-        psnr_writer.add_scalar("PSNR_Test/GMSD", gmsd, epoch + 1)
+        psnr_writer.add_scalar("PSNR_Test/PSNR", psnr, epoch)
+        psnr_writer.add_scalar("PSNR_Test/SSIM", ssim, epoch)
+        psnr_writer.add_scalar("PSNR_Test/LPIPS", lpips, epoch)
+        psnr_writer.add_scalar("PSNR_Test/GMSD", gmsd, epoch)
 
         is_best = psnr > best_psnr
         best_psnr = max(psnr, best_psnr)
@@ -392,10 +392,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # Test for every epoch.
         psnr, ssim, lpips, gmsd = test(dataloader=test_dataloader, model=generator, gpu=args.gpu)
-        gan_writer.add_scalar("GAN_Test/PSNR", psnr, epoch + 1)
-        gan_writer.add_scalar("GAN_Test/SSIM", ssim, epoch + 1)
-        gan_writer.add_scalar("GAN_Test/LPIPS", lpips, epoch + 1)
-        gan_writer.add_scalar("GAN_Test/GMSD", gmsd, epoch + 1)
+        gan_writer.add_scalar("GAN_Test/PSNR", psnr, epoch)
+        gan_writer.add_scalar("GAN_Test/SSIM", ssim, epoch)
+        gan_writer.add_scalar("GAN_Test/LPIPS", lpips, epoch)
+        gan_writer.add_scalar("GAN_Test/GMSD", gmsd, epoch)
 
         is_best = ssim > best_ssim
         best_ssim = max(ssim, best_ssim)
