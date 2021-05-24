@@ -149,7 +149,7 @@ def rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageF
         lr = lr.rotate(degrees)
         hr = hr.rotate(degrees)
     else:
-        lr = lr.transpose(degrees)
-        hr = hr.transpose(degrees)
+        lr = lr.rotate(-degrees)
+        hr = hr.rotate(-degrees)
 
     return lr, hr
