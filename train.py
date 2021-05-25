@@ -472,7 +472,7 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
 
     # Each Epoch validates the model once.
     sr = model(base_image)
-    vutils.save_image(sr.detach(), os.path.join("runs", f"PSNR_epoch_{epoch}.png"))
+    vutils.save_image(sr.detach(), os.path.join("runs", f"PSNR_epoch_{epoch}.png"), normalize=True)
 
 
 def train_gan(dataloader: torch.utils.data.DataLoader,
@@ -571,7 +571,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
 
     # Each Epoch validates the model once.
     sr = generator(base_image)
-    vutils.save_image(sr.detach(), os.path.join("runs", f"GAN_epoch_{epoch}.png"))
+    vutils.save_image(sr.detach(), os.path.join("runs", f"GAN_epoch_{epoch}.png"), normalize=True)
 
 
 if __name__ == "__main__":

@@ -41,13 +41,14 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=InterpolationMode.BICUBIC),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+            transforms.ToTensor()
         ])
+
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
             transforms.ToTensor()
         ])
+        self.normalize = transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -62,6 +63,9 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 
         hr = self.hr_transforms(image)
         lr = self.lr_transforms(hr)
+
+        lr = self.normalize(lr)
+        hr = self.normalize(hr)
 
         return lr, hr
 
@@ -92,9 +96,9 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+            transforms.ToTensor()
         ])
+        self.normalize = transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -110,6 +114,10 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         hr = self.hr_transforms(image)
         lr = self.lr_transforms(hr)
         bicubic = self.bicubic_transforms(lr)
+
+        lr = self.normalize(lr)
+        bicubic = self.normalize(bicubic)
+        hr = self.normalize(hr)
 
         return lr, bicubic, hr
 
@@ -132,10 +140,8 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         self.lr_filenames = [os.path.join(lr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
-        self.transforms = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        ])
+        self.transforms = transforms.ToTensor()
+        self.normalize = transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -151,6 +157,9 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
 
         lr = self.transforms(lr)
         hr = self.transforms(hr)
+
+        lr = self.normalize(lr)
+        hr = self.normalize(hr)
 
         return lr, hr
 
@@ -174,15 +183,13 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         self.lr_filenames = [os.path.join(lr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
-        self.transforms = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        ])
+        self.transforms = transforms.ToTensor()
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
+        self.normalize = transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -199,6 +206,10 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         lr = self.transforms(lr)
         bicubic = self.bicubic_transforms(lr)
         hr = self.transforms(hr)
+
+        lr = self.normalize(lr)
+        bicubic = self.normalize(bicubic)
+        hr = self.normalize(hr)
 
         return lr, bicubic, hr
 
