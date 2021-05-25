@@ -211,7 +211,7 @@ def main_worker(gpu, ngpus_per_node, args):
             discriminator = torch.nn.DataParallel(discriminator).cuda()
             generator = torch.nn.DataParallel(generator).cuda()
 
-    # Loss = content loss + 0.001 * adversarial loss
+    # Loss = 0.006 * content loss + 0.001 * adversarial loss
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
     content_criterion = VGGLoss().cuda(args.gpu)
     adversarial_criterion = nn.BCELoss().cuda(args.gpu)
@@ -472,7 +472,7 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
 
     # Each Epoch validates the model once.
     sr = model(base_image)
-    vutils.save_image(sr.detach(), os.path.join("runs", f"PSNR_epoch_{epoch}.png"), normalize=True)
+    vutils.save_image(sr.detach(), os.path.join("runs", f"PSNR_epoch_{epoch}.png"))
 
 
 def train_gan(dataloader: torch.utils.data.DataLoader,
@@ -534,7 +534,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         discriminator_optimizer.step()
 
         ##############################################
-        # (2) Update G network: content loss + 0.001 * adversarial loss
+        # (2) Update G network: 0.006 * content loss + 0.001 * adversarial loss
         ##############################################
         # Sets gradients of generator model parameters to zero.
         generator.zero_grad()
@@ -544,7 +544,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         # The discriminator marks the fake sample as 1.
         adversarial_loss = adversarial_criterion(discriminator(sr), real_label)
         # Count all generator losses.
-        g_loss = content_loss + 0.001 * adversarial_loss
+        g_loss = 0.006 * content_loss + 0.001 * adversarial_loss
 
         g_loss.backward()
         generator_optimizer.step()
@@ -571,7 +571,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
 
     # Each Epoch validates the model once.
     sr = generator(base_image)
-    vutils.save_image(sr.detach(), os.path.join("runs", f"GAN_epoch_{epoch}.png"), normalize=True)
+    vutils.save_image(sr.detach(), os.path.join("runs", f"GAN_epoch_{epoch}.png"))
 
 
 if __name__ == "__main__":
