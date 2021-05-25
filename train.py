@@ -82,14 +82,14 @@ parser.add_argument("--gan-lr", type=float, default=0.0001,
 parser.add_argument("--image-size", type=int, default=96,
                     help="Image size of high resolution image. (Default: 96)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
-                    help="Low to high resolution scaling factor. Optional: [4] (Default: 4)")
+                    help="Low to high resolution scaling factor. Optional: [4]. (Default: 4)")
 parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
-parser.add_argument("--resume_psnr", default="", type=str, metavar="PATH",
+parser.add_argument("--resume-psnr", default="", type=str, metavar="PATH",
                     help="Path to latest psnr-oral checkpoint.")
-parser.add_argument("--resume_d", default="", type=str, metavar="PATH",
+parser.add_argument("--resume-d", default="", type=str, metavar="PATH",
                     help="Path to latest -oral checkpoint.")
-parser.add_argument("--resume_g", default="", type=str, metavar="PATH",
+parser.add_argument("--resume-g", default="", type=str, metavar="PATH",
                     help="Path to latest psnr-oral checkpoint.")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
@@ -485,11 +485,11 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
               epoch: int,
               writer: SummaryWriter,
               args: argparse.ArgumentParser.parse_args):
-    batch_time = AverageMeter("Time", ":.4f")
-    d_losses = AverageMeter("D Loss", ":.6f")
-    g_losses = AverageMeter("G Loss", ":.6f")
-    content_losses = AverageMeter("Content Loss", ":.4f")
-    adversarial_losses = AverageMeter("Adversarial Loss", ":.4f")
+    batch_time = AverageMeter("Time", ":6.4f")
+    d_losses = AverageMeter("D Loss", ":6.6f")
+    g_losses = AverageMeter("G Loss", ":6.6f")
+    content_losses = AverageMeter("Content Loss", ":6.4f")
+    adversarial_losses = AverageMeter("Adversarial Loss", ":6.4f")
 
     progress = ProgressMeter(num_batches=len(dataloader),
                              meters=[batch_time, d_losses, g_losses, content_losses, adversarial_losses],
@@ -545,8 +545,9 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         adversarial_loss = adversarial_criterion(discriminator(sr), real_label)
         # Count all generator losses.
         g_loss = 0.006 * content_loss + 0.001 * adversarial_loss
-
         g_loss.backward()
+
+        # Update generator model parameters.
         generator_optimizer.step()
 
         # measure elapsed time
