@@ -52,10 +52,7 @@ class Generator(nn.Module):
         self.subpixel_conv = nn.Sequential(*subpixel_conv_layers)
 
         # Final output layer.
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4),
-            nn.Tanh()
-        )
+        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
 
         # Initializing all neural network weights.
         self._initialize_weights()
@@ -67,6 +64,7 @@ class Generator(nn.Module):
         out = torch.add(conv1, conv2)
         out = self.subpixel_conv(out)
         out = self.conv3(out)
+        out = torch.tanh(out)
 
         return out
 

@@ -61,11 +61,11 @@ parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
                     help="Number of data loading workers. (Default: 4)")
 parser.add_argument("--psnr-epochs", default=20000, type=int, metavar="N",
                     help="Number of total psnr epochs to run. (Default: 20000)")
-parser.add_argument("--start-psnr-epoch", default=0, type=int, metavar='N',
+parser.add_argument("--start-psnr-epoch", default=0, type=int, metavar="N",
                     help="Manual psnr epoch number (useful on restarts). (Default: 0)")
 parser.add_argument("--gan-epochs", default=4000, type=int, metavar="N",
                     help="Number of total gan epochs to run. (Default: 4000)")
-parser.add_argument("--start-gan-epoch", default=0, type=int, metavar='N',
+parser.add_argument("--start-gan-epoch", default=0, type=int, metavar="N",
                     help="Manual gan epoch number (useful on restarts). (Default: 0)")
 parser.add_argument("-b", "--batch-size", default=16, type=int,
                     metavar="N",
@@ -74,7 +74,7 @@ parser.add_argument("-b", "--batch-size", default=16, type=int,
                          "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--sampler-frequency", default=1, type=int, metavar="N",
                     help="If there are many datasets, this method can be used "
-                         "to increase the number of epochs. (Default:1)")
+                         "to increase the number of epochs. (Default: 1)")
 parser.add_argument("--psnr-lr", type=float, default=0.0001,
                     help="Learning rate for psnr-oral. (Default: 0.0001)")
 parser.add_argument("--gan-lr", type=float, default=0.0001,
@@ -472,7 +472,7 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
 
     # Each Epoch validates the model once.
     sr = model(base_image)
-    vutils.save_image(sr.detach(), os.path.join("runs", f"PSNR_epoch_{epoch}.png"))
+    vutils.save_image(sr.detach(), os.path.join("runs", f"PSNR_epoch_{epoch}.png"), normalize=True)
 
 
 def train_gan(dataloader: torch.utils.data.DataLoader,
@@ -571,7 +571,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
 
     # Each Epoch validates the model once.
     sr = generator(base_image)
-    vutils.save_image(sr.detach(), os.path.join("runs", f"GAN_epoch_{epoch}.png"))
+    vutils.save_image(sr.detach(), os.path.join("runs", f"GAN_epoch_{epoch}.png"), normalize=True)
 
 
 if __name__ == "__main__":

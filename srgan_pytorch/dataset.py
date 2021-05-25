@@ -43,11 +43,11 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
             transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
-
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
             transforms.ToTensor()
         ])
+        self.normalize = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -62,6 +62,8 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 
         hr = self.hr_transforms(image)
         lr = self.lr_transforms(hr)
+
+        hr = self.normalize(hr)
 
         return lr, hr
 
@@ -94,6 +96,7 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
             transforms.RandomCrop((image_size, image_size)),
             transforms.ToTensor()
         ])
+        self.normalize = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -109,6 +112,9 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         hr = self.hr_transforms(image)
         lr = self.lr_transforms(hr)
         bicubic = self.bicubic_transforms(lr)
+
+        bicubic = self.normalize(bicubic)
+        hr = self.normalize(hr)
 
         return lr, bicubic, hr
 
@@ -132,6 +138,7 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
         self.transforms = transforms.ToTensor()
+        self.normalize = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -147,6 +154,8 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
 
         lr = self.transforms(lr)
         hr = self.transforms(hr)
+
+        hr = self.normalize(hr)
 
         return lr, hr
 
@@ -176,6 +185,7 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
             transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
+        self.normalize = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -192,6 +202,9 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         lr = self.transforms(lr)
         bicubic = self.bicubic_transforms(lr)
         hr = self.transforms(hr)
+
+        bicubic = self.normalize(bicubic)
+        hr = self.normalize(hr)
 
         return lr, bicubic, hr
 
