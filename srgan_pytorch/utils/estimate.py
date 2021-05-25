@@ -44,6 +44,10 @@ def iqa(source: torch.Tensor, target: torch.Tensor, gpu: int) -> [torch.Tensor, 
     # Reference sources from http://www4.comp.polyu.edu.hk/~cslzhang/IQA/GMSD/GMSD.htm
     gmsd_loss = GMSD().cuda(gpu).eval()
 
+    # Convert the image value range to [0, 1].
+    source = (source + 1) / 2
+    target = (target + 1) / 2
+
     # Complete estimate.
     with torch.no_grad():
         mse_value = mse_loss(source, target)
@@ -67,6 +71,7 @@ def test(dataloader: torch.utils.data.DataLoader, model: nn.Module, gpu: int) ->
 
     # switch eval mode.
     model.eval()
+
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     total_psnr_value = 0.
     total_ssim_value = 0.
@@ -83,6 +88,10 @@ def test(dataloader: torch.utils.data.DataLoader, model: nn.Module, gpu: int) ->
                 hr = hr.cuda(gpu, non_blocking=True)
 
             sr = model(lr)
+
+            # Convert the image value range to [0, 1].
+            sr = (sr + 1) / 2
+            hr = (hr + 1) / 2
 
             # The MSE Loss of the generated fake high-resolution image and real high-resolution image is calculated.
             total_psnr_value += 10 * torch.log10(1. / mse_loss(sr, hr))

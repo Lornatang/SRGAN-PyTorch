@@ -38,7 +38,7 @@ class LPIPSLoss(torch.nn.Module):
         self.std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # Convert the image value range to [- 1, 1].
+        # Convert the image value range to [0, 1].
         source = (source + 1) / 2
         target = (target + 1) / 2
 
@@ -153,7 +153,7 @@ class VGGLoss(torch.nn.Module):
         self.std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # Convert the image value range to [- 1, 1].
+        # Convert the image value range to [0, 1].
         source = (source + 1) / 2
         target = (target + 1) / 2
 
