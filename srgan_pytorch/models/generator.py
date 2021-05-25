@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import math
 
 import torch
 import torch.nn as nn
@@ -21,22 +20,13 @@ from .utils import ResidualBlock
 from .utils import SubpixelConvolutionLayer
 
 model_urls = {
-    "srgan_2x2": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_2x2_ImageNet2012-8a6c37a4f51bd78920271bae11c9ab7882f8df066afba425cde360ff645a681a.pth",
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_ImageNet2012-992702908bcbce3b6e2bc2d15eb5b4eb7a5c816468654819c6efbbd79ce671ea.pth",
-    "srgan_8x8": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_8x8_ImageNet2012-56374e6208b19eebe1a3fb2dd06a50c29fd7e61b75714c037e22de3a97d86135.pth"
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_ImageNet2012-992702908bcbce3b6e2bc2d15eb5b4eb7a5c816468654819c6efbbd79ce671ea.pth"
 }
 
 
 class Generator(nn.Module):
-    def __init__(self, upscale_factor: int = 4) -> None:
-        r"""
-        Args:
-            upscale_factor (int): How many times to upscale the picture. (Default: 4)
-        """
+    def __init__(self) -> None:
         super(Generator, self).__init__()
-        # Calculating the number of subpixel convolution layers.
-        num_subpixel_convolution_layers = int(math.log(upscale_factor, 2))
-
         # First layer.
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=9, stride=1, padding=4),
@@ -57,12 +47,18 @@ class Generator(nn.Module):
 
         # 2 Sub-pixel convolution layers.
         subpixel_conv_layers = []
-        for _ in range(num_subpixel_convolution_layers):
+        for _ in range(2):
             subpixel_conv_layers.append(SubpixelConvolutionLayer(64))
         self.subpixel_conv = nn.Sequential(*subpixel_conv_layers)
 
         # Final output layer.
-        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4),
+            nn.Tanh()
+        )
+
+        # Initializing all neural network weights.
+        self._initialize_weights()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         conv1 = self.conv1(x)
@@ -74,23 +70,28 @@ class Generator(nn.Module):
 
         return out
 
+    def _initialize_weights(self) -> None:
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.normal_(m.weight, 1.0, 0.02)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
-def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
-    model = Generator(upscale_factor)
+
+def _gan(arch: str, pretrained: bool, progress: bool) -> Generator:
+    model = Generator()
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
-
-
-def srgan_2x2(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _gan("srgan_2x2", 2, pretrained, progress)
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
@@ -100,14 +101,4 @@ def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _gan("srgan", 4, pretrained, progress)
-
-
-def srgan_8x8(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _gan("srgan_8x8", 8, pretrained, progress)
+    return _gan("srgan", pretrained, progress)

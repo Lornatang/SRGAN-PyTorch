@@ -46,8 +46,8 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
                     help="Model architecture: " +
                          " | ".join(model_names) +
                          ". (Default: `srgan`)")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
-                    help="Low to high resolution scaling factor. Optional: [2, 4, 8]. (Default: 4)")
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
+                    help="Low to high resolution scaling factor. Optional: [4] (Default: 4)")
 parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model. (Default: ``)")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
@@ -130,8 +130,8 @@ if __name__ == "__main__":
     create_folder("tests")
 
     logger.info("TestingEngine:")
-    print("\tAPI version .......... 0.2.2")
-    print("\tBuild ................ 2021.04.23")
+    print("\tAPI version .......... 0.3.0")
+    print("\tBuild ................ 2021.05.25")
     print("##################################################\n")
     main()
 

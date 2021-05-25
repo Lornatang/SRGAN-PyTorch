@@ -28,10 +28,26 @@ class LPIPSLoss(torch.nn.Module):
 
     def __init__(self) -> None:
         super(LPIPSLoss, self).__init__()
-        self.model = lpips.LPIPS(net="vgg", verbose=False).eval()
+        self.features = lpips.LPIPS(net="vgg", verbose=False).eval()
+        # Freeze parameters. Don't train.
+        for name, param in self.features.named_parameters():
+            param.requires_grad = False
+
+        # Normalize the input image. Caution: input tensor range [0, 1].
+        self.mean = torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+        self.std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        lpips_loss = torch.mean(self.model(source, target))
+        # Convert the image value range to [- 1, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
+
+        # Normalize the input image. Default: `ImageNet` dataset.
+        source = (source - self.mean) / self.std
+        target = (target - self.mean) / self.std
+
+        # Use lpips_vgg loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
+        lpips_loss = torch.nn.functional.l1_loss(self.features(source), self.features(target))
 
         return lpips_loss
 
@@ -132,7 +148,20 @@ class VGGLoss(torch.nn.Module):
         for name, param in self.features.named_parameters():
             param.requires_grad = False
 
+        # Normalize the input image. Caution: input tensor range [0, 1].
+        self.mean = torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+        self.std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # Convert the image value range to [- 1, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
+
+        # Normalize the input image. Default: `ImageNet` dataset.
+        source = (source - self.mean) / self.std
+        target = (target - self.mean) / self.std
+
+        # Use VGG19_36th loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
         vgg_loss = torch.nn.functional.l1_loss(self.features(source), self.features(target))
 
         return vgg_loss

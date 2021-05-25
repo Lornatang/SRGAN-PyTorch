@@ -81,8 +81,8 @@ parser.add_argument("--gan-lr", type=float, default=0.0001,
                     help="Learning rate for gan-oral. (default: 0.0001)")
 parser.add_argument("--image-size", type=int, default=96,
                     help="Image size of high resolution image. (Default: 96)")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4, 8],
-                    help="Low to high resolution scaling factor. Optional: [2, 4, 8] (Default: 4)")
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
+                    help="Low to high resolution scaling factor. Optional: [4] (Default: 4)")
 parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
 parser.add_argument("--resume_psnr", default="", type=str, metavar="PATH",
@@ -366,10 +366,13 @@ def main_worker(gpu, ngpus_per_node, args):
                         "optimizer": psnr_optimizer.state_dict(),
                         }, os.path.join("weights", f"PSNR_epoch{epoch}.pth"))
             if is_best:
-                torch.save(generator.state_dict(), os.path.join("weights", f"PSNR.pth"))
+                torch.save(generator.state_dict(), os.path.join("weights", f"PSNR-best.pth"))
 
-    # Load best model weight.
-    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR.pth"), map_location=f"cuda:{args.gpu}"))
+    # Save the last training model parameters.
+    torch.save(generator.state_dict(), os.path.join("weights", f"PSNR-last.pth"))
+
+    # Load final model weight.
+    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR-last"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
         if args.distributed:
@@ -413,7 +416,10 @@ def main_worker(gpu, ngpus_per_node, args):
                         "optimizer": generator_optimizer.state_dict()
                         }, os.path.join("weights", f"Generator_epoch{epoch}.pth"))
             if is_best:
-                torch.save(generator.state_dict(), os.path.join("weights", f"GAN.pth"))
+                torch.save(generator.state_dict(), os.path.join("weights", f"GAN-best.pth"))
+
+    # Save the last training model parameters.
+    torch.save(generator.state_dict(), os.path.join("weights", f"PSNR-last.pth"))
 
 
 def train_psnr(dataloader: torch.utils.data.DataLoader,
@@ -425,7 +431,7 @@ def train_psnr(dataloader: torch.utils.data.DataLoader,
                writer: SummaryWriter,
                args: argparse.ArgumentParser.parse_args):
     batch_time = AverageMeter("Time", ":6.4f")
-    losses = AverageMeter("Loss", ":.6f")
+    losses = AverageMeter("MSE Loss", ":.6f")
     progress = ProgressMeter(num_batches=len(dataloader),
                              meters=[batch_time, losses],
                              prefix=f"Epoch: [{epoch}]")
@@ -506,30 +512,36 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
         fake_label = torch.full((batch_size, 1), 0, dtype=lr.dtype).cuda(args.gpu, non_blocking=True)
 
         ##############################################
-        # (1) Update D network: maximize - E(hr)[log(D(hr))] + E(lr)[log(1- D(G(lr))]
+        # (1) Update D network: E(hr)[log(D(hr))] + E(sr)[log(1- D(G(sr))]
         ##############################################
+        # Sets gradients of discriminator model parameters to zero.
         discriminator.zero_grad()
 
         # Generating fake high resolution images from real low resolution images.
         sr = generator(lr)
 
-        # Adversarial loss for real and fake images (origin GAN)
+        # The discriminator marks the real sample as 1.
         d_loss_real = adversarial_criterion(discriminator(hr), real_label)
+        d_loss_real.backward()
+        # The discriminator marks the fake sample as 0.
         d_loss_fake = adversarial_criterion(discriminator(sr.detach()), fake_label)
+        d_loss_fake.backward()
+
         # Count all discriminator losses.
         d_loss = d_loss_real + d_loss_fake
 
-        d_loss.backward()
+        # Update discriminator model parameters.
         discriminator_optimizer.step()
 
         ##############################################
         # (2) Update G network: content loss + 0.001 * adversarial loss
         ##############################################
+        # Sets gradients of generator model parameters to zero.
         generator.zero_grad()
 
-        # The 36th layer in VGG19 is used as the feature extractor by default
+        # The 36th layer in VGG19 is used as the feature extractor by default.
         content_loss = content_criterion(sr, hr.detach())
-        # Adversarial loss for real and fake images (origin GAN).
+        # The discriminator marks the fake sample as 1.
         adversarial_loss = adversarial_criterion(discriminator(sr), real_label)
         # Count all generator losses.
         g_loss = content_loss + 0.001 * adversarial_loss
@@ -570,8 +582,8 @@ if __name__ == "__main__":
     create_folder("weights")
 
     logger.info("TrainingEngine:")
-    print("\tAPI version .......... 0.2.2")
-    print("\tBuild ................ 2021.04.25")
+    print("\tAPI version .......... 0.3.0")
+    print("\tBuild ................ 2021.05.25")
     print("##################################################\n")
     main()
     logger.info("All training has been completed successfully.\n")

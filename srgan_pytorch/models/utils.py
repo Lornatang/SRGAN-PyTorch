@@ -54,6 +54,6 @@ class ResidualBlock(nn.Module):
         out = self.conv2(out)
         out = self.bn2(out)
 
-        out = out + x
+        out = torch.add(out, x)
 
         return out

@@ -11,6 +11,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from .generator import srgan
-from .generator import srgan_2x2
-from .generator import srgan_8x8
+from .generator import *

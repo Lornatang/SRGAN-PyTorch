@@ -41,7 +41,8 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=InterpolationMode.BICUBIC),
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
@@ -91,7 +92,8 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         ])
 
     def __getitem__(self, index):
@@ -130,7 +132,10 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
         self.lr_filenames = [os.path.join(lr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
-        self.transforms = transforms.ToTensor()
+        self.transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+        ])
 
     def __getitem__(self, index):
         r""" Get image source file.
@@ -169,7 +174,10 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         self.lr_filenames = [os.path.join(lr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
         self.hr_filenames = [os.path.join(hr_dir, x) for x in self.sampler_filenames if check_image_file(x)]
 
-        self.transforms = transforms.ToTensor()
+        self.transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+        ])
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
