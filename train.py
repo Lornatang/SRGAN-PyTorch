@@ -372,7 +372,7 @@ def main_worker(gpu, ngpus_per_node, args):
     torch.save(generator.state_dict(), os.path.join("weights", f"PSNR-last.pth"))
 
     # Load final model weight.
-    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR-last"), map_location=f"cuda:{args.gpu}"))
+    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR-last.pth"), map_location=f"cuda:{args.gpu}"))
 
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
         if args.distributed:
