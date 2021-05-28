@@ -157,7 +157,7 @@ class ContentLoss(torch.nn.Module):
         target = (target - self.mean) / self.std
 
         # Use VGG19_35th loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
-        loss = torch.nn.functional.l1_loss(self.model(source), self.model(target))
+        loss = torch.nn.functional.mse_loss(self.model(source), self.model(target))
 
         return loss
 
@@ -204,6 +204,6 @@ class LPIPSLoss(torch.nn.Module):
         target = (target - self.mean) / self.std
 
         # Use lpips_vgg loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
-        loss = torch.nn.functional.l1_loss(self.features(source), self.features(target))
+        loss = torch.nn.functional.mse_loss(self.features(source), self.features(target))
 
         return loss
