@@ -36,7 +36,7 @@ from tensorboardX import SummaryWriter
 import srgan_pytorch.models as models
 from srgan_pytorch.dataset import BaseTestDataset
 from srgan_pytorch.dataset import BaseTrainDataset
-from srgan_pytorch.loss import VGGLoss
+from srgan_pytorch.loss import LPIPSLoss
 from srgan_pytorch.models.discriminator import discriminator_for_vgg
 from srgan_pytorch.utils.common import AverageMeter
 from srgan_pytorch.utils.common import ProgressMeter
@@ -213,7 +213,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # Loss = 0.006 * content loss + 0.001 * adversarial loss
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
-    content_criterion = VGGLoss().cuda(args.gpu)
+    content_criterion = LPIPSLoss().cuda(args.gpu)
     adversarial_criterion = nn.BCELoss().cuda(args.gpu)
     logger.info(f"Losses function information:\n"
                 f"\tPixel:       MSELoss\n"
@@ -480,7 +480,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
               discriminator_optimizer: torch.optim.Adam,
               generator: nn.Module,
               generator_optimizer: torch.optim.Adam,
-              content_criterion: VGGLoss,
+              content_criterion: LPIPSLoss,
               adversarial_criterion: nn.BCELoss,
               epoch: int,
               writer: SummaryWriter,
