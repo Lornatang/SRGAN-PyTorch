@@ -149,7 +149,7 @@ def main():
         # main_worker process function
         mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
     else:
-        # Simply call main_worker function
+        # Simply call main_worker function.
         main_worker(args.gpu, ngpus_per_node, args)
 
 
