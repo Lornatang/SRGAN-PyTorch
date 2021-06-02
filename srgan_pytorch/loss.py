@@ -47,6 +47,10 @@ class CharbonnierLoss(torch.nn.Module):
         self.eps = eps
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # The tensor range is expanded from [-1, 1] to [0, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
+
         # Calculate charbonnier loss.
         loss = torch.mean(torch.sqrt((source - target) ** 2 + self.eps))
 
@@ -141,13 +145,17 @@ class ContentLoss(torch.nn.Module):
             self.std = torch.Tensor([0.089, 0.104, 0.049]).view(1, 3, 1, 1)
 
         # Extract the 35th layer of vgg19 model feature extraction layer.
-        self.model = torch.nn.Sequential(*list(model.features.children())[:35]).eval()
+        self.feature_extraction = torch.nn.Sequential(*list(model.features.children())[:35]).eval()
 
         # Freeze model all parameters. Don't train.
-        for name, parameters in self.model.named_parameters():
+        for name, parameters in self.feature_extraction.named_parameters():
             parameters.requires_grad = False
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # The tensor range is expanded from [-1, 1] to [0, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
+
         # Keep all parameters in same device.
         self.mean = self.mean.cuda(source.device, non_blocking=True)
         self.std = self.std.cuda(source.device, non_blocking=True)
@@ -157,7 +165,7 @@ class ContentLoss(torch.nn.Module):
         target = (target - self.mean) / self.std
 
         # Use VGG19_35th loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
-        loss = torch.nn.functional.mse_loss(self.model(source), self.model(target))
+        loss = torch.nn.functional.mse_loss(self.feature_extraction(source), self.feature_extraction(target))
 
         return loss
 
@@ -185,9 +193,9 @@ class LPIPSLoss(torch.nn.Module):
 
     def __init__(self) -> None:
         super(LPIPSLoss, self).__init__()
-        self.features = lpips.LPIPS(net="vgg", verbose=False).eval()
+        self.feature_extraction = lpips.LPIPS(net="vgg", verbose=False).eval()
         # Freeze parameters. Don't train.
-        for name, param in self.features.named_parameters():
+        for name, param in self.feature_extraction.named_parameters():
             param.requires_grad = False
 
         # Normalize the input image. Caution: input tensor range [0, 1].
@@ -195,6 +203,10 @@ class LPIPSLoss(torch.nn.Module):
         self.std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # The tensor range is expanded from [-1, 1] to [0, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
+
         # Keep all parameters in same device.
         self.mean = self.mean.cuda(source.device, non_blocking=True)
         self.std = self.std.cuda(source.device, non_blocking=True)
@@ -204,6 +216,6 @@ class LPIPSLoss(torch.nn.Module):
         target = (target - self.mean) / self.std
 
         # Use lpips_vgg loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
-        loss = torch.nn.functional.mse_loss(self.features(source), self.features(target))
+        loss = torch.nn.functional.l1_loss(self.feature_extraction(source), self.feature_extraction(target))
 
         return loss
