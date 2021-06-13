@@ -38,9 +38,9 @@ def main(args) -> None:
         # convolution algorithm.
         random.seed(args.seed)
         torch.manual_seed(args.seed)
-        logger.warning("You have chosen to seed training. "
+        logger.warning("You have chosen to seed testing. "
                        "This will turn on the CUDNN deterministic setting, "
-                       "which can slow down your training considerably! "
+                       "which can slow down your testing considerably! "
                        "You may see unexpected behavior when restarting "
                        "from checkpoints.")
         # for the current configuration, so as to optimize the operation efficiency.
