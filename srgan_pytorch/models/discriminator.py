@@ -70,7 +70,6 @@ class DiscriminatorForVGG(nn.Module):
 
 
 def discriminator_for_vgg(image_size: int = 96) -> DiscriminatorForVGG:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
-    """
+    r"""GAN model architecture from `<https://arxiv.org/pdf/1609.04802v5.pdf>` paper."""
     model = DiscriminatorForVGG(image_size)
     return model

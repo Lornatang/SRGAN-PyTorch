@@ -37,7 +37,7 @@ def _gan(arch: str, pretrained: bool, progress: bool) -> Generator:
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
+    r"""GAN model architecture from `<https://arxiv.org/pdf/1511.06434v2.pdf>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet

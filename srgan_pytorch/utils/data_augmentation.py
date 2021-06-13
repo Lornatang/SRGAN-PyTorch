@@ -12,16 +12,17 @@
 # limitations under the License.
 # ==============================================================================
 """Mainly apply the data augment operation on `Torchvision` and `PIL` to the super-resolution field"""
+import random
+from typing import Any
+
 import PIL.BmpImagePlugin
-import torch
-import torchvision.transforms as transforms
 import torchvision.transforms.functional_pil as F
 
 __all__ = ["adjust_brightness", "adjust_contrast", "adjust_saturation",
-           "random_horizontally_flip", "random_vertically_flip", "random_rotate", "rotate"]
+           "random_horizontally_flip", "random_vertically_flip", "random_rotate"]
 
 
-def adjust_brightness(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
+def adjust_brightness(lr: None, hr: None, p: float = 0.5) -> [Any, Any]:
     r"""Adjust brightness of an image.
 
     Args:
@@ -33,14 +34,14 @@ def adjust_brightness(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugi
         Adjusted brightness low-resolution image and adjusted brightness high-resolution image.
     """
 
-    if p > 0.5:
+    if random.random() >= p:
         lr = F.adjust_brightness(lr, brightness_factor=p)
         hr = F.adjust_brightness(hr, brightness_factor=p)
 
     return lr, hr
 
 
-def adjust_contrast(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
+def adjust_contrast(lr: None, hr: None, p: float = 0.5) -> [Any, Any]:
     r"""Adjust contrast of an image.
 
     Args:
@@ -51,33 +52,32 @@ def adjust_contrast(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.
     Returns:
         Adjusted contrast low-resolution image and adjusted contrast high-resolution image.
     """
-
-    lr = F.adjust_contrast(lr, brightness_factor=p)
-    hr = F.adjust_contrast(hr, brightness_factor=p)
+    if random.random() >= p:
+        lr = F.adjust_contrast(lr, brightness_factor=p)
+        hr = F.adjust_contrast(hr, brightness_factor=p)
 
     return lr, hr
 
 
-def adjust_saturation(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
+def adjust_saturation(lr: None, hr: None, p: float = 0.5) -> [Any, Any]:
     r"""Adjust saturation of an image.
 
     Args:
-        lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution images loaded with PIL.
-        hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution images loaded with PIL.
+        lr (PIL.BmpImagePlugin): Low-resolution images loaded with PIL.
+        hr (PIL.BmpImagePlugin): High-resolution images loaded with PIL.
         p (float): Probability of the image being flipped. (Default: 0.5)
 
     Returns:
         Adjusted saturation low-resolution image and adjusted saturation high-resolution image.
     """
-
-    lr = F.adjust_saturation(lr, brightness_factor=p)
-    hr = F.adjust_saturation(hr, brightness_factor=p)
+    if random.random() >= p:
+        lr = F.adjust_saturation(lr, brightness_factor=p)
+        hr = F.adjust_saturation(hr, brightness_factor=p)
 
     return lr, hr
 
 
-def random_horizontally_flip(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile,
-                             p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
+def random_horizontally_flip(lr: None, hr: None, p: float = 0.5) -> [Any, Any]:
     r"""Flip horizontally randomly.
 
     Args:
@@ -88,15 +88,14 @@ def random_horizontally_flip(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpIma
     Returns:
         Flipped low-resolution image and flipped high-resolution image.
     """
-    if torch.rand(1) < p:
+    if random.random() >= p:
         lr = F.hflip(lr)
         hr = F.hflip(hr)
 
     return lr, hr
 
 
-def random_vertically_flip(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile,
-                           p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
+def random_vertically_flip(lr: None, hr: None, p: float = 0.5) -> [Any, Any]:
     r"""Flip horizontally randomly.
 
     Args:
@@ -107,49 +106,28 @@ def random_vertically_flip(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImage
     Returns:
         Flipped low-resolution image and flipped high-resolution image.
     """
-    if torch.rand(1) < p:
+    if random.random() >= p:
         lr = F.hflip(lr)
         hr = F.hflip(hr)
 
     return lr, hr
 
 
-def random_rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile) -> PIL.BmpImagePlugin.BmpImageFile:
+def random_rotate(lr: None, hr: None, p: float = 0.5) -> [Any, Any]:
     r"""Randomly select the rotation angle.
 
     Args:
         lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution images loaded with PIL.
         hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution images loaded with PIL.
-
-    Returns:
-        Rotated low-resolution image and rotated high-resolution image.
-    """
-    angle = transforms.RandomRotation.get_params([-180, 180])
-    lr = lr.rotate(angle)
-    hr = hr.rotate(angle)
-
-    return lr, hr
-
-
-def rotate(lr: PIL.BmpImagePlugin.BmpImageFile, hr: PIL.BmpImagePlugin.BmpImageFile, degrees: int, p: float = 0.5) -> PIL.BmpImagePlugin.BmpImageFile:
-    r"""Randomly select the rotation angle.
-
-    Args:
-        lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution images loaded with PIL.
-        hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution images loaded with PIL.
-        degrees (int): Range of degrees to select from. If degrees is a number instead of sequence like (min, max), the range of degrees
-            will be (-degrees, +degrees).
         p (float): When the random probability is less than the value, it rotates clockwise.
             When the random probability is greater than the value, it rotates clockwise. (Default: 0.5)
 
     Returns:
         Rotated low-resolution image and rotated high-resolution image.
     """
-    if torch.randn(1) < p:
-        lr = lr.rotate(degrees)
-        hr = hr.rotate(degrees)
-    else:
-        lr = lr.rotate(-degrees)
-        hr = hr.rotate(-degrees)
+    angle = random.choice([90, 180, 270])
+    if random.random() >= p:
+        lr = F.rotate(lr, angle)
+        hr = F.rotate(hr, angle)
 
     return lr, hr

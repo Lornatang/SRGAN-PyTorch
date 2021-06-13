@@ -46,13 +46,16 @@ class Generator(nn.Module):
         )
 
         # 2 Sub-pixel convolution layers.
-        subpixel_conv_layers = []
-        for _ in range(2):
-            subpixel_conv_layers.append(SubpixelConvolutionLayer(64))
-        self.subpixel_conv = nn.Sequential(*subpixel_conv_layers)
+        self.subpixel_conv = nn.Sequential(
+            SubpixelConvolutionLayer(64),
+            SubpixelConvolutionLayer(64)
+        )
 
         # Final output layer.
-        self.conv3 = nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4)
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(64, 3, kernel_size=9, stride=1, padding=4),
+            nn.Tanh()
+        )
 
         # Initializing all neural network weights.
         self._initialize_weights()
@@ -64,7 +67,6 @@ class Generator(nn.Module):
         out = torch.add(conv1, conv2)
         out = self.subpixel_conv(out)
         out = self.conv3(out)
-        out = torch.tanh(out)
 
         return out
 
@@ -93,7 +95,7 @@ def _gan(arch: str, pretrained: bool, progress: bool) -> Generator:
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
+    r"""GAN model architecture from `<https://arxiv.org/pdf/1609.04802v5.pdf>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
