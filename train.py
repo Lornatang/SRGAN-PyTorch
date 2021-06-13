@@ -36,7 +36,7 @@ from tensorboardX import SummaryWriter
 import srgan_pytorch.models as models
 from srgan_pytorch.dataset import BaseTestDataset
 from srgan_pytorch.dataset import BaseTrainDataset
-from srgan_pytorch.loss import VGGLoss
+from srgan_pytorch.loss import ContentLoss
 from srgan_pytorch.models.discriminator import discriminator_for_vgg
 from srgan_pytorch.utils.common import AverageMeter
 from srgan_pytorch.utils.common import ProgressMeter
@@ -149,7 +149,7 @@ def main():
         # main_worker process function
         mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
     else:
-        # Simply call main_worker function
+        # Simply call main_worker function.
         main_worker(args.gpu, ngpus_per_node, args)
 
 
@@ -213,7 +213,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # Loss = 0.006 * content loss + 0.001 * adversarial loss
     pixel_criterion = nn.MSELoss().cuda(args.gpu)
-    content_criterion = VGGLoss().cuda(args.gpu)
+    content_criterion = ContentLoss().cuda(args.gpu)
     adversarial_criterion = nn.BCELoss().cuda(args.gpu)
     logger.info(f"Losses function information:\n"
                 f"\tPixel:       MSELoss\n"
@@ -371,9 +371,6 @@ def main_worker(gpu, ngpus_per_node, args):
     # Save the last training model parameters.
     torch.save(generator.state_dict(), os.path.join("weights", f"PSNR-last.pth"))
 
-    # Load final model weight.
-    generator.load_state_dict(torch.load(os.path.join("weights", f"PSNR-last.pth"), map_location=f"cuda:{args.gpu}"))
-
     for epoch in range(args.start_gan_epoch, args.gan_epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -480,7 +477,7 @@ def train_gan(dataloader: torch.utils.data.DataLoader,
               discriminator_optimizer: torch.optim.Adam,
               generator: nn.Module,
               generator_optimizer: torch.optim.Adam,
-              content_criterion: VGGLoss,
+              content_criterion: ContentLoss,
               adversarial_criterion: nn.BCELoss,
               epoch: int,
               writer: SummaryWriter,
