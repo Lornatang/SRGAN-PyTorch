@@ -47,6 +47,10 @@ class CharbonnierLoss(torch.nn.Module):
         self.eps = eps
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # The tensor range is expanded from [-1, 1] to [0, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
+
         # Calculate charbonnier loss.
         loss = torch.mean(torch.sqrt((source - target) ** 2 + self.eps))
 
@@ -127,19 +131,6 @@ class ContentLoss(torch.nn.Module):
         # otherwise, the custom dataset model weight will be loaded.
         model = torchvision.models.vgg19(pretrained=use_pretrained, num_classes=num_classes)
 
-        # If the weight of pre training model is used, the normalized value on Imagenet will be loaded,
-        # otherwise, the normalized value on custom data set will be loaded.
-        if use_pretrained:
-            # Normalized values for ImageNet datasets.
-            self.mean = torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-            self.std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-        else:
-            assert model_path is not None, "You must define the model weight address."
-            model.load_state_dict(torch.load(model_path))
-            # Normalized values for specified datasets.
-            self.mean = torch.Tensor([0.864, 0.565, 0.625]).view(1, 3, 1, 1)
-            self.std = torch.Tensor([0.089, 0.104, 0.049]).view(1, 3, 1, 1)
-
         # Extract the 35th layer of vgg19 model feature extraction layer.
         self.model = torch.nn.Sequential(*list(model.features.children())[:35]).eval()
 
@@ -148,13 +139,9 @@ class ContentLoss(torch.nn.Module):
             parameters.requires_grad = False
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # Keep all parameters in same device.
-        self.mean = self.mean.cuda(source.device, non_blocking=True)
-        self.std = self.std.cuda(source.device, non_blocking=True)
-
-        # Normalize the all input image.
-        source = (source - self.mean) / self.std
-        target = (target - self.mean) / self.std
+        # The tensor range is expanded from [-1, 1] to [0, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
 
         # Use VGG19_35th loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
         loss = torch.nn.functional.mse_loss(self.model(source), self.model(target))
@@ -190,18 +177,10 @@ class LPIPSLoss(torch.nn.Module):
         for name, param in self.features.named_parameters():
             param.requires_grad = False
 
-        # Normalize the input image. Caution: input tensor range [0, 1].
-        self.mean = torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-        self.std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # Keep all parameters in same device.
-        self.mean = self.mean.cuda(source.device, non_blocking=True)
-        self.std = self.std.cuda(source.device, non_blocking=True)
-
-        # Normalize the input image. Default: `ImageNet` dataset.
-        source = (source - self.mean) / self.std
-        target = (target - self.mean) / self.std
+        # The tensor range is expanded from [-1, 1] to [0, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
 
         # Use lpips_vgg loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
         loss = torch.nn.functional.mse_loss(self.features(source), self.features(target))
