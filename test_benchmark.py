@@ -23,97 +23,62 @@ import torchvision.utils as vutils
 from tqdm import tqdm
 
 import srgan_pytorch.models as models
-from srgan_pytorch.dataset import BaseTestDataset
+from srgan_pytorch.dataset import CustomTestDataset
 from srgan_pytorch.utils.common import configure
 from srgan_pytorch.utils.common import create_folder
 from srgan_pytorch.utils.estimate import iqa
 
-model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
+# Find all available models.
+model_names = sorted(name for name in models.__dict__ if
+                     name.islower() and not name.startswith("__")
+                     and callable(models.__dict__[name]))
 
+# It is a convenient method for simple scripts to configure the log package at one time.
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser("Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network.")
-parser.add_argument("data", metavar="DIR",
-                    help="Path to dataset.")
-parser.add_argument("-a", "--arch", metavar="ARCH", default="srgan",
-                    choices=model_names,
-                    help="Model architecture: " +
-                         " | ".join(model_names) +
-                         ". (Default: `srgan`)")
-parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
-                    help="Number of data loading workers. (Default: 8)")
-parser.add_argument("-b", "--batch-size", default=32, type=int,
-                    metavar="N",
-                    help="mini-batch size (default: 32), this is the total "
-                         "batch size of all GPUs on the current node when "
-                         "using Data Parallel or Distributed Data Parallel")
-parser.add_argument("--sampler-frequency", default=1, type=int, metavar="N",
-                    help="If there are many datasets, this method can be used "
-                         "to increase the number of epochs. (Default:1)")
-parser.add_argument("--image-size", type=int, default=96,
-                    help="Image size of high resolution image. (Default: 96)")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
-                    help="Low to high resolution scaling factor. Optional: [4] (Default: 4)")
-parser.add_argument("--model-path", default="", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model. (Default: ``)")
-parser.add_argument("--pretrained", dest="pretrained", action="store_true",
-                    help="Use pre-trained model.")
-parser.add_argument("--seed", default=666, type=int,
-                    help="Seed for initializing training. (Default: 666)")
-parser.add_argument("--gpu", default=None, type=int,
-                    help="GPU id to use.")
 
-total_mse_value = 0.0
-total_rmse_value = 0.0
-total_psnr_value = 0.0
-total_ssim_value = 0.0
-total_lpips_value = 0.0
-total_gmsd_value = 0.0
+def main(args):
+    # Initialize all evaluation criteria.
+    total_mse_value, total_rmse_value, total_psnr_value, total_ssim_value, total_gmsd_value = 0.0, 0.0, 0.0, 0.0, 0.0
+    if args.seed is not None:
+        # In order to make the model repeatable, the first step is to set random seeds, and the second step is to set
+        # convolution algorithm.
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        logger.warning("You have chosen to seed training. "
+                       "This will turn on the CUDNN deterministic setting, "
+                       "which can slow down your training considerably! "
+                       "You may see unexpected behavior when restarting "
+                       "from checkpoints.")
+        # for the current configuration, so as to optimize the operation efficiency.
+        cudnn.benchmark = True
+        # Ensure that every time the same input returns the same result.
+        cudnn.deterministic = True
 
-
-def main():
-    args = parser.parse_args()
-
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    cudnn.deterministic = True
-
-    main_worker(args.gpu, args)
-
-
-def main_worker(gpu, args):
-    global total_mse_value, total_rmse_value, total_psnr_value, total_ssim_value, total_lpips_value, total_gmsd_value
-    args.gpu = gpu
-
-    if args.gpu is not None:
-        logger.info(f"Use GPU: {args.gpu} for testing.")
-
+    # Build a super-resolution model, if model_ If path is defined, the specified model weight will be loaded.
     model = configure(args)
-
-    if not torch.cuda.is_available():
-        logger.warning("Using CPU, this will be slow.")
-    if args.gpu is not None:
-        torch.cuda.set_device(args.gpu)
-        model = model.cuda(args.gpu)
-
-    logger.info("Load testing dataset.")
-    # Selection of appropriate treatment equipment.
-    dataset = BaseTestDataset(os.path.join(args.data, "test"), args.image_size, args.upscale_factor)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, pin_memory=True, num_workers=args.workers)
-    logger.info(f"Dataset information:\n"
-                f"\tPath:              {os.getcwd()}/{args.data}/test\n"
-                f"\tNumber of samples: {len(dataset)}\n"
-                f"\tNumber of batches: {len(dataloader)}\n"
-                f"\tShuffle:           False\n"
-                f"\tSampler:           None\n"
-                f"\tWorkers:           {args.workers}")
-
-    cudnn.benchmark = True
-
-    # Set eval mode.
+    # If special choice model path.
+    if args.model_path is not None:
+        logger.info(f"You loaded the specified weight. Load weights from `{os.path.abspath(args.model_path)}`.")
+        model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu")))
+    # Switch model to eval mode.
     model.eval()
 
+    # If the GPU is available, load the model into the GPU memory. This speed.
+    if not torch.cuda.is_available():
+        logger.warning("Using CPU, this will be slow.")
+
+    # Selection of appropriate treatment equipment.
+    dataset = CustomTestDataset(root=os.path.join(args.data, "test"),
+                                image_size=args.image_size,
+                                upscale_factor=args.upscale_factor)
+    dataloader = torch.utils.data.DataLoader(dataset,
+                                             batch_size=args.batch_size,
+                                             pin_memory=True,
+                                             num_workers=args.workers)
+
+    # Needs to reconstruct the low resolution image without the gradient information of the reconstructed image.
     with torch.no_grad():
         # Start evaluate model performance.
         progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
@@ -124,46 +89,73 @@ def main_worker(gpu, args):
                 bicubic = bicubic.cuda(args.gpu, non_blocking=True)
                 hr = hr.cuda(args.gpu, non_blocking=True)
 
+            # The low resolution image is reconstructed to the super resolution image.
             sr = model(lr)
 
-            # Evaluate performance
+            # The reconstructed image and the reference image are evaluated once.
             value = iqa(sr, hr, args.gpu)
 
+            # The values of various evaluation indexes are accumulated.
             total_mse_value += value[0]
             total_rmse_value += value[1]
             total_psnr_value += value[2]
             total_ssim_value += value[3]
-            total_lpips_value += value[4]
-            total_gmsd_value += value[5]
+            total_gmsd_value += value[4]
 
+            # Output as scrollbar style.
             progress_bar.set_description(f"[{i + 1}/{len(dataloader)}] "
                                          f"PSNR: {total_psnr_value / (i + 1):6.2f} "
                                          f"SSIM: {total_ssim_value / (i + 1):6.4f}")
 
-            images = torch.cat([bicubic, sr, hr], dim=-1)
-            vutils.save_image(images, os.path.join("benchmarks", f"{i + 1}.bmp"), padding=10)
+            # Merge three images into one line for visualization.
+            # Save a series of reconstruction results.
+            vutils.save_image(torch.cat([bicubic, sr, hr], dim=-1),
+                              os.path.join("benchmarks", f"{i + 1}.bmp"),
+                              padding=10,
+                              normalize=True)
 
     print(f"Performance average results:\n")
-    print(f"indicator Score\n")
+    print(f"Indicator score\n")
     print(f"--------- -----\n")
     print(f"MSE       {total_mse_value / len(dataloader):6.4f}\n"
           f"RMSE      {total_rmse_value / len(dataloader):6.4f}\n"
           f"PSNR      {total_psnr_value / len(dataloader):6.2f}\n"
           f"SSIM      {total_ssim_value / len(dataloader):6.4f}\n"
-          f"LPIPS     {total_lpips_value / len(dataloader):6.4f}\n"
-          f"GMSD      {total_gmsd_value / len(dataloader):6.4f}")
+          f"GMSD      {total_gmsd_value / len(dataloader):6.4f}\n")
 
 
 if __name__ == "__main__":
-    print("##################################################\n")
-    print("Run Testing Engine.\n")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("data", metavar="DIR",
+                        help="Path to dataset.")
+    parser.add_argument("--arch", default="srgan", type=str, choices=model_names,
+                        help="Model architecture: " +
+                             " | ".join(model_names) +
+                             ". (Default: `srgan`)")
+    parser.add_argument("-j", "--workers", default=4, type=int,
+                        help="Number of data loading workers. (Default: 4)")
+    parser.add_argument("-b", "--batch-size", default=64, type=int,
+                        help="The batch size of the dataset. (Default: 64)")
+    parser.add_argument("--image-size", default=96, type=int,
+                        help="Image size of high resolution image. (Default: 96)")
+    parser.add_argument("--upscale-factor", default=4, type=int, choices=[4],
+                        help="Low to high resolution scaling factor. Optional: [4]. (Default: 4)")
+    parser.add_argument("--model-path", default="", type=str,
+                        help="Path to latest checkpoint for model.")
+    parser.add_argument("--pretrained", dest="pretrained", action="store_true",
+                        help="Use pre-trained model.")
+    parser.add_argument("--seed", default=None, type=int,
+                        help="Seed for initializing training.")
+    parser.add_argument("--gpu", default=None, type=int,
+                        help="GPU id to use.")
+    args = parser.parse_args()
 
     create_folder("benchmarks")
 
-    logger.info("TestingEngine:")
-    print("\tAPI version .......... 0.3.0")
-    print("\tBuild ................ 2021.05.25")
-    print("##################################################\n")
-    main()
+    logger.info("TestEngine:")
+    logger.info("\tAPI version .......... 0.3.0")
+    logger.info("\tBuild ................ 2021.06.13")
+
+    main(args)
 
     logger.info("Test dataset performance evaluation completed successfully.")

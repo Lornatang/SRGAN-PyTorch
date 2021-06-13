@@ -22,7 +22,7 @@ from torch.hub import load_state_dict_from_url
 from srgan_pytorch.models.generator import Generator
 
 model_urls = {
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.2.2/SRGAN_ImageNet2012-992702908bcbce3b6e2bc2d15eb5b4eb7a5c816468654819c6efbbd79ce671ea.pth"
+    "srgan": None
 }
 
 dependencies = ["torch"]
@@ -37,7 +37,7 @@ def _gan(arch: str, pretrained: bool, progress: bool) -> Generator:
 
 
 def srgan(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/1609.04802>` paper.
+    r"""GAN model architecture from `<https://arxiv.org/pdf/1511.06434v2.pdf>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet

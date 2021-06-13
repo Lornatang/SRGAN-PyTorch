@@ -47,10 +47,6 @@ class CharbonnierLoss(torch.nn.Module):
         self.eps = eps
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # The tensor range is expanded from [-1, 1] to [0, 1].
-        source = (source + 1) / 2
-        target = (target + 1) / 2
-
         # Calculate charbonnier loss.
         loss = torch.mean(torch.sqrt((source - target) ** 2 + self.eps))
 
@@ -59,21 +55,16 @@ class CharbonnierLoss(torch.nn.Module):
 
 class ContentLoss(torch.nn.Module):
     r""" The content loss function based on vgg19 network is constructed.
-    According to the suggestion of the paper, the 35th layer of feature extraction layer is used.
+    According to the suggestion of the paper, the 36th layer of feature extraction layer is used.
 
     The explanation of the paper is as follows:
-        * `"Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network" <https://arxiv.org/pdf/1609.04802.pdf>` paper.
-        * `"ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks" <https://arxiv.org/pdf/1809.00219.pdf>` paper.
-        * `"Perceptual Extreme Super Resolution Network with Receptive Field Block" <https://arxiv.org/pdf/2005.12597.pdf>` paper.
+        * "Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network" `<https://arxiv.org/pdf/1609.04802v5.pdf>` paper.
+        * "ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks" `<https://arxiv.org/pdf/1809.00219.pdf>` paper.
+        * "Perceptual Extreme Super Resolution Network with Receptive Field Block" `<https://arxiv.org/pdf/2005.12597.pdf>` paper.
 
     A loss defined on feature maps of higher level features from deeper network layers
     with more potential to focus on the content of the images. We refer to this network
     as SRGAN in the following.
-
-    Args:
-        use_pretrained (bool): Whether to use Imagenet based pre training model. (Default: `True`)
-        num_classes (int): Number of output channels of the last layer of the network. (Default: 1000)
-        model_path (int): If pretrained is set to `False`, the model address should be specified.
 
     Examples:
         >>> # Loading pre training vgg19 model weight based on Imagenet dataset as content loss.
@@ -119,43 +110,29 @@ class ContentLoss(torch.nn.Module):
           (31): ReLU(inplace=True)
           (32): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
           (33): ReLU(inplace=True)
-          (34): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)) ---> use this layer
-          (35): ReLU(inplace=True)
+          (34): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (35): ReLU(inplace=True)  ---> use this layer
           (36): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
         )
     """
 
-    def __init__(self, use_pretrained: bool = True, num_classes: int = 1000, model_path: str = None) -> None:
+    def __init__(self) -> None:
         super(ContentLoss, self).__init__()
         # If you will `use_pretrained` is set to `True`, the model weight based on Imagenet dataset will be loaded,
         # otherwise, the custom dataset model weight will be loaded.
-        model = torchvision.models.vgg19(pretrained=use_pretrained, num_classes=num_classes)
+        vgg19 = torchvision.models.vgg19(pretrained=True)
 
-        # Extract the 35th layer of vgg19 model feature extraction layer.
-        self.feature_extraction = torch.nn.Sequential(*list(model.features.children())[:35]).eval()
+        # Extract the 36th layer of vgg19 model feature extraction layer.
+        self.feature_extract = torch.nn.Sequential(*list(vgg19.features.children())[:36]).eval()
 
         # Freeze model all parameters. Don't train.
-        for name, parameters in self.feature_extraction.named_parameters():
+        for name, parameters in self.feature_extract.named_parameters():
             parameters.requires_grad = False
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # The tensor range is expanded from [-1, 1] to [0, 1].
-        source = (source + 1) / 2
-        target = (target + 1) / 2
-<<<<<<< HEAD
-=======
-
-        # Keep all parameters in same device.
-        self.mean = self.mean.cuda(source.device, non_blocking=True)
-        self.std = self.std.cuda(source.device, non_blocking=True)
-
-        # Normalize the all input image.
-        source = (source - self.mean) / self.std
-        target = (target - self.mean) / self.std
->>>>>>> master
-
-        # Use VGG19_35th loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
-        loss = torch.nn.functional.mse_loss(self.feature_extraction(source), self.feature_extraction(target))
+        # Use VGG19_35th loss as the euclidean distance between the feature representations of a reconstructed image
+        # and the reference image.
+        loss = torch.nn.functional.mse_loss(self.feature_extract(source), self.feature_extract(target))
 
         return loss
 
@@ -165,12 +142,10 @@ class LPIPSLoss(torch.nn.Module):
     r""" Learned Perceptual Image Patch Similarity (LPIPS) metric.
 
     The explanation of the paper is as follows:
-        * `"The Unreasonable Effectiveness of Deep Features as a Perceptual Metric" <https://arxiv.org/pdf/1801.03924.pdf>` paper.
+        * "The Unreasonable Effectiveness of Deep Features as a Perceptual Metric" `<https://arxiv.org/pdf/1801.03924.pdf>` paper.
 
     For a specific convolution layer, the cosine distance (in the channel dimension)
     and the average value between the network space dimension and layers are calculated.
-
-    Args:
 
     Examples:
         >>> # Loading pre training vgg19 model weight based on Imagenet dataset as content loss.
@@ -183,28 +158,15 @@ class LPIPSLoss(torch.nn.Module):
 
     def __init__(self) -> None:
         super(LPIPSLoss, self).__init__()
-        self.feature_extraction = lpips.LPIPS(net="vgg", verbose=False).eval()
-        # Freeze parameters. Don't train.
-        for name, param in self.feature_extraction.named_parameters():
-            param.requires_grad = False
+        self.feature_extract = lpips.LPIPS(net="vgg", verbose=False).eval()
+
+        # Freeze model all parameters. Don't train.
+        for name, parameters in self.feature_extract.named_parameters():
+            parameters.requires_grad = False
 
     def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # The tensor range is expanded from [-1, 1] to [0, 1].
-        source = (source + 1) / 2
-        target = (target + 1) / 2
-<<<<<<< HEAD
-=======
-
-        # Keep all parameters in same device.
-        self.mean = self.mean.cuda(source.device, non_blocking=True)
-        self.std = self.std.cuda(source.device, non_blocking=True)
-
-        # Normalize the input image. Default: `ImageNet` dataset.
-        source = (source - self.mean) / self.std
-        target = (target - self.mean) / self.std
->>>>>>> master
-
-        # Use lpips_vgg loss as the euclidean distance between the feature representations of a reconstructed image and the reference image.
-        loss = torch.nn.functional.l1_loss(self.feature_extraction(source), self.feature_extraction(target))
+        # Use lpips_vgg loss as the euclidean distance between the feature representations of a reconstructed image
+        # and the reference image.
+        loss = torch.nn.functional.mse_loss(self.feature_extract(source), self.feature_extract(target))
 
         return loss
