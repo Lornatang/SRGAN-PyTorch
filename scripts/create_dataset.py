@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 
-def main() -> None:
+def main():
     r""" Make training data set and validation data set."""
     total_image_lists = os.listdir(os.path.join("train", "input"))
     # The original data set is divided into 9:1 (train:test)
@@ -37,6 +37,6 @@ def main() -> None:
 if __name__ == "__main__":
     logger.info("ScriptEngine:")
     logger.info("\tAPI version .......... 0.3.0")
-    logger.info("\tBuild ................ 2021.06.13")
+    logger.info("\tBuild ................ 2021.07.02")
 
     main()
