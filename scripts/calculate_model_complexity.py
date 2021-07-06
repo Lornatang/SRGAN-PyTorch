@@ -66,6 +66,6 @@ def main():
 if __name__ == "__main__":
     logger.info("ScriptEngine:")
     logger.info("\tAPI version .......... 0.3.0")
-    logger.info("\tBuild ................ 2021.07.01")
+    logger.info("\tBuild ................ 2021.07.02")
 
     main()
