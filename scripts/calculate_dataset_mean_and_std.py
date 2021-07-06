@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.DEBUG)
 
 
-def main(args) -> None:
+def main(args):
     # Initializes the mean, standard deviation, and file of the dataset.
     mean = [0., 0., 0.]
     std = [0., 0., 0.]
@@ -72,6 +72,6 @@ if __name__ == "__main__":
 
     logger.info("ScriptEngine:")
     logger.info("\tAPI version .......... 0.3.0")
-    logger.info("\tBuild ................ 2021.06.13")
+    logger.info("\tBuild ................ 2021.07.02")
 
     main(args)
