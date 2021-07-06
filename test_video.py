@@ -14,25 +14,17 @@
 import argparse
 import logging
 import os
-import random
 
 import cv2
 import numpy as np
 import torch
-import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torchvision.transforms import InterpolationMode as Mode
 from tqdm import tqdm
 
-import srgan_pytorch.models as models
-from srgan_pytorch.utils.common import configure
+from srgan_pytorch.models import srgan
 from srgan_pytorch.utils.common import create_folder
 from srgan_pytorch.utils.transform import process_image
-
-# Find all available models.
-model_names = sorted(name for name in models.__dict__ if
-                     name.islower() and not name.startswith("__")
-                     and callable(models.__dict__[name]))
 
 # It is a convenient method for simple scripts to configure the log package at one time.
 logger = logging.getLogger(__name__)
@@ -40,29 +32,15 @@ logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 
 def main(args):
-    if args.seed is not None:
-        # In order to make the model repeatable, the first step is to set random seeds, and the second step is to set
-        # convolution algorithm.
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        logger.warning("You have chosen to seed training. "
-                       "This will turn on the CUDNN deterministic setting, "
-                       "which can slow down your training considerably! "
-                       "You may see unexpected behavior when restarting "
-                       "from checkpoints.")
-        # for the current configuration, so as to optimize the operation efficiency.
-        cudnn.benchmark = True
-        # Ensure that every time the same input returns the same result.
-        cudnn.deterministic = True
-
     # Build a super-resolution model, if model path is defined, the specified model weight will be loaded.
-    model = configure(args)
+    model = srgan(pretrained=args.pretrained)
     # Switch model to eval mode.
     model.eval()
 
-    # If the GPU is available, load the model into the GPU memory. This speed.
-    if not torch.cuda.is_available():
-        logger.warning("Using CPU, this will be slow.")
+    # If special choice model path.
+    if args.model_path is not None:
+        logger.info(f"You loaded the specified weight. Load weights from `{os.path.abspath(args.model_path)}`.")
+        model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu")))
 
     # Get video filename.
     filename = os.path.basename(args.lr)
@@ -75,11 +53,11 @@ def main(args):
     # Set video window resolution size.
     raw_video_size = (int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
                       int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    sr_video_size = (raw_video_size[0] * args.upscale_factor, raw_video_size[1] * args.upscale_factor)
+    sr_video_size = (raw_video_size[0] * 4, raw_video_size[1] * 4)
     compare_video_size = (sr_video_size[0] * 2 + 10, sr_video_size[1] + 10 + sr_video_size[0] // 5 - 9)
     # Video write loader.
-    sr_writer_path = os.path.join("videos", f"sr_{args.upscale_factor}x_{filename}")
-    compare_writer_path = os.path.join("videos", f"compare_{args.upscale_factor}x_{filename}")
+    sr_writer_path = os.path.join("videos", f"sr_{4}x_{filename}")
+    compare_writer_path = os.path.join("videos", f"compare_{4}x_{filename}")
     sr_writer = cv2.VideoWriter(sr_writer_path, cv2.VideoWriter_fourcc(*"MPEG"), fps, sr_video_size)
     compare_writer = cv2.VideoWriter(compare_writer_path, cv2.VideoWriter_fourcc(*"MPEG"), fps, compare_video_size)
 
@@ -107,7 +85,7 @@ def main(args):
                 sr = transforms.Pad(padding=(5, 0, 0, 5))(sr)
                 # Five areas in the contrast map are selected as the bottom contrast map
                 compare_image_size = (sr_video_size[1], sr_video_size[0])
-                compare_image = transforms.Resize(compare_image_size, interpolation=Mode.BICUBIC)(raw_frame)
+                compare_image = transforms.Resize(compare_image_size, Mode.BICUBIC)(raw_frame)
                 compare_image = transforms.ToPILImage()(compare_image)
                 crop_compare_images = transforms.FiveCrop(compare_image.width // 5 - 9)(compare_image)
                 crop_compare_images = [np.asarray(transforms.Pad((0, 5, 10, 0))(image)) for image in
@@ -141,20 +119,12 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--arch", default="srgan", type=str, choices=model_names,
-                        help="Model architecture: " +
-                             " | ".join(model_names) +
-                             ". (Default: `srgan`)")
     parser.add_argument("--file", type=str, required=True,
                         help="Test low resolution video name.")
-    parser.add_argument("--upscale-factor", default=4, type=int, choices=[4],
-                        help="Low to high resolution scaling factor. Optional: [4]. (Default: 4)")
     parser.add_argument("--model-path", default="", type=str,
                         help="Path to latest checkpoint for model.")
     parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                         help="Use pre-trained model.")
-    parser.add_argument("--seed", default=None, type=int,
-                        help="Seed for initializing training.")
     parser.add_argument("--gpu", default=None, type=int,
                         help="GPU id to use.")
     parser.add_argument("--view", dest="view", action="store_true",
@@ -164,8 +134,8 @@ if __name__ == "__main__":
     create_folder("videos")
 
     logger.info("TestEngine:")
-    logger.info("\tAPI version .......... 0.3.0")
-    logger.info("\tBuild ................ 2021.06.13")
+    logger.info("\tAPI version .......... 0.3.1")
+    logger.info("\tBuild ................ 2021.07.06")
 
     main(args)
 
