@@ -12,45 +12,11 @@
 # limitations under the License.
 # ==============================================================================
 """It mainly implements all the losses used in the model."""
-import lpips
 import torch
-import torch.nn.functional
+import torch.nn.functional as F
 import torchvision
 
-__all__ = [
-    "CharbonnierLoss", "ContentLoss", "LPIPSLoss"
-]
-
-
-class CharbonnierLoss(torch.nn.Module):
-    r""" The charbonnier loss(one variant of Robust L1Loss) function optimizes
-    the error between the minimum residual image and the real image by one level.
-
-    The explanation of the paper is as follows:
-        * `"Deep Laplacian Pyramid Networks for Fast and Accurate Super-Resolution" <https://arxiv.org/pdf/1710.01992.pdf>` paper.
-
-    Learn a mapping function for generating an HR image that is as similar to the ground truth HR image as possible.
-
-    Args:
-        eps (float): Prevent value equal to 0. (Default: 1e-12)
-
-    Examples:
-        >>> charbonnier_loss = CharbonnierLoss()
-        >>> # Create a resolution of 224*224 image.
-        >>> inputs = torch.randn(1, 3, 224, 224)
-        >>> target = torch.randn(1, 3, 224, 224)
-        >>> loss = charbonnier_loss(inputs, target)
-    """
-
-    def __init__(self, eps: float = 1e-12) -> None:
-        super(CharbonnierLoss, self).__init__()
-        self.eps = eps
-
-    def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # Calculate charbonnier loss.
-        loss = torch.mean(torch.sqrt((source - target) ** 2 + self.eps))
-
-        return loss
+__all__ = ["ContentLoss"]
 
 
 class ContentLoss(torch.nn.Module):
@@ -69,7 +35,7 @@ class ContentLoss(torch.nn.Module):
     Examples:
         >>> # Loading pre training vgg19 model weight based on Imagenet dataset as content loss.
         >>> content_loss = ContentLoss()
-        >>> # According to the input size of VGG19 model, an image with a resolution of 224*224 is randomly constructed
+        >>> # According to the input size of VGG19 model, an image with a resolution of 224*224 is randomly constructed.
         >>> inputs = torch.randn(1, 3, 224, 224)
         >>> target = torch.randn(1, 3, 224, 224)
         >>> loss = content_loss(inputs, target)
@@ -116,57 +82,26 @@ class ContentLoss(torch.nn.Module):
         )
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         super(ContentLoss, self).__init__()
         # If you will `use_pretrained` is set to `True`, the model weight based on Imagenet dataset will be loaded,
         # otherwise, the custom dataset model weight will be loaded.
-        vgg19 = torchvision.models.vgg19(pretrained=True)
+        vgg19 = torchvision.models.vgg19(pretrained=True).eval()
 
         # Extract the 36th layer of vgg19 model feature extraction layer.
-        self.feature_extract = torch.nn.Sequential(*list(vgg19.features.children())[:36]).eval()
+        self.feature_extract = torch.nn.Sequential(*list(vgg19.features.children())[:36])
 
         # Freeze model all parameters. Don't train.
-        for name, parameters in self.feature_extract.named_parameters():
+        for _, parameters in self.feature_extract.named_parameters():
             parameters.requires_grad = False
 
-    def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, source, target):
+        # Convert the image value range to [0, 1].
+        source = (source + 1) / 2
+        target = (target + 1) / 2
+        
         # Use VGG19_35th loss as the euclidean distance between the feature representations of a reconstructed image
         # and the reference image.
-        loss = torch.nn.functional.mse_loss(self.feature_extract(source), self.feature_extract(target))
-
-        return loss
-
-
-# TODO: Source code reference from `https://github.com/richzhang/PerceptualSimilarity`.
-class LPIPSLoss(torch.nn.Module):
-    r""" Learned Perceptual Image Patch Similarity (LPIPS) metric.
-
-    The explanation of the paper is as follows:
-        * "The Unreasonable Effectiveness of Deep Features as a Perceptual Metric" `<https://arxiv.org/pdf/1801.03924.pdf>` paper.
-
-    For a specific convolution layer, the cosine distance (in the channel dimension)
-    and the average value between the network space dimension and layers are calculated.
-
-    Examples:
-        >>> # Loading pre training vgg19 model weight based on Imagenet dataset as content loss.
-        >>> lpips_loss = LPIPSLoss()
-        >>> # According to the input size of VGG19 model, an image with a resolution of 224*224 is randomly constructed
-        >>> inputs = torch.randn(1, 3, 224, 224)
-        >>> target = torch.randn(1, 3, 224, 224)
-        >>> loss = lpips_loss(inputs, target)
-    """
-
-    def __init__(self) -> None:
-        super(LPIPSLoss, self).__init__()
-        self.feature_extract = lpips.LPIPS(net="vgg", verbose=False).eval()
-
-        # Freeze model all parameters. Don't train.
-        for name, parameters in self.feature_extract.named_parameters():
-            parameters.requires_grad = False
-
-    def forward(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        # Use lpips_vgg loss as the euclidean distance between the feature representations of a reconstructed image
-        # and the reference image.
-        loss = torch.nn.functional.mse_loss(self.feature_extract(source), self.feature_extract(target))
+        loss = F.mse_loss(self.feature_extract(source), self.feature_extract(target))
 
         return loss
