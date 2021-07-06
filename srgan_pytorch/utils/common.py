@@ -14,11 +14,7 @@
 import logging
 import os
 
-import srgan_pytorch.models as models
-
-__all__ = [
-    "create_folder", "configure", "check_image_file", "AverageMeter", "ProgressMeter"
-]
+__all__ = ["create_folder", "check_image_file", "AverageMeter", "ProgressMeter"]
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
@@ -33,25 +29,7 @@ def create_folder(folder):
         pass
 
 
-def configure(args):
-    """Global profile.
-
-    Args:
-        args (argparse.ArgumentParser.parse_args): Use argparse library parse command.
-    """
-
-    # Create model
-    if args.pretrained:
-        logger.info(f"Using pre-trained model `{args.arch}`.")
-        model = models.__dict__[args.arch](pretrained=True)
-    else:
-        logger.info(f"Creating model `{args.arch}`.")
-        model = models.__dict__[args.arch]()
-
-    return model
-
-
-def check_image_file(filename: str):
+def check_image_file(filename):
     r"""Filter non image files in directory.
 
     Args:
@@ -60,7 +38,7 @@ def check_image_file(filename: str):
     Returns:
         Return True if bool(x) is True for any x in the iterable.
     """
-    return any(filename.endswith(extension) for extension in [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".JPG", ".JPEG", ".PNG", ".BMP"])
+    return any(filename.endswith(extension.lower()) for extension in [".jpeg", ".png", ".bmp", "tiff"])
 
 
 # Copy from https://github.com/pytorch/examples/blob/master/imagenet/main.py
