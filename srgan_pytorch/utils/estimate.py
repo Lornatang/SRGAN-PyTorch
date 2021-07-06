@@ -37,7 +37,7 @@ def iqa(source, target, gpu):
         MSE, RMSE, PSNR(RGB channel), SSIM, MS-SSIM, LPIPS, GMSD.
     """
     mse_loss = nn.MSELoss().cuda(gpu).eval()
-    psnr_loss = PSNR(y_channel=False,gpu=gpu).cuda(gpu).eval()
+    psnr_loss = PSNR(y_channel=False, gpu=gpu).cuda(gpu).eval()
     # Source code reference from `https://github.com/richzhang/PerceptualSimilarity`
     lpips_loss = LPIPS(gpu).cuda(gpu).eval()
     # Source code reference from `https://github.com/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py`
@@ -75,7 +75,7 @@ def test(dataloader, model, gpu):
     Returns:
         PSNR(RGB channel), SSIM.
     """
-    psnr_loss = PSNR(y_channel=False,gpu=gpu).cuda(gpu).eval()
+    psnr_loss = PSNR(y_channel=False, gpu=gpu).cuda(gpu).eval()
     # Source code reference from `https://github.com/dingkeyan93/IQA-optimization/blob/master/IQA_pytorch/SSIM.py`
     ssim_loss = SSIM().cuda(gpu).eval()
 
