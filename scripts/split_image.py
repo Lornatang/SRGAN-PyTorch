@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 
-def main(dir_path: str = None) -> None:
+def main(dir_path):
     # Get all the images under the folder.
     for file in os.listdir(dir_path):
         logger.info(f"Process: `{os.path.join(dir_path, file)}`.")
@@ -33,7 +33,7 @@ def main(dir_path: str = None) -> None:
         os.remove(os.path.join(dir_path, file))
 
 
-def crop_image(image) -> list:
+def crop_image(image):
     assert image.size[0] != image.size[1]
     # Get the split image size.
     crop_image_size = int(image.size[0] / 9)
@@ -41,10 +41,8 @@ def crop_image(image) -> list:
     box_list = []
     for width_index in range(0, 9):
         for height_index in range(0, 9):
-            box = (height_index * crop_image_size,
-                   width_index * crop_image_size,
-                   (height_index + 1) * crop_image_size,
-                   (width_index + 1) * crop_image_size)
+            box = (height_index * crop_image_size, width_index * crop_image_size, 
+                  (height_index + 1) * crop_image_size, (width_index + 1) * crop_image_size)
 
             box_list.append(box)
 
@@ -53,7 +51,7 @@ def crop_image(image) -> list:
     return crop_images
 
 
-def save_images(raw_filename, image_list) -> None:
+def save_images(raw_filename, image_list):
     index = 0
     for image in image_list:
         image.save(raw_filename.split(".")[0] + "_" + str(index) + ".png")
@@ -63,6 +61,6 @@ def save_images(raw_filename, image_list) -> None:
 if __name__ == "__main__":
     logger.info("ScriptEngine:")
     logger.info("\tAPI version .......... 0.3.0")
-    logger.info("\tBuild ................ 2021.06.13")
+    logger.info("\tBuild ................ 2021.07.02")
 
     main()
