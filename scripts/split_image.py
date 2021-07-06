@@ -41,8 +41,8 @@ def crop_image(image):
     box_list = []
     for width_index in range(0, 9):
         for height_index in range(0, 9):
-            box = (height_index * crop_image_size, width_index * crop_image_size, 
-                  (height_index + 1) * crop_image_size, (width_index + 1) * crop_image_size)
+            box = (height_index * crop_image_size, width_index * crop_image_size,
+                   (height_index + 1) * crop_image_size, (width_index + 1) * crop_image_size)
 
             box_list.append(box)
 
