@@ -11,20 +11,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Any
-
 import cv2
 import numpy as np
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
 
-__all__ = [
-    "opencv2pil", "opencv2tensor", "pil2opencv", "process_image"
-]
+__all__ = ["opencv2pil", "opencv2tensor", "pil2opencv", "process_image"]
 
 
-def opencv2pil(image) -> Any:
+def opencv2pil(image):
     """ OpenCV Convert to PIL.Image format.
 
     Returns:
@@ -32,11 +28,10 @@ def opencv2pil(image) -> Any:
     """
 
     image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-
     return image
 
 
-def opencv2tensor(image, gpu: int) -> torch.Tensor:
+def opencv2tensor(image, gpu=None):
     """ OpenCV Convert to torch.Tensor format.
 
     Returns:
@@ -44,14 +39,13 @@ def opencv2tensor(image, gpu: int) -> torch.Tensor:
     """
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     nhwc_image = torch.from_numpy(rgb_image).div(255.0).unsqueeze(0)
-    tensor = nhwc_image.permute(0, 3, 1, 2)
+    input_tensor = nhwc_image.permute(0, 3, 1, 2)
     if gpu is not None:
-        tensor = tensor.cuda(gpu, non_blocking=True)
+        input_tensor = input_tensor.cuda(gpu, non_blocking=True)
+    return input_tensor
 
-    return tensor
 
-
-def pil2opencv(image) -> np.ndarray:
+def pil2opencv(image):
     """ PIL.Image Convert to OpenCV format.
 
     Returns:
@@ -59,11 +53,10 @@ def pil2opencv(image) -> np.ndarray:
     """
 
     image = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
-
     return image
 
 
-def process_image(image, norm: bool = False, gpu: int = None) -> torch.Tensor:
+def process_image(image, norm=False, gpu=None) -> torch.Tensor:
     """ RGB data convert to tensor data(PyTorch format).
 
     Args:
@@ -77,17 +70,12 @@ def process_image(image, norm: bool = False, gpu: int = None) -> torch.Tensor:
     Returns:
         torch.Tensor.
     """
+    # Convert C*H*W data to N*C*H*W data. Example: (3, 64, 64) -> (1, 3, 64, 64).
+    tensor = transforms.ToTensor()(image).unsqueeze(0)
+
     # If set to `True`, the input scaling is normalized to between [-1, 1].
     if norm:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True)
-        ])
-    else:
-        transform = transforms.ToTensor()
-
-    # Convert C*H*W data to N*C*H*W data. Example: (3, 64, 64) -> (1, 3, 64, 64).
-    tensor = transform(image).unsqueeze(0)
+        tensor = (tensor - 0.5) / 2
 
     # If the GPU model is specified, the data will be transferred to the GPU, otherwise it will be processed on the CPU.
     if gpu is not None:
