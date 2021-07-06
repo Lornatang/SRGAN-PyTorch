@@ -44,7 +44,7 @@ def main():
     params = sum(x.numel() for x in model.parameters()) / 1E6
 
     # Cal flops and parameters.
-    flops = profile(model=model, inputs=(data, ), verbose=False)[0] / 1E9 * 2
+    flops = profile(model=model, inputs=(data,), verbose=False)[0] / 1E9 * 2
 
     # Needs to reconstruct the low resolution image without the gradient information of the reconstructed image.
     with torch.no_grad():
@@ -60,7 +60,7 @@ def main():
         print(f"\nModel: `srgan`.\n")
         print(f"Parameters: {params:.2f}M.\n")
         print(f"FLOPs: {flops:.2f}G.\n")
-        print(f"Cost time: {cost_time/BATCH_SIZE:.3f}s.")
+        print(f"Cost time: {cost_time / BATCH_SIZE:.3f}s.")
 
 
 if __name__ == "__main__":
