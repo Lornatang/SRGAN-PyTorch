@@ -11,26 +11,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import argparse
 import logging
 import os
 
 from PIL import Image
+
+parser = argparse.ArgumentParser()
+parser.add_argument("data", metavar="DIR", help="Path to dataset.")
+args = parser.parse_args()
 
 # It is a convenient method for simple scripts to configure the log package at one time.
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 
-def main(dir_path):
+def main():
     # Get all the images under the folder.
-    for file in os.listdir(dir_path):
-        logger.info(f"Process: `{os.path.join(dir_path, file)}`.")
+    for file in os.listdir(args.data):
+        logger.info(f"Process: `{os.path.join(args.data, file)}`.")
         # Get all cut image data.
-        crop_images = crop_image(Image.open(os.path.join(dir_path, file)))
+        crop_images = crop_image(Image.open(os.path.join(args.data, file)))
         # Save all captured image data in turn.
-        save_images(os.path.join(dir_path, file), crop_images)
+        save_images(os.path.join(args.data, file), crop_images)
         # Delete original image.
-        os.remove(os.path.join(dir_path, file))
+        os.remove(os.path.join(args.data, file))
 
 
 def crop_image(image):
@@ -41,8 +46,10 @@ def crop_image(image):
     box_list = []
     for width_index in range(0, 9):
         for height_index in range(0, 9):
-            box = (height_index * crop_image_size, width_index * crop_image_size,
-                   (height_index + 1) * crop_image_size, (width_index + 1) * crop_image_size)
+            box = (height_index * crop_image_size,
+                   width_index * crop_image_size,
+                   (height_index + 1) * crop_image_size,
+                   (width_index + 1) * crop_image_size)
 
             box_list.append(box)
 
