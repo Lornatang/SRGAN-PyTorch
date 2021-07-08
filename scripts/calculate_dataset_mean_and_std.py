@@ -12,18 +12,21 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
+import cv2
 import logging
+import numpy as np
 import os
 
-import cv2
-import numpy as np
+parser = argparse.ArgumentParser()
+parser.add_argument("data", metavar="DIR", help="Path to dataset.")
+args = parser.parse_args()
 
 # It is a convenient method for simple scripts to configure the log package at one time.
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.DEBUG)
 
 
-def main(args):
+def main():
     # Initializes the mean, standard deviation, and file of the dataset.
     mean = [0., 0., 0.]
     std = [0., 0., 0.]
@@ -62,16 +65,13 @@ def main(args):
     mean = np.asarray(mean) / num_images
     std = np.asarray(std) / num_images
 
-    print(f"\nmean=[{mean[0]:.4f}, {mean[1]:.4f}, {mean[2]:.4f}], std=[{std[0]:.4f}, {std[1]:.4f}, {std[2]:.4f}].")
+    print(f"\nmean=[{mean[0]:.4f}, {mean[1]:.4f}, {mean[2]:.4f}]"
+          f"std=[{std[0]:.4f}, {std[1]:.4f}, {std[2]:.4f}].")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("data", metavar="DIR", help="Path to dataset.")
-    args = parser.parse_args()
-
     logger.info("ScriptEngine:")
     logger.info("\tAPI version .......... 0.3.0")
     logger.info("\tBuild ................ 2021.07.02")
 
-    main(args)
+    main()
