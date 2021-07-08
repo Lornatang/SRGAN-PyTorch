@@ -12,20 +12,17 @@
 # limitations under the License.
 # ==============================================================================
 import matplotlib.pyplot as plt
-import numpy as np
-import torch
+import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
 
-torch.manual_seed(666)
-
 image = transforms.ToTensor()(Image.open("visual/SR/104_27.png"))
 
-model = models.vgg19(pretrained=True)
-model = torch.nn.Sequential(*list(model.features.children())[:35]).eval()
+vgg19 = models.vgg19(pretrained=True).eval()
+model = nn.Sequential(*list(vgg19.features.children())[:36])
 
-for name, parameters in model.named_parameters():
+for _, parameters in model.named_parameters():
     parameters.requires_grad = False
 
 features = model(image).squeeze(0)
@@ -33,6 +30,4 @@ features = model(image).squeeze(0)
 for i in range(1, 2):
     plt.subplot(1, 1, i)
     new_img_PIL = transforms.ToPILImage()(features[i - 1]).convert()
-    plt.imshow(np.asarray(new_img_PIL))
-    print(i)
     plt.savefig("features.png")
