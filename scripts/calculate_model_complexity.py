@@ -12,10 +12,9 @@
 # limitations under the License.
 # ==============================================================================
 import logging
-from time import perf_counter
-
 import torch
 from thop import profile
+from time import perf_counter
 
 from srgan_pytorch.models import srgan
 
