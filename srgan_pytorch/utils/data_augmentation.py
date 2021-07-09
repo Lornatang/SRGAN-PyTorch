@@ -10,45 +10,47 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ==============================================================================
-"""Mainly apply the data augment operation on `Torchvision` and `PIL` to the super-resolution field"""
+# ============================================================================
 import torch
-import torchvision.transforms.functional_pil as F
+from torchvision.transforms.functional_pil import hflip
+from torchvision.transforms.functional_pil import vflip
 
 __all__ = ["random_horizontally_flip", "random_vertically_flip"]
 
 
 def random_horizontally_flip(lr, hr, p=0.5):
-    r"""Flip horizontally randomly.
+    r""" Realize the image random horizontal flip function.
 
     Args:
-        lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution images loaded with PIL.
-        hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution images loaded with PIL.
-        p (float): Probability of the image being flipped. (Default: 0.5)
+        lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution image data read using PIL library.
+        hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution image data read using PIL library.
+        p (optional, float): Rollover probability. (Default: 0.5)
 
     Returns:
-        Flipped low-resolution image and flipped high-resolution image.
+        If the random probability is greater than 0.5, the image data after the horizontal flip is returned, 
+        otherwise the original image data is returned.
     """
     if torch.rand(1) > p:
-        lr = F.hflip(lr)
-        hr = F.hflip(hr)
+        lr = hflip(lr)
+        hr = hflip(hr)
 
     return lr, hr
 
 
 def random_vertically_flip(lr, hr, p=0.5):
-    r"""Flip horizontally randomly.
+    r""" Realize the function of randomly flipping up and down images.
 
     Args:
-        lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution images loaded with PIL.
-        hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution images loaded with PIL.
-        p (float): Probability of the image being flipped. (Default: 0.5)
+        lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution image data read using PIL library.
+        hr (PIL.BmpImagePlugin.BmpImageFile): High-resolution image data read using PIL library.
+        p (optional, float): Rollover probability. (Default: 0.5)
 
     Returns:
-        Flipped low-resolution image and flipped high-resolution image.
+        If the random probability is greater than 0.5, the image data after the vertical flip is returned, 
+        otherwise the original image data is returned.
     """
     if torch.rand(1) > p:
-        lr = F.vflip(lr)
-        hr = F.vflip(hr)
+        lr = vflip(lr)
+        hr = vflip(hr)
 
     return lr, hr
