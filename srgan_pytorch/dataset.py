@@ -13,10 +13,10 @@
 # ==============================================================================
 import os
 
-import torch.utils.data
-import torchvision.transforms as transforms
 from PIL import Image
-from torchvision.transforms import InterpolationMode
+from torch.utils.data import Dataset
+from torchvision import transforms
+from torchvision.transforms import InterpolationMode as IMode
 
 from .utils.common import check_image_file
 from .utils.data_augmentation import random_horizontally_flip
@@ -25,29 +25,33 @@ from .utils.data_augmentation import random_vertically_flip
 __all__ = ["BaseDataset", "CustomDataset"]
 
 
-class BaseDataset(torch.utils.data.dataset.Dataset):
+class BaseDataset(Dataset):
     r""" Base dataset loader constructed using bicubic down-sampling method.
 
     Args:
-        root (str): The directory address where the data image is stored.
-        image_size (optional, int): The size of image block is randomly cut out from the original image.
-        upscale_factor (optional, int): Image magnification.
+        dataroot (str): The directory address where the data image is stored.
+        image_size (int): The size of image block is randomly cut out from the original image.
+        scale (int): Image magnification.
     """
 
-    def __init__(self, root, image_size, upscale_factor):
+    def __init__(self, dataroot: str,
+                 image_size: int,
+                 scale: int):
         super(BaseDataset, self).__init__()
-        lr_image_size = int(image_size / upscale_factor)
+        lr_image_size = image_size // scale
         # Get the index of all images in the directory that meet the suffix format conditions.
-        self.filenames = [os.path.join(root, x) for x in os.listdir(root) if check_image_file(x)]
+        self.filenames = [os.path.join(dataroot, x) for x in
+                          os.listdir(dataroot) if check_image_file(x)]
 
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((lr_image_size, lr_image_size), InterpolationMode.BICUBIC),
+            transforms.Resize((lr_image_size, lr_image_size), IMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
             transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
             transforms.ToTensor()
         ])
 
@@ -66,32 +70,39 @@ class BaseDataset(torch.utils.data.dataset.Dataset):
         return len(self.filenames)
 
 
-class CustomDataset(torch.utils.data.dataset.Dataset):
+class CustomDataset(Dataset):
     r""" Load through the pre-dataset.
 
     Args:
-        root (str): The directory address where the data image is stored.
+        dataroot (str): The directory address where the data image is stored.
         image_size (optional, int): The size of image block is randomly cut out from the original image.
-        upscale_factor (optional, int): Image magnification.
+        scale (optional, int): Image magnification.
         use_da (optional, bool): Do you want to use data enhancement for training dataset. (Default: `True`)
     """
 
-    def __init__(self, root, image_size, upscale_factor, use_da=True):
+    def __init__(self, dataroot: str,
+                 image_size: int,
+                 scale: int,
+                 use_da: bool = True):
         super(CustomDataset, self).__init__()
-        lr_image_size = int(image_size / upscale_factor)
+        lr_image_size = image_size // scale
         self.use_da = use_da
 
         # Get the index of all images in the directory that meet the suffix format conditions.
-        self.filenames = os.path.join(root, "input")
-        self.lr_filenames = [os.path.join(root, "input", x) for x in self.filenames if check_image_file(x)]
-        self.hr_filenames = [os.path.join(root, "target", x) for x in self.filenames if check_image_file(x)]
+        self.filenames = os.path.join(dataroot, "input")
+        self.lr_filenames = [os.path.join(dataroot, "input", x) for x in
+                             self.filenames if check_image_file(x)]
+        self.hr_filenames = [os.path.join(dataroot, "target", x) for x in
+                             self.filenames if check_image_file(x)]
 
-        self.lr_transforms = transforms.Compose(
-            [transforms.CenterCrop((lr_image_size, lr_image_size)),
-             transforms.ToTensor()])
-        self.hr_transforms = transforms.Compose(
-            [transforms.CenterCrop((image_size, image_size)),
-             transforms.ToTensor()])
+        self.lr_transforms = transforms.Compose([
+            transforms.CenterCrop((lr_image_size, lr_image_size)),
+            transforms.ToTensor()
+        ])
+        self.hr_transforms = transforms.Compose([
+            transforms.CenterCrop((image_size, image_size)),
+            transforms.ToTensor()
+        ])
 
     def __getitem__(self, index):
         lr = Image.open(self.lr_filenames[index]).convert("RGB")
