@@ -133,10 +133,11 @@ dmypy.json
 data/DIV2K
 
 # Program run create directory.
-benchmarks
 tests
 videos
-runs
+samples
+samples/gan_logs
+samples/psnr_logs
 weights
 
 # Program run create file.
