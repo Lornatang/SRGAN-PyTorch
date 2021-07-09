@@ -11,15 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""It mainly implements all the losses used in the model."""
 import torch
-import torch.nn.functional as F
-import torchvision
+from torch import nn
+from torch.nn import functional
+from torchvision import models
 
 __all__ = ["ContentLoss"]
 
 
-class ContentLoss(torch.nn.Module):
+class ContentLoss(nn.Module):
     r""" The content loss function based on vgg19 network is constructed.
     According to the suggestion of the paper, the 36th layer of feature extraction layer is used.
 
@@ -84,24 +84,25 @@ class ContentLoss(torch.nn.Module):
 
     def __init__(self):
         super(ContentLoss, self).__init__()
-        # If you will `use_pretrained` is set to `True`, the model weight based on Imagenet dataset will be loaded,
+        # If you will `use_pretrained` is set to `True`, the model weight based
+        # on Imagenet dataset will be loaded,
         # otherwise, the custom dataset model weight will be loaded.
-        vgg19 = torchvision.models.vgg19(pretrained=True).eval()
+        vgg19 = models.vgg19(pretrained=True).eval()
 
         # Extract the 36th layer of vgg19 model feature extraction layer.
-        self.feature_extract = torch.nn.Sequential(*list(vgg19.features.children())[:36])
+        self.model = nn.Sequential(*list(vgg19.features.children())[:36])
 
         # Freeze model all parameters. Don't train.
-        for _, parameters in self.feature_extract.named_parameters():
+        for _, parameters in self.model.named_parameters():
             parameters.requires_grad = False
 
     def forward(self, source, target):
         # Convert the image value range to [0, 1].
         source = (source + 1) / 2
         target = (target + 1) / 2
-        
-        # Use VGG19_35th loss as the euclidean distance between the feature representations of a reconstructed image
-        # and the reference image.
-        loss = F.mse_loss(self.feature_extract(source), self.feature_extract(target))
+
+        # Use VGG19_36th loss as the euclidean distance between the feature
+        # representations of a reconstructed image and the reference image.
+        loss = functional.mse_loss(self.model(source), self.model(target))
 
         return loss
