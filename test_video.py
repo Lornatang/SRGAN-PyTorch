@@ -11,36 +11,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import argparse
 import logging
 import os
+from argparse import ArgumentParser
 
 import cv2
 import numpy as np
 import torch
-import torchvision.transforms as transforms
+from torchvision.transforms import FiveCrop
 from torchvision.transforms import InterpolationMode as Mode
+from torchvision.transforms import Pad
+from torchvision.transforms import Resize
+from torchvision.transforms import ToPILImage
+from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
-from srgan_pytorch.models import srgan
+from srgan_pytorch.model import generator
 from srgan_pytorch.utils.common import create_folder
-from srgan_pytorch.utils.transform import process_image
 
 # It is a convenient method for simple scripts to configure the log package at one time.
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
+parser = ArgumentParser()
+parser.add_argument("--file", type=str, required=True,
+                    help="Test low resolution video name.")
+parser.add_argument("--pretrained", dest="pretrained", action="store_true",
+                    help="Use pre-trained model.")
+parser.add_argument("--model-path", default="", type=str,
+                    help="Path to latest checkpoint for model.")
+parser.add_argument("--cuda", dest="cuda", action="store_true",
+                    help="Enables cuda.")
+parser.add_argument("--view", dest="view", action="store_true",
+                    help="Do you want to show SR video synchronously.")
+args = parser.parse_args()
 
-def main(args):
-    # Build a super-resolution model, if model path is defined, the specified model weight will be loaded.
-    model = srgan(pretrained=args.pretrained)
-    # Switch model to eval mode.
-    model.eval()
+# Set whether to use CUDA.
+device = torch.device("cuda:0" if args.cuda else "cpu")
 
-    # If special choice model path.
-    if args.model_path is not None:
-        logger.info(f"You loaded the specified weight. Load weights from `{os.path.abspath(args.model_path)}`.")
-        model.load_state_dict(torch.load(args.model_path, map_location=torch.device("cpu")))
+
+def main():
+    # Load model and weights.
+    model = generator(args.pretrained).to(device).eval()
+    if args.model_path != "":
+        logger.info(f"Loading weights from `{args.model_path}`.")
+        model.load_state_dict(torch.load(args.model_path))
 
     # Get video filename.
     filename = os.path.basename(args.lr)
@@ -51,8 +66,7 @@ def main(args):
     fps = video_capture.get(cv2.CAP_PROP_FPS)
     total_frames = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
     # Set video window resolution size.
-    raw_video_size = (int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                      int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    raw_video_size = (int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     sr_video_size = (raw_video_size[0] * 4, raw_video_size[1] * 4)
     compare_video_size = (sr_video_size[0] * 2 + 10, sr_video_size[1] + 10 + sr_video_size[0] // 5 - 9)
     # Video write loader.
@@ -64,10 +78,12 @@ def main(args):
     # read video frame.
     with torch.no_grad():
         success, raw_frame = video_capture.read()
-        for _ in tqdm(range(total_frames), desc="[processing video and saving/view result videos]"):
+        for _ in tqdm(range(total_frames),
+                      desc="[processing video and saving/view result videos]"):
             if success:
                 # The low resolution image is reconstructed to the super resolution image.
-                sr = model(process_image(raw_frame, norm=False, gpu=args.gpu))
+                sr_tensor = ToTensor()(raw_frame).unsqueeze(0)
+                sr = model(sr_tensor)
 
                 # Convert N*C*H*W image data to H*W*C image data.
                 sr = sr.cpu()
@@ -78,19 +94,18 @@ def main(args):
                 sr_writer.write(sr)
 
                 # Make compared video and crop shot of left top\right top\center\left bottom\right bottom.
-                sr = transforms.ToPILImage()(sr)
+                sr = ToPILImage()(sr)
                 # Five areas are selected as the bottom contrast map.
-                crop_sr_images = transforms.FiveCrop(sr.width // 5 - 9)(sr)
-                crop_sr_images = [np.asarray(transforms.Pad(padding=(10, 5, 0, 0))(image)) for image in crop_sr_images]
-                sr = transforms.Pad(padding=(5, 0, 0, 5))(sr)
+                crop_sr_images = FiveCrop(sr.width // 5 - 9)(sr)
+                crop_sr_images = [np.asarray(Pad(padding=(10, 5, 0, 0))(image)) for image in crop_sr_images]
+                sr = Pad(padding=(5, 0, 0, 5))(sr)
                 # Five areas in the contrast map are selected as the bottom contrast map
                 compare_image_size = (sr_video_size[1], sr_video_size[0])
-                compare_image = transforms.Resize(compare_image_size, Mode.BICUBIC)(raw_frame)
-                compare_image = transforms.ToPILImage()(compare_image)
-                crop_compare_images = transforms.FiveCrop(compare_image.width // 5 - 9)(compare_image)
-                crop_compare_images = [np.asarray(transforms.Pad((0, 5, 10, 0))(image)) for image in
-                                       crop_compare_images]
-                compare_image = transforms.Pad(padding=(0, 0, 5, 5))(compare_image)
+                compare_image = Resize(compare_image_size, Mode.BICUBIC)(raw_frame)
+                compare_image = ToPILImage()(compare_image)
+                crop_compare_images = FiveCrop(compare_image.width // 5 - 9)(compare_image)
+                crop_compare_images = [np.asarray(Pad((0, 5, 10, 0))(image)) for image in crop_compare_images]
+                compare_image = Pad(padding=(0, 0, 5, 5))(compare_image)
                 # Concatenate all the pictures to one single picture
                 # 1. Mosaic the left and right images of the video.
                 top_image = np.concatenate((np.asarray(compare_image), np.asarray(sr)), axis=1)
@@ -100,7 +115,7 @@ def main(args):
                 bottom_image_width = top_image.shape[1]
                 # 3. Adjust to the right size.
                 bottom_image_size = (bottom_image_height, bottom_image_width)
-                bottom_image = np.asarray(transforms.Resize(bottom_image_size)(transforms.ToPILImage()(bottom_image)))
+                bottom_image = np.asarray(Resize(bottom_image_size)(ToPILImage()(bottom_image)))
                 # 4. Combine the bottom zone with the upper zone.
                 images = np.concatenate((top_image, bottom_image))
 
@@ -118,25 +133,12 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--file", type=str, required=True,
-                        help="Test low resolution video name.")
-    parser.add_argument("--model-path", default="", type=str,
-                        help="Path to latest checkpoint for model.")
-    parser.add_argument("--pretrained", dest="pretrained", action="store_true",
-                        help="Use pre-trained model.")
-    parser.add_argument("--gpu", default=None, type=int,
-                        help="GPU id to use.")
-    parser.add_argument("--view", dest="view", action="store_true",
-                        help="Do you want to show SR video synchronously.")
-    args = parser.parse_args()
-
     create_folder("videos")
 
     logger.info("TestEngine:")
-    logger.info("\tAPI version .......... 0.3.1")
-    logger.info("\tBuild ................ 2021.07.06")
+    logger.info("\tAPI version .......... 0.4.0")
+    logger.info("\tBuild ................ 2021.07.09")
 
-    main(args)
+    main()
 
     logger.info("Super-resolution video completed successfully.\n")
