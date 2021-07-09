@@ -26,8 +26,8 @@ DESCRIPTION = "Photo-Realistic Single Image Super-Resolution Using a Generative 
 URL = "https://github.com/Lornatang/SRGAN-PyTorch"
 EMAIL = "liu_changyu@dakewe.com"
 AUTHOR = "Liu Goodfellow"
-REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.3.1"
+REQUIRES_PYTHON = ">=3.8.0"
+VERSION = "0.4.0"
 
 # Libraries that must be installed.
 REQUIRED = [
