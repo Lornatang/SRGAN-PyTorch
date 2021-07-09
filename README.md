@@ -18,6 +18,7 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
     - [Test video](#test-video)
     - [Train (e.g DIV2K)](#train-eg-div2k)
     - [Model performance](#model-performance)
+    - [Result](#result)
     - [Contributing](#contributing)
     - [Credit](#credit)
       - [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](#photo-realistic-single-image-super-resolution-using-a-generative-adversarial-network)
@@ -123,6 +124,18 @@ python train.py --netG weights/P_epoch10.pth --cuda
 python setup.py install --user --prefix=""
 python scripts/cal_model_complexity.py --gpu 0
 ```
+
+### Result
+
+Source of original paper results: https://arxiv.org/pdf/1609.04802v5.pdf
+
+In the following table, the value in `()` indicates the result of the project, and `-` indicates no test.
+
+| Dataset | Scale |       PSNR       |        SSIM        |     MOS     |
+| :-----: | :---: | :--------------: | :----------------: | :---------: |
+|  Set5   |   4   | 29.40(**29.88**) | 0.8472(**0.8504**) | 3.58(**-**) |
+|  Set14  |   4   | 26.02(**26.58**) | 0.7397(**0.7452**) | 3.72(**-**) |
+| BSDS100 |   4   | 25.16(**25.50**) | 0.6688(**0.7284**) | 3.56(**-**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png" alt=""></span>
