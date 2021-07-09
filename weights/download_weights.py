@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from srgan_pytorch.models.generator import srgan
+from srgan_pytorch.model import generator
 
-model = srgan(pretrained=True)
+model = generator(pretrained=True)
 print(model)
