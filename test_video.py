@@ -58,7 +58,7 @@ def main():
         model.load_state_dict(torch.load(args.model_path))
 
     # Get video filename.
-    filename = os.path.basename(args.lr)
+    filename = os.path.basename(args.file)
 
     # OpenCV video input method open.
     video_capture = cv2.VideoCapture(args.file)
@@ -82,7 +82,7 @@ def main():
                       desc="[processing video and saving/view result videos]"):
             if success:
                 # The low resolution image is reconstructed to the super resolution image.
-                sr_tensor = ToTensor()(raw_frame).unsqueeze(0)
+                sr_tensor = ToTensor()(raw_frame).unsqueeze(0).to(device)
                 sr = model(sr_tensor)
 
                 # Convert N*C*H*W image data to H*W*C image data.
@@ -101,8 +101,8 @@ def main():
                 sr = Pad(padding=(5, 0, 0, 5))(sr)
                 # Five areas in the contrast map are selected as the bottom contrast map
                 compare_image_size = (sr_video_size[1], sr_video_size[0])
-                compare_image = Resize(compare_image_size, Mode.BICUBIC)(raw_frame)
-                compare_image = ToPILImage()(compare_image)
+                compare_image = Resize(compare_image_size, Mode.BICUBIC)(ToPILImage()(raw_frame))
+                # compare_image = ToPILImage()(compare_image)
                 crop_compare_images = FiveCrop(compare_image.width // 5 - 9)(compare_image)
                 crop_compare_images = [np.asarray(Pad((0, 5, 10, 0))(image)) for image in crop_compare_images]
                 compare_image = Pad(padding=(0, 0, 5, 5))(compare_image)
