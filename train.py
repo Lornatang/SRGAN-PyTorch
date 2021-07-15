@@ -164,6 +164,9 @@ def main():
 
     # Save the model weights of the last iteration of the PSNR stage.
     torch.save(netG.state_dict(), join("weights", "P-last.pth"))
+    
+    # Load the model weights with the best results from the previous training.
+    netG.load_state_dict(torch.load(join("weights", "P-best.pth")))
 
     # Train the generative model in the GAN stage and save the model weight after
     # reaching a certain index.
