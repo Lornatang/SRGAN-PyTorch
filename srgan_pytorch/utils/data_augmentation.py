@@ -12,8 +12,7 @@
 # limitations under the License.
 # ============================================================================
 import torch
-from torchvision.transforms.functional_pil import hflip
-from torchvision.transforms.functional_pil import vflip
+import torchvision.transforms.functional_pil as F
 
 __all__ = ["random_horizontally_flip", "random_vertically_flip"]
 
@@ -30,15 +29,15 @@ def random_horizontally_flip(lr, hr, p=0.5):
         If the random probability is greater than 0.5, the image data after the horizontal flip is returned, 
         otherwise the original image data is returned.
     """
-    if torch.rand(1) > p:
-        lr = hflip(lr)
-        hr = hflip(hr)
+    if torch.rand(1).item() > p:
+        lr = F.hflip(lr)
+        hr = F.hflip(hr)
 
     return lr, hr
 
 
 def random_vertically_flip(lr, hr, p=0.5):
-    r""" Realize the function of randomly flipping up and down images.
+    r""" Realize the image random vertical flip function.
 
     Args:
         lr (PIL.BmpImagePlugin.BmpImageFile): Low-resolution image data read using PIL library.
@@ -49,8 +48,8 @@ def random_vertically_flip(lr, hr, p=0.5):
         If the random probability is greater than 0.5, the image data after the vertical flip is returned, 
         otherwise the original image data is returned.
     """
-    if torch.rand(1) > p:
-        lr = vflip(lr)
-        hr = vflip(hr)
+    if torch.rand(1).item() > p:
+        lr = F.vflip(lr)
+        hr = F.vflip(hr)
 
     return lr, hr
