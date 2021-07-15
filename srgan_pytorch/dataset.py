@@ -13,9 +13,9 @@
 # ==============================================================================
 import os
 
+import torch.utils.data
+import torchvision.transforms as transforms
 from PIL import Image
-from torch.utils.data import Dataset
-from torchvision import transforms
 from torchvision.transforms import InterpolationMode as IMode
 
 from .utils.common import check_image_file
@@ -25,7 +25,7 @@ from .utils.data_augmentation import random_vertically_flip
 __all__ = ["BaseDataset", "CustomDataset"]
 
 
-class BaseDataset(Dataset):
+class BaseDataset(torch.utils.data.Dataset):
     r""" Base dataset loader constructed using bicubic down-sampling method.
 
     Args:
@@ -34,22 +34,21 @@ class BaseDataset(Dataset):
         scale (int): Image magnification.
     """
 
-    def __init__(self, dataroot: str,
-                 image_size: int,
-                 scale: int):
+    def __init__(self, dataroot: str, image_size: int, scale: int):
         super(BaseDataset, self).__init__()
-        lr_image_size = image_size // scale
+        # Get image size
+        lr_image_size = (image_size // scale, image_size // scale)
+        hr_image_size = (image_size, image_size)
         # Get the index of all images in the directory that meet the suffix format conditions.
-        self.filenames = [os.path.join(dataroot, x) for x in
-                          os.listdir(dataroot) if check_image_file(x)]
+        self.filenames = [os.path.join(dataroot, x) for x in os.listdir(dataroot) if check_image_file(x)]
 
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((lr_image_size, lr_image_size), IMode.BICUBIC),
+            transforms.Resize(lr_image_size, IMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.hr_transforms = transforms.Compose([
-            transforms.RandomCrop((image_size, image_size)),
+            transforms.RandomCrop(hr_image_size),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.ToTensor()
@@ -70,7 +69,7 @@ class BaseDataset(Dataset):
         return len(self.filenames)
 
 
-class CustomDataset(Dataset):
+class CustomDataset(torch.utils.data.Dataset):
     r""" Load through the pre-dataset.
 
     Args:
@@ -80,27 +79,24 @@ class CustomDataset(Dataset):
         use_da (optional, bool): Do you want to use data enhancement for training dataset. (Default: `True`)
     """
 
-    def __init__(self, dataroot: str,
-                 image_size: int,
-                 scale: int,
-                 use_da: bool = True):
+    def __init__(self, dataroot: str, image_size: int, scale: int, use_da: bool = True):
         super(CustomDataset, self).__init__()
-        lr_image_size = image_size // scale
         self.use_da = use_da
+        # Get image size
+        lr_image_size = (image_size // scale, image_size // scale)
+        hr_image_size = (image_size, image_size)
 
         # Get the index of all images in the directory that meet the suffix format conditions.
-        self.filenames = os.path.join(dataroot, "input")
-        self.lr_filenames = [os.path.join(dataroot, "input", x) for x in
-                             self.filenames if check_image_file(x)]
-        self.hr_filenames = [os.path.join(dataroot, "target", x) for x in
-                             self.filenames if check_image_file(x)]
+        self.filenames = os.path.join(dataroot, "inputs")
+        self.lr_filenames = [os.path.join(dataroot, "inputs", x) for x in self.filenames if check_image_file(x)]
+        self.hr_filenames = [os.path.join(dataroot, "target", x) for x in self.filenames if check_image_file(x)]
 
         self.lr_transforms = transforms.Compose([
-            transforms.CenterCrop((lr_image_size, lr_image_size)),
+            transforms.CenterCrop(lr_image_size),
             transforms.ToTensor()
         ])
         self.hr_transforms = transforms.Compose([
-            transforms.CenterCrop((image_size, image_size)),
+            transforms.CenterCrop(hr_image_size),
             transforms.ToTensor()
         ])
 
