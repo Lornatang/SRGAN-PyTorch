@@ -118,7 +118,7 @@ def main():
     for index in range(len(filenames)):
         lr_filename = os.path.join("data", "Set5", "LRbicx4", filenames[index])
         sr_filename = os.path.join("tests", "Set5", filenames[index])
-        hr_filename = os.path.join("data", "Set5", "LRbicx4", filenames[index])
+        hr_filename = os.path.join("data", "Set5", "GTmod12", filenames[index])
 
         # Process low-resolution images into super-resolution images.
         sr(model, lr_filename, sr_filename)
