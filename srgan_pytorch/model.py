@@ -14,6 +14,7 @@
 import torch
 from torch import nn
 from torch.hub import load_state_dict_from_url
+from torch import Tensor
 
 __all__ = ["ResidualBlock", "SubpixelConvolutionLayer", "Discriminator",
            "Generator", "discriminator", "generator"]
@@ -27,10 +28,10 @@ class ResidualBlock(nn.Module):
     r""" Residual convolution block.
 
     Args:
-        channels (int): Number of channels in the input image.
+        channels (int): Number of channels in the input image. (Default: 64)
     """
 
-    def __init__(self, channels: int):
+    def __init__(self, channels: int = 64) -> Tensor:
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(channels, channels, 3, 1, 1, bias=False)
         self.bn1 = nn.BatchNorm2d(channels)
@@ -38,10 +39,11 @@ class ResidualBlock(nn.Module):
         self.conv2 = nn.Conv2d(channels, channels, 3, 1, 1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.prelu(out)
+
         out = self.conv2(out)
         out = self.bn2(out)
 
@@ -54,16 +56,16 @@ class SubpixelConvolutionLayer(nn.Module):
     r""" Sub-pixel upsampled convolution block.
 
     Args:
-        channels (int): Number of channels in the input image.
+        channels (int): Number of channels in the input image. (Default: 64)
     """
 
-    def __init__(self, channels: int):
+    def __init__(self, channels: int = 64) -> None:
         super(SubpixelConvolutionLayer, self).__init__()
         self.conv = nn.Conv2d(channels, channels * 4, 3, 1, 1)
         self.pixel_shuffle = nn.PixelShuffle(2)
         self.prelu = nn.PReLU()
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         out = self.conv(x)
         out = self.pixel_shuffle(out)
         out = self.prelu(out)
@@ -73,7 +75,7 @@ class SubpixelConvolutionLayer(nn.Module):
 
 class Discriminator(nn.Module):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
             # input size. (3) x 96 x 96
@@ -97,10 +99,10 @@ class Discriminator(nn.Module):
             nn.Conv2d(256, 256, 3, 2, 1, bias=False),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2, True),
-            # state size. (512) x 6 x 6
             nn.Conv2d(256, 512, 3, 1, 1, bias=False),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, True),
+            # state size. (512) x 6 x 6
             nn.Conv2d(512, 512, 3, 2, 1, bias=False),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, True)
@@ -116,7 +118,7 @@ class Discriminator(nn.Module):
         # Init all model weights.
         self._initialize_weights()
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         out = self.features(x)
         out = torch.flatten(out, 1)
         out = self.classifier(out)
@@ -136,7 +138,7 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super(Generator, self).__init__()
         # First layer.
         self.conv1 = nn.Sequential(
@@ -171,7 +173,7 @@ class Generator(nn.Module):
         # Initializing all neural network weights.
         self._initialize_weights()
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         conv1 = self.conv1(x)
         trunk = self.trunk(conv1)
         conv2 = self.conv2(trunk)
