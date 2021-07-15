@@ -145,7 +145,7 @@ def main():
         # Training.
         train_psnr(epoch)
         # Test.
-        sr(netG, join("assets", "lr.png"), join("assets", "hr.png"))
+        sr(netG, join("assets", "lr.png"), join("assets", "sr.png"))
         psnr, ssim = iqa(join("assets", "sr.png"), join("assets", "hr.png"))
         logger.info(f"P-Oral epoch {epoch} PSNR: {psnr:.2f}dB SSIM: {ssim:.4f}.")
         # Write result to TensorBoard.
@@ -171,7 +171,7 @@ def main():
         # Training.
         train_gan(epoch)
         # Test.
-        sr(netG, join("assets", "lr.png"), join("assets", "hr.png"))
+        sr(netG, join("assets", "lr.png"), join("assets", "sr.png"))
         psnr, ssim = iqa(join("assets", "sr.png"), join("assets", "hr.png"))
         logger.info(f"G-Oral epoch {epoch} PSNR: {psnr:.2f}dB SSIM: {ssim:.4f}.")
         # Write result to TensorBoard.
