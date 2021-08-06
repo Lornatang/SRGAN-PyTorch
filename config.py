@@ -39,6 +39,7 @@ cudnn.deterministic = False
 device = torch.device("cuda:0")
 # Runing mode.
 mode = "train"
+scale_factor = 4
 
 # ==============================================================================
 #                              Train configure
@@ -47,7 +48,6 @@ if mode == "train":
     # 1. Dataset path.
     dataroot              = "data/DIV2K/train"
     image_size            = 96
-    scale                 = 4
     batch_size            = 16
 
     # 2. Define model.
