@@ -1,4 +1,4 @@
-## Usage
+# Usage
 
 ```bash
 # Default use DIV2K dataset.
@@ -24,9 +24,10 @@ $ bash download_dataset.sh
 ## Testing Dataset directory structure
 
 ### Set 5
+
 ```text
 - Set5
-    - GTmod12
+    - original
         - baby.png
         - bird.png
         - ...
@@ -37,9 +38,10 @@ $ bash download_dataset.sh
 ```
 
 ### Set 14
+
 ```text
 - Set14
-    - GTmod12
+    - original
         - baboon.png
         - barbara.png
         - ...
