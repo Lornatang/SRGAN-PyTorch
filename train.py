@@ -27,7 +27,7 @@ def main() -> None:
     generator.train()
 
     # Load dataset.
-    dataset = BaseDataset(dataroot, image_size, scale)
+    dataset = BaseDataset(dataroot, image_size, scale_factor)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size, True, pin_memory=True)
     # Resuming training.
     if resume:
