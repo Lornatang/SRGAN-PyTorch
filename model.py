@@ -216,6 +216,6 @@ class PerceptualLoss(nn.Module):
         hr = self.resize(hr)
 
         # Find the feature map difference between two images.
-        loss = F.l1_loss(self.feature_extractor(sr), self.feature_extractor(hr))
+        loss = F.mse_loss(self.feature_extractor(sr), self.feature_extractor(hr))
 
         return loss
