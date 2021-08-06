@@ -52,10 +52,10 @@ def tensor2image(tensor, norm: bool = False) -> np.ndarray:
 
 def random_crop(lr, hr, image_size: int, downscale_factor: int) -> Tuple[np.ndarray, np.ndarray]:
     w, h = hr.size
-    left = torch.randint(0, w - image_size + 1, size=(1,)).item()
-    top = torch.randint(0, h - image_size + 1, size=(1,)).item()
-    right = left + image_size
-    bottom = top + image_size
+    left   = torch.randint(0, w - image_size + 1, size=(1,)).item()
+    top    = torch.randint(0, h - image_size + 1, size=(1,)).item()
+    right  = left + image_size
+    bottom = top  + image_size
 
     lr = lr.crop((left   // downscale_factor,  
                   top    // downscale_factor, 
