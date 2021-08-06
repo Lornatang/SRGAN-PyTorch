@@ -27,7 +27,7 @@ URL = "https://github.com/Lornatang/SRGAN-PyTorch"
 EMAIL = "liu_changyu@dakewe.com"
 AUTHOR = "Liu Goodfellow"
 REQUIRES_PYTHON = ">=3.8.0"
-VERSION = "0.4.0"
+VERSION = "1.0.0"
 
 # Libraries that must be installed.
 REQUIRED = [
@@ -35,10 +35,7 @@ REQUIRED = [
     "torchvision",
     "pillow",
     "numpy",
-    "opencv-python",
-    "tqdm",
-    "scipy",
-    "lpips"
+    "tqdm"
 ]
 
 # The following libraries directory need to be installed if you need to run all scripts.
