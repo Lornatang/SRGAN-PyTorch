@@ -11,46 +11,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import argparse
-import logging
 import os
 
 from PIL import Image
 
-parser = argparse.ArgumentParser()
-parser.add_argument("data", metavar="DIR", help="Path to dataset.")
-args = parser.parse_args()
-
-# It is a convenient method for simple scripts to configure the log package at one time.
-logger = logging.getLogger(__name__)
-logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
-
 
 def main():
-    # Get all the images under the folder.
-    for file in os.listdir(args.data):
-        logger.info(f"Process: `{os.path.join(args.data, file)}`.")
-        # Get all cut image data.
-        crop_images = crop_image(Image.open(os.path.join(args.data, file)))
-        # Save all captured image data in turn.
-        save_images(os.path.join(args.data, file), crop_images)
-        # Delete original image.
-        os.remove(os.path.join(args.data, file))
+    image_sizex0  = 128
+    image_sizex2  = 64
+    image_sizex4  = 32
+
+    filenames = os.listdir("HR")
+    for filename in sorted(filenames):
+        print(f"Process: `{filename}`.")
+
+        imagex0 = Image.open(os.path.join("HR",          filename))
+        imagex2 = Image.open(os.path.join("LRunknownx2", filename))
+        imagex4 = Image.open(os.path.join("LRunknownx4", filename))
+
+        crop_imagesx0 = crop_image(imagex0, image_sizex0)
+        crop_imagesx2 = crop_image(imagex2, image_sizex2)
+        crop_imagesx4 = crop_image(imagex4, image_sizex4)
+
+        save_images(os.path.join("HR",          filename), crop_imagesx0)
+        save_images(os.path.join("LRunknownx2", filename), crop_imagesx2)
+        save_images(os.path.join("LRunknownx4", filename), crop_imagesx4)
+
+        os.remove(os.path.join("HR",          filename))
+        os.remove(os.path.join("LRunknownx2", filename))
+        os.remove(os.path.join("LRunknownx4", filename))
 
 
-def crop_image(image):
-    assert image.size[0] != image.size[1]
+def crop_image(image, crop_size: int):
+    assert image.size[0] == image.size[1]
     # Get the split image size.
-    crop_image_size = int(image.size[0] / 9)
+    crop_number = image.size[0] // crop_size
     # (left, upper, right, lower)
     box_list = []
-    for width_index in range(0, 9):
-        for height_index in range(0, 9):
-            box = (height_index * crop_image_size,
-                   width_index * crop_image_size,
-                   (height_index + 1) * crop_image_size,
-                   (width_index + 1) * crop_image_size)
-
+    for width_index in range(0, crop_number):
+        for height_index in range(0, crop_number):
+            box = ((height_index + 0) * crop_size, (width_index + 0) * crop_size,
+                   (height_index + 1) * crop_size, (width_index + 1) * crop_size)
             box_list.append(box)
 
     # Save all split image data.
@@ -59,15 +60,11 @@ def crop_image(image):
 
 
 def save_images(raw_filename, image_list):
-    index = 0
+    index = 1
     for image in image_list:
-        image.save(raw_filename.split(".")[0] + "_" + str(index) + ".png")
+        image.save(raw_filename.split(".")[0] + f"_{index:08d}.bmp")
         index += 1
 
 
 if __name__ == "__main__":
-    logger.info("ScriptEngine:")
-    logger.info("\tAPI version .......... 0.3.0")
-    logger.info("\tBuild ................ 2021.07.02")
-
     main()
