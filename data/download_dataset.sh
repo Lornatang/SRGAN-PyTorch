@@ -1,5 +1,8 @@
 #!/bin/bash
 
+mkdir DIV2K
+cd DIV2K
+
 # Training.
 echo "Downloading DIV2K train dataset."
 wget http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip
