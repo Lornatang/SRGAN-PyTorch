@@ -95,25 +95,33 @@ if mode == "train":
 #                              Validate configure
 # ==============================================================================
 if mode == "validate":
+    dataset = "Set5"
+
     net = Generator().to(device)
     net.load_state_dict(torch.load("", map_location=device))
-
-    # Set5 dataset.
-    set5_lr_dir   = "data/Set5/LRbicx4"
-    set5_sr_dir   = "data/test/Set5"
-    set5_hr_dir   = "data/Set5/original"
-
-    # Set14 dataset.
-    set14_lr_dir  = "data/Set14/LRbicx4"
-    set14_sr_dir  = "data/test/Set14"
-    set14_hr_dir  = "data/Set14/original"
-
-    # BSD100 dataset.
-    bsd100_lr_dir = "data/BSD100/LRbicx4"
-    bsd100_sr_dir = "data/test/BSD100"
-    bsd100_hr_dir = "data/BSD100/original"
-
-    # Custom dataset.
-    custom_lr_dir = "data/Custom/LRcubicx4"
-    custom_sr_dir = "data/test/Custom"
-    custom_hr_dir = "data/Custom/original"
+    
+    if dataset == "Set5":
+        # Set5 dataset.
+        lr_dir = "data/Set5/LRbicx4"
+        sr_dir = "data/test/Set5"
+        hr_dir = "data/Set5/GTmod12"
+    elif dataset == "Set14":
+        # Set14 dataset.
+        lr_dir = "data/Set14/LRbicx4"
+        sr_dir = "data/test/Set14"
+        hr_dir = "data/Set14/GTmod12"
+    elif dataset == "BSD100":
+        # BSD100 dataset.
+        lr_dir = "data/BSD100/LRbicx4"
+        sr_dir = "data/test/BSD100"
+        hr_dir = "data/BSD100/GTmod12"
+    elif dataset == "Custom":
+        # Custom dataset.
+        lr_dir = "data/Custom/LRbicx4"
+        sr_dir = "data/test/Custom"
+        hr_dir = "data/Custom/HR"
+    else:
+        # Set5 dataset.
+        lr_dir = "data/Set5/LRbicx4"
+        sr_dir = "data/test/Set5"
+        hr_dir = "data/Set5/GTmod12"
