@@ -1,6 +1,6 @@
 # SRGAN-PyTorch
 
-### Overview
+## Overview
 
 This repository contains an op-for-op PyTorch reimplementation
 of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802)
@@ -9,13 +9,13 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 ### Table of contents
 
 - [SRGAN-PyTorch](#srgan-pytorch)
-    - [Overview](#overview)
+  - [Overview](#overview)
     - [Table of contents](#table-of-contents)
-    - [Installation](#installation)
-      - [Clone and install requirements](#clone-and-install-requirements)
-      - [Download dataset](#download-dataset)
-    - [Test (e.g Set5)](#test-eg-set5)
-    - [Test video](#test-video)
+    - [Download weights](#download-weights)
+    - [Download dataset](#download-dataset)
+      - [Download train dataset](#download-train-dataset)
+      - [Download val dataset](#download-val-dataset)
+      - [Test (e.g Set5)](#test-eg-set5)
     - [Train (e.g DIV2K)](#train-eg-div2k)
     - [Model performance](#model-performance)
     - [Result](#result)
@@ -23,95 +23,56 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
     - [Credit](#credit)
       - [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](#photo-realistic-single-image-super-resolution-using-a-generative-adversarial-network)
 
-### Installation
+### Download weights
 
-#### Clone and install requirements
+- [Google Driver](https://drive.google.com/file/d/1GJZztdiJ6oBmJe9Ntyyos_psMzM8KY4P/view?usp=sharing)
+- [Baidu Driver](https://drive.google.com/file/d/1GJZztdiJ6oBmJe9Ntyyos_psMzM8KY4P/view?usp=sharing) access:`llot`
 
-```bash
-$ git clone https://github.com/Lornatang/SRGAN-PyTorch.git
-$ cd SRGAN-PyTorch/
-$ pip3 install -r requirements.txt
-```
+### Download dataset
 
-#### Download dataset
+#### Download train dataset
 
 ```bash
-$ cd data/
-$ bash download_dataset.sh
+cd data/
+bash download_dataset.sh
 ```
 
-### Test (e.g Set5)
+#### Download val dataset
 
 Set5 dataset:
 
-- [baiduclouddisk](https://pan.baidu.com/s/1p2h2XTWMD3FLuvKzwpB3Bg) access: `llot`
-- [gooleclouddisk](https://drive.google.com/file/d/13cG8rBaqY3H2xkFSLOgMvUGhwcBJyKoT/view?usp=sharing)
+- [gooleclouddisk](https://drive.google.com/file/d/1GJZztdiJ6oBmJe9Ntyyos_psMzM8KY4P/view?usp=sharing)
 
 Set14 dataset:
 
-- [baiduclouddisk](https://pan.baidu.com/s/10HqYjvlHSVso_-PkXYA85w) access: `llot`
-- [googlecloudisk](https://drive.google.com/file/d/1nwmlu4xeLpSLoP89gFcj-557ymWwKZV2/view?usp=sharing)
+- [googlecloudisk](https://drive.google.com/file/d/14bxrGB3Nej8vBqxLoqerGX2dhChQKJoa/view?usp=sharing)
 
-```text
-usage: test.py [-h] [--pretrained] [--model-path MODEL_PATH] [--cuda]
+Bsd100 dataset:
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --pretrained          Use pre-trained model.
-  --model-path MODEL_PATH
-                        Path to latest checkpoint for model.
-  --cuda                Enables cuda.
-  
-# Example (Set5 dataset)
-python test.py --pretrained
-```
+- [googlecloudisk](https://drive.google.com/file/d/1RTlPATPBCfUufJspgTik5KUEzAuVcyFF/view?usp=sharing)
 
-### Test video
+#### Test (e.g Set5)
 
-```text
-usage: test_video.py [-h] --file FILE [--pretrained] [--model-path MODEL_PATH] [--cuda] [--view]
+Modify the contents of the file as follows.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --file FILE           Test low resolution video name.
-  --pretrained          Use pre-trained model.
-  --model-path MODEL_PATH
-                        Path to latest checkpoint for model.
-  --cuda                Enables cuda.
-  --view                Do you want to show SR video synchronously.
- # Example
- python test_video.py --file [path-to-video] --pretrained
-```
+1. `config.py` line 41 `mode="train"` change to `model="validate"`;
+2. `config.py` line 101 `net.load_state_dict(torch.load("", map_location=device))` change to `net.load_state_dict(torch.load("results/<MODEL-PATH>", map_location=device))`;
+3. Run `python validate.py`.
 
 ### Train (e.g DIV2K)
 
-```text
-usage: test_video.py [-h] --file FILE [--pretrained] [--model-path MODEL_PATH] [--cuda] [--view]
+Modify the contents of the file as follows.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --file FILE           Test low resolution video name.
-  --pretrained          Use pre-trained model.
-  --model-path MODEL_PATH
-                        Path to latest checkpoint for model.
-  --cuda                Enables cuda.
-  --view                Do you want to show SR video synchronously.
+1. `config.py` line 41 `mode="validate"` change to `model="train"`;
+2. Run `python train.py`.
 
-C:\code\SRGAN-PyTorch>python train.py -h
-usage: train.py [-h] [--pretrained] [--model-path MODEL_PATH] [--cuda]
+If you want to load weights that you've trained before, modify the contents of the file as follows.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --pretrained          Use pre-trained model.
-  --model-path MODEL_PATH
-                        Path to latest checkpoint for model.
-  --cuda                Enables cuda.
-
-# Example
-python train.py --cuda
-# If you want to load weights that you've trained before, run the following command.
-python train.py --netG weights/P_epoch10.pth --cuda
-```
+1. `config.py` line 41 `mode="validate"` change to `model="train"`;
+2. `config.py` line 58 `start_p_epoch=0` change to `start_p_epoch=XXX`;
+3. `config.py` line 60 `resume=False` change to `resume=True`;
+4. `config.py` line 61 `resume_p_weight=""` change to `resume_p_weight=<YOUR-RESUME-WIGHTS-PATH>`;
+5. Run `python train.py`.
 
 ### Model performance
 
@@ -119,15 +80,9 @@ python train.py --netG weights/P_epoch10.pth --cuda
 | :---: | :----: | :---: | :-------: | :-------: |
 | srgan | 1.55M  | 2.6G  |    9ms    |    7ms    |
 
-```text
-# Example (CPU: Intel i9-10900X/GPU: Nvidia GeForce RTX 2080Ti)
-python setup.py install --user --prefix=""
-python scripts/cal_model_complexity.py --gpu 0
-```
-
 ### Result
 
-Source of original paper results: https://arxiv.org/pdf/1609.04802v5.pdf
+Source of original paper results: [https://arxiv.org/pdf/1609.04802v5.pdf](https://arxiv.org/pdf/1609.04802v5.pdf)
 
 In the following table, the value in `()` indicates the result of the project, and `-` indicates no test.
 
@@ -182,7 +137,7 @@ than to those obtained with any state-of-the-art method.
 
 [[Paper]](https://arxiv.org/pdf/1609.04802)
 
-```
+```text
 @InProceedings{srgan,
     author = {Christian Ledig, Lucas Theis, Ferenc Huszar, Jose Caballero, Andrew Cunningham, Alejandro Acosta, Andrew Aitken, Alykhan Tejani, Johannes Totz, Zehan Wang, Wenzhe Shi},
     title = {Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network},
