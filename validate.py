@@ -30,10 +30,6 @@ def image_quality_assessment(sr_path: str, hr_path: str) -> Tuple[float, float]:
     sr_image = skimage.io.imread(sr_path)
     hr_image = skimage.io.imread(hr_path)
     
-    # Crop border 4 pixel.
-    sr_image = sr_image[4:-4, 4:-4, ...]
-    hr_image = hr_image[4:-4, 4:-4, ...]
-    
     # Test for Y channel.
     sr_image = normalize(sr_image)
     hr_image = normalize(hr_image)
@@ -63,13 +59,13 @@ def main() -> None:
     total_psnr = 0.0
     total_ssim = 0.0
 
-    filenames = os.listdir(set5_lr_dir)
+    filenames = os.listdir(lr_dir)
     total_files = len(filenames)
 
     for index in range(total_files):
-        lr_path = os.path.join(set5_lr_dir, filenames[index])
-        sr_path = os.path.join(set5_sr_dir, filenames[index])
-        hr_path = os.path.join(set5_hr_dir, filenames[index])
+        lr_path = os.path.join(lr_dir, filenames[index])
+        sr_path = os.path.join(sr_dir, filenames[index])
+        hr_path = os.path.join(hr_dir, filenames[index])
         # LR to SR.
         lr_tensor = image2tensor(Image.open(lr_path)).unsqueeze(0).to(device)
         with torch.no_grad():
