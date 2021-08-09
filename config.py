@@ -103,25 +103,25 @@ if mode == "validate":
     if dataset == "Set5":
         # Set5 dataset.
         lr_dir = "data/Set5/LRbicx4"
-        sr_dir = "data/test/Set5"
+        sr_dir = "results/test/Set5"
         hr_dir = "data/Set5/GTmod12"
     elif dataset == "Set14":
         # Set14 dataset.
         lr_dir = "data/Set14/LRbicx4"
-        sr_dir = "data/test/Set14"
+        sr_dir = "results/test/Set14"
         hr_dir = "data/Set14/GTmod12"
     elif dataset == "BSD100":
         # BSD100 dataset.
         lr_dir = "data/BSD100/LRbicx4"
-        sr_dir = "data/test/BSD100"
+        sr_dir = "results/test/BSD100"
         hr_dir = "data/BSD100/GTmod12"
     elif dataset == "Custom":
         # Custom dataset.
         lr_dir = "data/Custom/LRbicx4"
-        sr_dir = "data/test/Custom"
+        sr_dir = "results/test/Custom"
         hr_dir = "data/Custom/HR"
     else:
         # Set5 dataset.
         lr_dir = "data/Set5/LRbicx4"
-        sr_dir = "data/test/Set5"
+        sr_dir = "results/test/Set5"
         hr_dir = "data/Set5/GTmod12"
