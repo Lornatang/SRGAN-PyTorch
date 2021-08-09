@@ -203,12 +203,7 @@ class PerceptualLoss(nn.Module):
         self.resize = transforms.Resize([224, 224])
 
     def forward(self, sr: Tensor, hr: Tensor) -> Tensor:
-        # VGG19 feature extraction only accepts image data in the range of 0~1, 
-        # but the incoming image data range is between -1 and 1.
-        sr = (sr + 1) / 2
-        hr = (hr + 1) / 2
-
-        # Zeroing operation.
+        # Normalize operation.
         sr = (sr - self.mean) / self.std
         hr = (hr - self.mean) / self.std
         # Scale to the input size of the VGG19 model.
