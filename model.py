@@ -43,7 +43,7 @@ class ResidualBlock(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         identity = x
         out = self.conv_block(x)
-        out += identity
+        out = out + identity
 
         return out
 
@@ -136,21 +136,17 @@ class Generator(nn.Module):
         )
 
         self.upsampling = nn.Sequential(
-            nn.Conv2d(64, 256, 3, 1, 1),
+            nn.Conv2d(64, 256, 3, 1, 1, bias=False),
             nn.BatchNorm2d(256),
             nn.PixelShuffle(upscale_factor=2),
             nn.PReLU(),
-
-            nn.Conv2d(64, 256, 3, 1, 1),
+            nn.Conv2d(64, 256, 3, 1, 1, bias=False),
             nn.BatchNorm2d(256),
             nn.PixelShuffle(upscale_factor=2),
             nn.PReLU()
         )
 
-        self.conv_block3 = nn.Sequential(
-            nn.Conv2d(64, 3, 9, 1, 4),
-            nn.Tanh()
-        )
+        self.conv_block3 = nn.Conv2d(64, 3, 9, 1, 4)
 
         self._initialize_weights()
 
