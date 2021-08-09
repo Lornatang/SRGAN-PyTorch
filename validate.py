@@ -70,7 +70,7 @@ def main() -> None:
         lr_tensor = image2tensor(Image.open(lr_path)).unsqueeze(0).to(device)
         with torch.no_grad():
             sr_tensor = net(lr_tensor.half())
-            torchvision.utils.save_image(sr_tensor, sr_path, normalize=True)
+            torchvision.utils.save_image(sr_tensor, sr_path)
             
         # Test PSNR and SSIM.
         print(f"Test `{lr_path}`.")
