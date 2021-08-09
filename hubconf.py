@@ -19,10 +19,10 @@ Usage:
 import torch
 from torch.hub import load_state_dict_from_url
 
-from srgan_pytorch.model import Generator
+from model import Generator
 
 model_urls = {
-    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v0.4.0/SRGAN_DIV2K-cd696c87b61c37784d816498e535353a2f42e4307069d55bf151bc1ea5aafaf7.pth"
+    "srgan": "https://github.com/Lornatang/SRGAN-PyTorch/releases/download/v1.0.0/SRGAN_DIV2K-cd696c87b61c37784d816498e535353a2f42e4307069d55bf151bc1ea5aafaf7.pth"
 }
 
 dependencies = ["torch"]
