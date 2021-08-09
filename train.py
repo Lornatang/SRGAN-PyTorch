@@ -39,13 +39,12 @@ def main() -> None:
     # Train PSNR-Oral.
     for epoch in range(start_p_epoch, p_epochs):
         for index, data in enumerate(dataloader, 1):
-            ##############################################
-            # (0) Update G network: min L1 Loss(output, hr)
-            ##############################################
             generator.zero_grad()
             lr = data[0].to(device)
             hr = data[1].to(device)
-
+            ##############################################
+            # (0) Update G network: min L1 Loss(output, hr)
+            ##############################################
             sr = generator(lr)
             loss = pixel_criterion(sr, hr)
             loss.backward()
@@ -62,7 +61,6 @@ def main() -> None:
     # Train GAN-Oral.
     for epoch in range(start_g_epoch, g_epochs):
         for index, data in enumerate(dataloader, 1):
-            discriminator.zero_grad()
             lr = data[0].to(device)
             hr = data[1].to(device)
             label_size = lr.size(0)
@@ -72,6 +70,7 @@ def main() -> None:
             ##############################################
             # (1) Update D network: E(HR)[log(D(HR))] + E(SR)[log(1 - D(G(SR))]
             ##############################################
+            discriminator.zero_grad()
             # Train real sample with discriminator.
             hr_output = discriminator(hr)
             d_loss_hr = adversarial_criterion(hr_output, real_label)
