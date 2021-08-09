@@ -137,7 +137,7 @@ than to those obtained with any state-of-the-art method.
 
 [[Paper]](https://arxiv.org/pdf/1609.04802)
 
-```text
+```bibtex
 @InProceedings{srgan,
     author = {Christian Ledig, Lucas Theis, Ferenc Huszar, Jose Caballero, Andrew Cunningham, Alejandro Acosta, Andrew Aitken, Alykhan Tejani, Johannes Totz, Zehan Wang, Wenzhe Shi},
     title = {Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network},
