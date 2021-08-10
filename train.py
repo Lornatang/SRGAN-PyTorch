@@ -42,12 +42,12 @@ def main() -> None:
     # Train PSNR-Oral.
     for epoch in range(start_p_epoch, p_epochs):
         for index, data in enumerate(dataloader, 1):
-            generator.zero_grad()
             lr = data[0].to(device)
             hr = data[1].to(device)
             ##############################################
             # (0) Update G network: min L1 Loss(output, hr)
             ##############################################
+            generator.zero_grad()
             sr = generator(lr)
             loss = pixel_criterion(sr, hr)
             loss.backward()
