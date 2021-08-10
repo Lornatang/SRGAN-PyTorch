@@ -42,6 +42,7 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         identity = x
+        
         out = self.conv_block(x)
         out = out + identity
 
@@ -101,20 +102,17 @@ class Discriminator(nn.Module):
     def _initialize_weights(self) -> None:
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight)
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.constant_(m.bias, 0)
                 m.weight.data *= 0.1
-                if m.bias is not None:
-                    m.bias.data.fill_(0)
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 m.weight.data *= 0.1
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight)
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.constant_(m.bias, 0)
                 m.weight.data *= 0.1
-                if m.bias is not None:
-                    m.bias.data.fill_(0)
 
 
 class Generator(nn.Module):
@@ -125,10 +123,10 @@ class Generator(nn.Module):
             nn.PReLU()
         )
 
-        residual_blocks = []
+        trunk = []
         for _ in range(16):
-            residual_blocks.append(ResidualBlock(64))
-        self.residual_blocks = nn.Sequential(*residual_blocks)
+            trunk.append(ResidualBlock(64))
+        self.trunk = nn.Sequential(*trunk)
 
         self.conv_block2 = nn.Sequential(
             nn.Conv2d(64, 64, 3, 1, 1, bias=False),
@@ -152,7 +150,7 @@ class Generator(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         out1 = self.conv_block1(x)
-        out = self.residual_blocks(out1)
+        out = self.trunk(out1)
         out2 = self.conv_block2(out)
         out = torch.add(out1, out2)
         out = self.upsampling(out)
@@ -163,15 +161,13 @@ class Generator(nn.Module):
     def _initialize_weights(self) -> None:
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight)
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.constant_(m.bias, 0)
                 m.weight.data *= 0.1
-                if m.bias is not None:
-                    m.bias.data.fill_(0)
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 m.weight.data *= 0.1
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.bias, 0)
 
 
 class PerceptualLoss(nn.Module):
