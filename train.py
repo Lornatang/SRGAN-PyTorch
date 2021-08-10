@@ -32,8 +32,11 @@ def main() -> None:
     # Resuming training.
     if resume:
         print("Resuming...")
-        discriminator.load_state_dict(torch.load(resume_d_weight))
-        generator.load_state_dict(torch.load(resume_g_weight))
+        if resume_p_weight != "":
+            generator.load_state_dict(torch.load(resume_p_weight))
+        else:
+            discriminator.load_state_dict(torch.load(resume_d_weight))
+            generator.load_state_dict(torch.load(resume_g_weight))
 
     num_batches = len(dataloader)
     # Train PSNR-Oral.
