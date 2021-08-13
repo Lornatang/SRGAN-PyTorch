@@ -52,7 +52,7 @@ if mode == "train":
     batch_size            = 16
 
     # 2. Define model.
-    discriminator         = Discriminator().to(device)
+    discriminator         = Discriminator(image_size).to(device)
     generator             = Generator().to(device)
 
     # 3. Reume training.
