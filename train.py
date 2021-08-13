@@ -53,7 +53,7 @@ def main() -> None:
             loss.backward()
             p_optimizer.step()
             # Print Loss.
-            print(f"Epoch[{epoch:03d}/{p_epochs:03d}]({index:04d}/{num_batches:04d}) Loss: {loss.item():.6f}.")
+            print(f"Epoch[{epoch:02d}/{p_epochs:02d}]({index:05d}/{num_batches:05d}) Loss: {loss.item():.6f}.")
             batches = index + epoch * num_batches
             writer.add_scalar("PSNR/Loss", loss.item(), batches)
             
@@ -122,7 +122,7 @@ def main() -> None:
             g_optimizer.step()
             d_sr2 = sr_output.mean().item()
             # Print Loss.
-            print(f"Epoch[{epoch:02d}/{g_epochs:02d}]({index:04d}/{num_batches:04d}) "
+            print(f"Epoch[{epoch:01d}/{g_epochs:01d}]({index:05d}/{num_batches:05d}) "
                   f"D Loss: {d_loss.item():.6f} G Loss: {g_loss.item():.6f} "
                   f"D(HR): {d_hr:.6f} D(SR1)/D(SR2): {d_sr1:.6f}/{d_sr2:.6f}.")
             batches = index + epoch * num_batches
