@@ -47,7 +47,7 @@ exp_name = "exp001"
 # ==============================================================================
 if mode == "train":
     # 1. Dataset path.
-    dataroot              = "data/ImageNet/train"
+    dataroot              = "data/ImageNet"
     image_size            = 96
     batch_size            = 16
 
