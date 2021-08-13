@@ -88,7 +88,6 @@ if mode == "train":
     # 8. Training log.
     writer                = SummaryWriter(os.path.join("sample", "logs", exp_name))
 
-
     # Exp model name.
     p_filename            = f"P-{exp_name}.pth"
     d_filename            = f"D-{exp_name}.pth"
@@ -100,7 +99,7 @@ if mode == "train":
 if mode == "validate":
     net        = Generator().to(device)
     # Model weight path.
-    model_path = f"C:\\code\\SuperResolution\\code\\PMIGAN\\result\\{exp_name}.pth"
+    model_path = "result/G-{exp_name}.pth"
     # Test dataset path.
     lr_dir     = "data/Set5/LRbicx4"                  
     sr_dir     = "result/{exp_name}"  
