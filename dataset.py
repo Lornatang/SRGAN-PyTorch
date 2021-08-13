@@ -58,8 +58,6 @@ class BaseDataset(data.Dataset):
         hr = self.hr_transforms(hr)
         lr = self.lr_transforms(hr)
 
-        hr = (hr / 0.5) - 1.
-
         return lr, hr
 
     def __len__(self) -> int:
