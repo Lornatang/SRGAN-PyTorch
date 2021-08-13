@@ -39,7 +39,7 @@ device = torch.device("cuda:0")
 # Runing mode.
 mode = "train"
 scale_factor = 4
-# 实验名称.
+# Exp name.
 exp_name = "exp001"
 
 # ==============================================================================
@@ -64,8 +64,8 @@ if mode == "train":
     resume_g_weight       = ""                                             
 
     # 4. Number of epochs.
-    p_epochs              = 165                                         
-    g_epochs              = 33
+    p_epochs              = 45                                         
+    g_epochs              = 9
                                              
     # 5. Loss function.
     pixel_criterion       = nn.MSELoss().to(device)                        
@@ -85,7 +85,8 @@ if mode == "train":
     g_scheduler           = StepLR(g_optimizer, g_epochs // 2)           
 
     # 8. Training log.
-    writer                = SummaryWriter(os.path.join("sample", "logs", exp_name))
+    writer                = SummaryWriter(os.path.join("samples", "logs", exp_name))
+
 
     # Exp model name.
     p_filename            = f"P-{exp_name}.pth"
@@ -102,4 +103,4 @@ if mode == "validate":
     # Test dataset path.
     lr_dir     = f"data/Set5/LRbicx4"
     sr_dir     = f"results/{exp_name}"
-    hr_dir     = f"data/Set5/GTmod12"                        
+    hr_dir     = f"data/Set5/GTmod12"
