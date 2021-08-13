@@ -3,7 +3,7 @@
 ## Overview
 
 This repository contains an op-for-op PyTorch reimplementation
-of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802)
+of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5)
 .
 
 ### Table of contents
@@ -41,37 +41,40 @@ bash download_dataset.sh
 
 Set5 dataset:
 
-- [gooleclouddisk](https://drive.google.com/file/d/1GJZztdiJ6oBmJe9Ntyyos_psMzM8KY4P/view?usp=sharing)
+- [Google Driver](https://drive.google.com/file/d/1GJZztdiJ6oBmJe9Ntyyos_psMzM8KY4P/view?usp=sharing)
+- [Baidu Driver](https://pan.baidu.com/s/1_B97Ga6thSi5h43Wuqyw0Q) access:`llot`
 
 Set14 dataset:
 
-- [googlecloudisk](https://drive.google.com/file/d/14bxrGB3Nej8vBqxLoqerGX2dhChQKJoa/view?usp=sharing)
+- [Google Driver](https://drive.google.com/file/d/14bxrGB3Nej8vBqxLoqerGX2dhChQKJoa/view?usp=sharing)
+- [Baidu Driver](https://pan.baidu.com/s/1wy_kf4Kkj2nSkgRUkaLzVA) access:`llot`
 
 Bsd100 dataset:
 
-- [googlecloudisk](https://drive.google.com/file/d/1RTlPATPBCfUufJspgTik5KUEzAuVcyFF/view?usp=sharing)
+- [Google Driver](https://drive.google.com/file/d/1RTlPATPBCfUufJspgTik5KUEzAuVcyFF/view?usp=sharing)
+- [Baidu Driver](https://pan.baidu.com/s/1Ig8t3_G4Nzhl8MvPAvdzFA) access:`llot`
 
 #### Test (e.g Set5)
 
 Modify the contents of the file as follows.
 
-1. `config.py` line 41 `mode="train"` change to `model="validate"`;
-2. `config.py` line 101 `net.load_state_dict(torch.load("", map_location=device))` change to `net.load_state_dict(torch.load("results/<MODEL-PATH>", map_location=device))`;
+1. `config.py` line 40 `mode="train"` change to `model="validate"`;
+2. `config.py` line 101 `model_path = f"results/G-{exp_name}.pth"` change to `model_path = f"<YOUR-WEIGHTS-PATH>.pth"`;
 3. Run `python validate.py`.
 
 ### Train (e.g DIV2K)
 
 Modify the contents of the file as follows.
 
-1. `config.py` line 41 `mode="validate"` change to `model="train"`;
+1. `config.py` line 40 `mode="validate"` change to `model="train"`;
 2. Run `python train.py`.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
-1. `config.py` line 41 `mode="validate"` change to `model="train"`;
-2. `config.py` line 58 `start_p_epoch=0` change to `start_p_epoch=XXX`;
-3. `config.py` line 60 `resume=False` change to `resume=True`;
-4. `config.py` line 61 `resume_p_weight=""` change to `resume_p_weight=<YOUR-RESUME-WIGHTS-PATH>`;
+1. `config.py` line 40 `mode="validate"` change to `model="train"`;
+2. `config.py` line 59 `start_p_epoch=0` change to `start_p_epoch=XXX`;
+3. `config.py` line 61 `resume=False` change to `resume=True`;
+4. `config.py` line 62 `resume_p_weight=""` change to `resume_p_weight=<YOUR-RESUME-WIGHTS-PATH>`;
 5. Run `python train.py`.
 
 ### Model performance
