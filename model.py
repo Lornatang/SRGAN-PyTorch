@@ -52,7 +52,7 @@ class ResidualBlock(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self, image_size: int = 96) -> None:
         super(Discriminator, self).__init__()
-        feature_size = image_size // 32
+        feature_size = image_size // 16
 
         self.features = nn.Sequential(
             # input size. (3) x 96 x 96
