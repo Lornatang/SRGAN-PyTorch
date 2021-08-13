@@ -72,7 +72,6 @@ if mode == "train":
     perceptual_criterion  = PerceptualLoss().to(device)                   
     adversarial_criterion = nn.BCELoss().to(device)           
     # Loss function weight.
-    pixel_weight          = 1e-00
     perceptual_weight     = 6e-03
     adversarial_weight    = 1e-03
 
