@@ -99,8 +99,8 @@ if mode == "train":
 if mode == "validate":
     net        = Generator().to(device)
     # Model weight path.
-    model_path = "result/G-{exp_name}.pth"
+    model_path = f"results/G-{exp_name}.pth"
     # Test dataset path.
-    lr_dir     = "data/Set5/LRbicx4"                  
-    sr_dir     = "result/{exp_name}"  
-    hr_dir     = "data/Set5/GTmod12"                           
+    lr_dir     = f"data/Set5/LRbicx4"
+    sr_dir     = f"results/{exp_name}"
+    hr_dir     = f"data/Set5/GTmod12"                        
