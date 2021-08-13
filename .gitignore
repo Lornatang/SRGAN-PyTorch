@@ -140,3 +140,4 @@ samples
 *.mp4
 *.zip
 *.csv
+*.pth
