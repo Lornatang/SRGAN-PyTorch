@@ -17,7 +17,6 @@
 # ==============================================================================
 
 import os
-import datetime
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -26,9 +25,9 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.tensorboard import SummaryWriter
 
-from model import PerceptualLoss
 from model import Discriminator
 from model import Generator
+from model import PerceptualLoss
 
 # ==============================================================================
 #                              Common configure
@@ -40,13 +39,15 @@ device = torch.device("cuda:0")
 # Runing mode.
 mode = "train"
 scale_factor = 4
+# 实验名称.
+exp_name = "exp001"
 
 # ==============================================================================
 #                              Train configure
 # ==============================================================================
 if mode == "train":
     # 1. Dataset path.
-    dataroot              = "data/DIV2K/train"
+    dataroot              = "data/ImageNet/train"
     image_size            = 96
     batch_size            = 16
 
@@ -63,8 +64,8 @@ if mode == "train":
     resume_g_weight       = ""                                             
 
     # 4. Number of epochs.
-    p_epochs              = 20000                                         
-    g_epochs              = 4000
+    p_epochs              = 165                                         
+    g_epochs              = 33
                                              
     # 5. Loss function.
     pixel_criterion       = nn.MSELoss().to(device)                        
@@ -76,52 +77,31 @@ if mode == "train":
     adversarial_weight    = 1e-03
 
     # 6. Optimizer.
-    p_lr                  = 1e-4
-    d_lr                  = 1e-4
-    g_lr                  = 1e-4
-    p_optimizer           = optim.Adam(generator.parameters(),     p_lr) 
-    d_optimizer           = optim.Adam(discriminator.parameters(), d_lr) 
-    g_optimizer           = optim.Adam(generator.parameters(),     g_lr) 
+    p_optimizer           = optim.Adam(generator.parameters(),     1e-4) 
+    d_optimizer           = optim.Adam(discriminator.parameters(), 1e-4) 
+    g_optimizer           = optim.Adam(generator.parameters(),     1e-4) 
 
     # 7. Leaning scheduler.
     d_scheduler           = StepLR(d_optimizer, g_epochs // 2)           
     g_scheduler           = StepLR(g_optimizer, g_epochs // 2)           
 
     # 8. Training log.
-    times                 = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    writer                = SummaryWriter(os.path.join("samples", "logs", times))
+    writer                = SummaryWriter(os.path.join("sample", "logs", exp_name))
+
+
+    # Exp model name.
+    p_filename            = f"P-{exp_name}.pth"
+    d_filename            = f"D-{exp_name}.pth"
+    g_filename            = f"G-{exp_name}.pth"
 
 # ==============================================================================
 #                              Validate configure
 # ==============================================================================
 if mode == "validate":
-    dataset = "Set5"
-
-    net = Generator().to(device)
-    net.load_state_dict(torch.load("", map_location=device))
-    
-    if dataset == "Set5":
-        # Set5 dataset.
-        lr_dir = "data/Set5/LRbicx4"
-        sr_dir = "results/test/Set5"
-        hr_dir = "data/Set5/GTmod12"
-    elif dataset == "Set14":
-        # Set14 dataset.
-        lr_dir = "data/Set14/LRbicx4"
-        sr_dir = "results/test/Set14"
-        hr_dir = "data/Set14/GTmod12"
-    elif dataset == "BSD100":
-        # BSD100 dataset.
-        lr_dir = "data/BSD100/LRbicx4"
-        sr_dir = "results/test/BSD100"
-        hr_dir = "data/BSD100/GTmod12"
-    elif dataset == "Custom":
-        # Custom dataset.
-        lr_dir = "data/Custom/LRbicx4"
-        sr_dir = "results/test/Custom"
-        hr_dir = "data/Custom/HR"
-    else:
-        # Set5 dataset.
-        lr_dir = "data/Set5/LRbicx4"
-        sr_dir = "results/test/Set5"
-        hr_dir = "data/Set5/GTmod12"
+    net        = Generator().to(device)
+    # Model weight path.
+    model_path = f"C:\\code\\SuperResolution\\code\\PMIGAN\\result\\{exp_name}.pth"
+    # Test dataset path.
+    lr_dir     = "data/Set5/LRbicx4"                  
+    sr_dir     = "result/{exp_name}"  
+    hr_dir     = "data/Set5/GTmod12"                           
