@@ -50,8 +50,10 @@ class ResidualBlock(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, image_size: int = 96) -> None:
         super(Discriminator, self).__init__()
+        feature_size = image_size // 32
+
         self.features = nn.Sequential(
             # input size. (3) x 96 x 96
             nn.Conv2d(3, 64, 3, 1, 1),
@@ -84,7 +86,7 @@ class Discriminator(nn.Module):
         )
 
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 6 * 6, 1024),
+            nn.Linear(512 * feature_size * feature_size, 1024),
             nn.LeakyReLU(0.2, True),
             nn.Linear(1024, 1),
             nn.Sigmoid()
@@ -102,7 +104,7 @@ class Discriminator(nn.Module):
     def _initialize_weights(self) -> None:
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
                 if m.bias is not None:
                     m.bias.data.fill_(0)
@@ -112,7 +114,7 @@ class Discriminator(nn.Module):
                 if m.bias is not None:
                     m.bias.data.fill_(0)
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
                 if m.bias is not None:
                     m.bias.data.fill_(0)
@@ -155,7 +157,7 @@ class Generator(nn.Module):
         out1 = self.conv_block1(x)
         out = self.trunk(out1)
         out2 = self.conv_block2(out)
-        out = torch.add(out1, out2)
+        out = out1 + out2
         out = self.upsampling(out)
         out = self.conv_block3(out)
 
@@ -164,7 +166,7 @@ class Generator(nn.Module):
     def _initialize_weights(self) -> None:
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
                 if m.bias is not None:
                     m.bias.data.fill_(0)
@@ -187,7 +189,7 @@ class PerceptualLoss(nn.Module):
     def __init__(self) -> None:
         super(PerceptualLoss, self).__init__()
         # Load the VGG19 model trained on the ImageNet dataset.
-        vgg19 = models.vgg19(pretrained=True, num_classes=1000)
+        vgg19 = models.vgg19(pretrained=True, num_classes=1000).eval()
         # The feature extraction layer in the VGG19 model is extracted as the content loss.
         self.feature_extractor = nn.Sequential(*list(vgg19.features.children())[:36])
         # Freeze model parameters.
