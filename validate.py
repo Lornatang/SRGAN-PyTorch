@@ -16,13 +16,17 @@
 # File description: Realize the verification function after model training.
 # ==============================================================================
 import shutil
+import warnings
 from typing import Tuple
 
+import cv2
+import numpy as np
 import skimage.color
 import skimage.io
 import skimage.metrics
 import torchvision.utils
 from PIL import Image
+from skimage import img_as_ubyte
 
 from config import *
 from imgproc import *
@@ -50,7 +54,65 @@ def cal_psnr_and_ssim(sr_image, hr_image) -> Tuple[float, float]:
     return psnr, ssim
 
 
-def image_quality_assessment(sr_path: str, hr_path: str) -> Tuple[float, float]:
+def cal_spectrum(sr_image, hr_image) -> float:
+    # Scikit-image format is converted to OpenCV format.
+    sr = img_as_ubyte(sr_image)
+    hr = img_as_ubyte(hr_image)
+    sr = cv2.cvtColor(sr, cv2.COLOR_RGB2GRAY)
+    hr = cv2.cvtColor(hr, cv2.COLOR_RGB2GRAY)
+
+    n = sr.shape[0]
+
+    # 1. Calculate the image gray histogram horizontally.
+    all_hist_sr = []
+    all_hist_hr = []
+    for hist_height in range(n):
+        # Calculate each line of gray histogram.
+        hist_sr = cv2.calcHist([sr[hist_height, :]], [0], None, [n], [0, 255])
+        hist_hr = cv2.calcHist([hr[hist_height, :]], [0], None, [n], [0, 255])
+        all_hist_sr.append(hist_sr)
+        all_hist_hr.append(hist_hr)
+
+    # 2. 1D Fourier transform (cut one-sided data).
+    all_spectrum_sr = []
+    all_spectrum_hr = []
+    for index in range(n):
+        # Fast Fourier Transform
+        fft_sr = np.fft.fft(all_hist_sr[index])
+        fft_hr = np.fft.fft(all_hist_hr[index])
+        # Take the absolute value of the complex number, that is, the modulus of the complex number (bilateral spectrum).
+        spectrum_sr = np.abs(fft_sr)
+        spectrum_hr = np.abs(fft_hr)
+        # Due to symmetry, only half of the interval (one-sided spectrum) is taken.
+        spectrum_sr = spectrum_sr[range(n // 2)]
+        spectrum_hr = spectrum_hr[range(n // 2)]
+        all_spectrum_sr.append(spectrum_sr)
+        all_spectrum_hr.append(spectrum_hr)
+
+    # 3. Find the average of the spectrum.
+    avg_spectrum_sr = []
+    avg_spectrum_hr = []
+    # Traverse the spectrum values in the range of 0~(N//2) in N spectra.
+    for spectrum in range(n // 2):
+        total_spectrum_sr = 0
+        total_spectrum_hr = 0
+        for index in range(n):
+            total_spectrum_sr += all_spectrum_sr[index][spectrum]
+            total_spectrum_hr += all_spectrum_hr[index][spectrum]
+        avg_spectrum_sr.append(total_spectrum_sr / n)
+        avg_spectrum_hr.append(total_spectrum_hr / n)
+
+    # 4. Use the formula to find the difference.
+    diff = 0.
+    for index in range(n // 2):
+        diff += (avg_spectrum_hr[index] - avg_spectrum_sr[index]) ** 2
+
+    spectrum = float(np.sqrt(diff / (n / 2)))
+
+    return spectrum
+
+
+def image_quality_assessment(sr_path: str, hr_path: str) -> Tuple[float, float, float]:
     """Image quality evaluation function.
 
     Args:
@@ -63,9 +125,15 @@ def image_quality_assessment(sr_path: str, hr_path: str) -> Tuple[float, float]:
     sr_image = skimage.io.imread(sr_path)
     hr_image = skimage.io.imread(hr_path)
 
-    psnr, ssim = cal_psnr_and_ssim(sr_image, hr_image)
+    if sr_image.shape != hr_image.shape:
+        warnings.warn("Image size not equal! Possible errors in the calculation of the spectrum!")
+    if sr_image.shape[0] != sr_image.shape[1]:
+        warnings.warn("Image width and height is not equal! Possible errors in the calculation of the spectrum!")
 
-    return psnr, ssim
+    psnr, ssim = cal_psnr_and_ssim(sr_image, hr_image)
+    spectrum = cal_spectrum(sr_image, hr_image)
+
+    return psnr, ssim, spectrum
 
 
 def main() -> None:
@@ -85,6 +153,7 @@ def main() -> None:
     # Initialize the image evaluation index.
     total_psnr = 0.0
     total_ssim = 0.0
+    total_spectrum = 0.0
 
     # Get a list of test image file names.
     filenames = os.listdir(lr_dir)
@@ -107,12 +176,14 @@ def main() -> None:
         # Test the image quality difference between the super-resolution image
         # and the original high-resolution image.
         print(f"Test `{os.path.abspath(lr_path)}`.")
-        psnr, ssim = image_quality_assessment(sr_path, hr_path)
+        psnr, ssim, spectrum = image_quality_assessment(sr_path, hr_path)
         total_psnr += psnr
         total_ssim += ssim
+        total_spectrum += spectrum
 
-    print(f"PSNR: {total_psnr / total_files:.2f}.\n"
-          f"SSIM: {total_ssim / total_files:.4f}.")
+    print(f"PSNR:    {total_psnr / total_files:.2f}.\n"
+          f"SSIM:    {total_ssim / total_files:.4f}.\n"
+          f"Spectrum {total_spectrum / total_files:.4f}")
 
 
 if __name__ == "__main__":
