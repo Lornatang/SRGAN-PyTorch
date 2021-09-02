@@ -40,17 +40,3 @@ If you need to test Set5, Set14, place the dataset in the following way.
         - bird.png
         - ...
 ```
-
-### Set 14
-
-```text
-- Set14
-    - GTmod12
-        - baboon.png
-        - barbara.png
-        - ...
-    - LRbicx4
-        - baboon.png
-        - barbara.png
-        - ...
-```
