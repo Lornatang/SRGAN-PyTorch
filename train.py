@@ -134,12 +134,6 @@ def validate(valid_dataloader, epoch, stage) -> float:
             # Calculate the PSNR indicator.
             mse_loss = ((sr - hr) ** 2).data.mean()
             psnr_value = 10 * torch.log10(1 / mse_loss).item()
-
-            # Output indicators every one hundred iterations.
-            if (index + 1) % 100 == 0 or (index + 1) == batches:
-                print(f"Test stage: {stage} "
-                      f"Epoch[{epoch + 1:04d}]({index + 1:04d}/{batches:04d}) "
-                      f"PSNR: {psnr_value:.2f}.")
             total_psnr_value += psnr_value
 
         avg_psnr_value = total_psnr_value / batches
@@ -149,8 +143,7 @@ def validate(valid_dataloader, epoch, stage) -> float:
         elif stage == "adversarial":
             writer.add_scalar("Val_Adversarial/PSNR", avg_psnr_value, epoch + 1)
         # Print evaluation indicators.
-        print(f"Test stage: {stage} "
-              f"Epoch[{epoch + 1:04d}] avg PSNR: {avg_psnr_value:.2f}.")
+        print(f"Valid stage: {stage} Epoch[{epoch + 1:04d}] avg PSNR: {avg_psnr_value:.2f}.\n")
 
     return avg_psnr_value
 
