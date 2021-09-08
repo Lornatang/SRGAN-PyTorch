@@ -45,8 +45,8 @@ def train_generator(train_dataloader, epoch) -> None:
         # Write the loss value in the process of training and generating the network into Tensorboard.
         iters = index + epoch * batches + 1
         writer.add_scalar("Train_Generator/Loss", pixel_loss.item(), iters)
-        # Output the loss function every one hundred iterations.
-        if (index + 1) % 100 == 0 or (index + 1) == batches:
+        # Output the loss function every ten iterations.
+        if (index + 1) % 10 == 0 or (index + 1) == batches:
             print(f"Train stage: generator "
                   f"Epoch[{epoch + 1:04d}/{p_epochs:04d}]({index + 1:05d}/{batches:05d}) "
                   f"Loss: {pixel_loss.item():.6f}.")
@@ -108,8 +108,8 @@ def train_adversarial(train_dataloader, epoch) -> None:
         writer.add_scalar("Train_Adversarial/D_HR", d_hr, iters)
         writer.add_scalar("Train_Adversarial/D_SR1", d_sr1, iters)
         writer.add_scalar("Train_Adversarial/D_SR2", d_sr2, iters)
-        # Output the loss function every one hundred iterations.
-        if (index + 1) % 100 == 0 or (index + 1) == batches:
+        # Output the loss function every ten iterations.
+        if (index + 1) % 10 == 0 or (index + 1) == batches:
             print(f"Train stage: adversarial "
                   f"Epoch[{epoch + 1:04d}/{epochs:04d}]({index + 1:05d}/{batches:05d}) "
                   f"D Loss: {d_loss.item():.6f} G Loss: {g_loss.item():.6f} "
