@@ -61,8 +61,8 @@ if mode == "train":
     resume_g_weight       = ""                                    # Restore the weight of the discriminator model during the training of the adversarial network.
 
     # 4. Train epochs.
-    p_epochs              = 128                                   # The total number of cycles of the generator training phase.
-    epochs                = 32                                    # The total number of cycles in the training phase of the adversarial network.
+    p_epochs              = 46                                    # The total number of cycles of the generator training phase.
+    epochs                = 10                                    # The total number of cycles in the training phase of the adversarial network.
 
     # 5. Loss function.
     pixel_criterion       = nn.MSELoss().to(device)               # Pixel loss.
@@ -79,8 +79,8 @@ if mode == "train":
     g_optimizer           = optim.Adam(generator.parameters(),     0.0001, (0.9, 0.999))  # The learning rate of the generator during network training.
 
     # 7. Scheduler.
-    d_scheduler           = StepLR(d_optimizer, epochs // 2)  # Identify the model scheduler during adversarial training.
-    g_scheduler           = StepLR(g_optimizer, epochs // 2)  # Generate model scheduler during adversarial training.
+    d_scheduler           = StepLR(d_optimizer, epochs // 2, 0.1)  # Identify the model scheduler during adversarial training.
+    g_scheduler           = StepLR(g_optimizer, epochs // 2, 0.1)  # Generate model scheduler during adversarial training.
 
     # 8. Training log.
     writer                = SummaryWriter(os.path.join("samples",  "logs", exp_name))
