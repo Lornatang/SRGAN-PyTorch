@@ -91,7 +91,7 @@ def train_adversarial(train_dataloader, epoch) -> None:
         generator.zero_grad()
         # 7. Calculate the loss of the generator on the super-resolution image.
         output = discriminator(sr)
-        # Weighted loss. Pixel loss + perceptual loss + confrontation loss.
+        # Weighted loss. 0.006 * perceptual loss + 0.001 * adversarial loss.
         pixel_loss = pixel_weight * pixel_criterion(sr, hr.detach())
         perceptual_loss = perceptual_weight * perceptual_criterion(sr, hr.detach())
         adversarial_loss = adversarial_weight * adversarial_criterion(output, real_label)
