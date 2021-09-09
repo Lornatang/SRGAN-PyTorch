@@ -198,9 +198,9 @@ def main() -> None:
         total_ssim += ssim
         total_spectrum += spectrum
 
-    print(f"PSNR:    {total_psnr / total_files:.2f}.\n"
-          f"SSIM:    {total_ssim / total_files:.4f}.\n"
-          f"Spectrum {total_spectrum / total_files:.6f}.\n")
+    print(f"PSNR:     {total_psnr / total_files:.2f}.\n"
+          f"SSIM:     {total_ssim / total_files:.4f}.\n"
+          f"Spectrum: {total_spectrum / total_files:.6f}.\n")
 
 
 if __name__ == "__main__":
