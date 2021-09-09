@@ -16,7 +16,7 @@ When training DIV2K, the dataset should be placed in the following directory.
         - 0001.png
         - 0002.png
         - ...
-    - val 
+    - valid 
         - 1000.png
         - 1001.png
         - 1002.png
