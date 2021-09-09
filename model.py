@@ -144,7 +144,8 @@ class Generator(nn.Module):
         # Init all layer weights.
         self._initialize_weights()
 
-    def forward(self, x: Tensor) -> Tensor:
+    # The tracking operator in the PyTorch model must be written like this.
+    def _forward_impl(self, x: Tensor) -> Tensor:
         out1 = self.conv_block1(x)
         out = self.trunk(out1)
         out2 = self.conv_block2(out)
@@ -153,6 +154,9 @@ class Generator(nn.Module):
         out = self.conv_block3(out)
 
         return out
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self._forward_impl(x)
 
     def _initialize_weights(self) -> None:
         for m in self.modules():
