@@ -73,6 +73,9 @@ def tensor2image(tensor: Tensor) -> np.ndarray:
 
     Args:
         tensor (torch.Tensor): The image that needs to be converted to ``PIL.Image``.
+        
+    Returns:
+        PIL.Image: RGB image data.
     """
     return F.to_pil_image(tensor)
 
