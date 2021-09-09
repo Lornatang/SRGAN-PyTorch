@@ -135,20 +135,20 @@ def random_crop(lr: np.ndarray, hr: np.ndarray, image_size: int, upscale_factor:
     return lr, hr
 
 
-def random_rotate(lr: np.ndarray, hr: np.ndarray, angle: int) -> Tuple[np.ndarray, np.ndarray]:
+def random_rotate(lr: np.ndarray, hr: np.ndarray, degrees: int) -> Tuple[np.ndarray, np.ndarray]:
     """Will ``PIL.Image`` randomly rotate the image.
 
     Args:
         lr (np.ndarray): Low-resolution image data read by ``PIL.Image``.
         hr (np.ndarray): High-resolution image data read by ``PIL.Image``.
-        angle (int): rotation angle, clockwise and counterclockwise rotation.
+        degrees (int): rotation angle, clockwise and counterclockwise rotation.
 
     Returns:
         Randomly rotated low-resolution images and high-resolution images.
     """
-    angle = random.choice((+angle, -angle))
-    lr = F.rotate(lr, angle)
-    hr = F.rotate(hr, angle)
+    degrees = random.choice((+degrees, -degrees))
+    lr = F.rotate(lr, degrees)
+    hr = F.rotate(hr, degrees)
 
     return lr, hr
 
