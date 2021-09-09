@@ -25,7 +25,7 @@ from torch import Tensor
 __all__ = [
     "ResidualConvBlock",
     "Discriminator", "Generator",
-    "PerceptualLoss"
+    "ContentLoss"
 ]
 
 
@@ -166,18 +166,18 @@ class Generator(nn.Module):
                 m.weight.data *= 0.1
 
 
-class PerceptualLoss(nn.Module):
-    """ Constructs a perceptual loss function based on the VGG19 network.
+class ContentLoss(nn.Module):
+    """ Constructs a content loss function based on the VGG19 network.
         Using high-level feature mapping layers from the latter layers will focus more on the texture content of the image.
 
     Paper reference list:
         -`Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network <https://arxiv.org/pdf/1609.04802.pdf>` paper.
-        -`ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks <https://arxiv.org/pdf/1809.00219.pdf>` paper.
-        -`Perceptual Extreme Super Resolution Network with Receptive Field Block <https://arxiv.org/pdf/2005.12597.pdf>` paper.
+        -`ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks                    <https://arxiv.org/pdf/1809.00219.pdf>` paper.
+        -`Perceptual Extreme Super Resolution Network with Receptive Field Block               <https://arxiv.org/pdf/2005.12597.pdf>` paper.
      """
 
     def __init__(self) -> None:
-        super(PerceptualLoss, self).__init__()
+        super(ContentLoss, self).__init__()
         # Load the VGG19 model trained on the ImageNet dataset.
         vgg19 = models.vgg19(pretrained=True, num_classes=1000).eval()
         # Extract the thirty-sixth layer output in the VGG19 model as the content loss.
