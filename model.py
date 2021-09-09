@@ -109,7 +109,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         # First conv layer.
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(3, 64, (9, 9), (1, 1), (4, 4), bias=True),
+            nn.Conv2d(3, 64, (9, 9), (1, 1), (4, 4)),
             nn.PReLU()
         )
 
@@ -127,17 +127,17 @@ class Generator(nn.Module):
 
         # Upscale conv block.
         self.upsampling = nn.Sequential(
-            nn.Conv2d(64, 256, (3, 3), (1, 1), (1, 1), bias=True),
+            nn.Conv2d(64, 256, (3, 3), (1, 1), (1, 1)),
             nn.PixelShuffle(2),
             nn.PReLU(),
-            nn.Conv2d(64, 256, (3, 3), (1, 1), (1, 1), bias=True),
+            nn.Conv2d(64, 256, (3, 3), (1, 1), (1, 1)),
             nn.PixelShuffle(2),
             nn.PReLU()
         )
 
         # Third conv layer.
         self.conv_block3 = nn.Sequential(
-            nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4), bias=True),
+            nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4)),
             nn.Tanh()
         )
 
@@ -186,7 +186,7 @@ class PerceptualLoss(nn.Module):
         for parameters in self.feature_extractor.parameters():
             parameters.requires_grad = False
 
-        # The preprocessing method of the input data. This is the preprocessing method of the ImageNet data set.
+        # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet data set.
         self.register_buffer("mean", torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
         self.register_buffer("std", torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
         self.resize = transforms.Resize([224, 224])
@@ -195,15 +195,12 @@ class PerceptualLoss(nn.Module):
         # Normalize the image to [0, 1].
         sr = (sr + 1.) / 2.
         hr = (hr + 1.) / 2.
-
         # Scale the image to the input size of the VGG19 model.
         sr = self.resize(sr)
         hr = self.resize(hr)
-
         # Standardized operations.
         sr = (sr - self.mean) / self.std
         hr = (hr - self.mean) / self.std
-
         # Find the feature map difference between the two images.
         loss = F.mse_loss(self.feature_extractor(sr), self.feature_extractor(hr))
 
