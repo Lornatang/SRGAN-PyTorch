@@ -70,8 +70,8 @@ class BaseDataset(Dataset):
         hr = self.hr_transforms(hr)
         lr = self.lr_transforms(hr)
 
-        # HR image range is between [-1, 1].
-        hr = (hr * 2) - 1
+        # The HR data range is changed from [0, 1] to [-1, 1].
+        hr = (hr - 0.5) / 2.
 
         return lr, hr
 
@@ -119,8 +119,8 @@ class CustomDataset(Dataset):
         lr = image2tensor(lr)
         hr = image2tensor(hr)
 
-        # HR image range is between [-1, 1].
-        hr = (hr * 2) - 1
+        # The HR data range is changed from [0, 1] to [-1, 1].
+        hr = (hr - 0.5) / 2.
 
         return lr, hr
 
