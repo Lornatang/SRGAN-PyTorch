@@ -70,9 +70,6 @@ class BaseDataset(Dataset):
         hr = self.hr_transforms(hr)
         lr = self.lr_transforms(hr)
 
-        # The HR data range is changed from [0, 1] to [-1, 1].
-        hr = (hr - 0.5) / 2.
-
         return lr, hr
 
     def __len__(self) -> int:
@@ -118,9 +115,6 @@ class CustomDataset(Dataset):
         # `PIL.Image` image data is converted to `Tensor` format data.
         lr = image2tensor(lr)
         hr = image2tensor(hr)
-
-        # The HR data range is changed from [0, 1] to [-1, 1].
-        hr = (hr - 0.5) / 2.
 
         return lr, hr
 
