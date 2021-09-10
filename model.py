@@ -136,10 +136,7 @@ class Generator(nn.Module):
         )
 
         # Third conv layer.
-        self.conv_block3 = nn.Sequential(
-            nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4)),
-            nn.Tanh()
-        )
+        self.conv_block3 = nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4))
 
         # Init all layer weights.
         self._initialize_weights()
@@ -196,9 +193,6 @@ class ContentLoss(nn.Module):
         self.resize = transforms.Resize([224, 224])
 
     def forward(self, sr: Tensor, hr: Tensor) -> Tensor:
-        # Normalize the image to [0, 1].
-        sr = (sr + 1.) / 2.
-        hr = (hr + 1.) / 2.
         # Scale the image to the input size of the VGG19 model.
         sr = self.resize(sr)
         hr = self.resize(hr)
