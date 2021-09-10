@@ -27,6 +27,8 @@ from torchvision.transforms.functional import InterpolationMode as IMode
 from imgproc import center_crop
 from imgproc import image2tensor
 from imgproc import random_crop
+from imgproc import random_horizontally_flip
+from imgproc import random_rotate
 
 __all__ = ["BaseDataset", "CustomDataset"]
 
@@ -51,6 +53,8 @@ class BaseDataset(Dataset):
         if mode == "train":
             self.hr_transforms = transforms.Compose([
                 transforms.RandomCrop(hr_image_size),
+                transforms.RandomRotation(90),
+                transforms.RandomHorizontalFlip(0.5),
                 transforms.ToTensor()
             ])
         else:
@@ -109,6 +113,8 @@ class CustomDataset(Dataset):
         # Data enhancement methods.
         if self.mode == "train":
             lr, hr = random_crop(lr, hr, self.image_size, self.upscale_factor)
+            lr, hr = random_rotate(lr, hr, 90)
+            lr, hr = random_horizontally_flip(lr, hr, 0.5)
         else:
             lr, hr = center_crop(lr, hr, self.image_size, self.upscale_factor)
 
