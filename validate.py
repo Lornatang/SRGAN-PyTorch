@@ -189,7 +189,7 @@ def main() -> None:
         lr_tensor = lr_tensor.half()
         with torch.no_grad():
             sr_tensor = model(lr_tensor)
-            torchvision.utils.save_image(sr_tensor, sr_path, normalize=True)
+            torchvision.utils.save_image(sr_tensor, sr_path)
 
         # Test the image quality difference between the super-resolution image and the original high-resolution image.
         print(f"Processing `{os.path.abspath(lr_path)}`...")
