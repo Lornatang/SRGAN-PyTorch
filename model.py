@@ -190,12 +190,8 @@ class ContentLoss(nn.Module):
         # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet data set.
         self.register_buffer("mean", torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
         self.register_buffer("std", torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
-        self.resize = transforms.Resize([224, 224])
 
     def forward(self, sr: Tensor, hr: Tensor) -> Tensor:
-        # Scale the image to the input size of the VGG19 model.
-        sr = self.resize(sr)
-        hr = self.resize(hr)
         # Standardized operations.
         sr = (sr - self.mean) / self.std
         hr = (hr - self.mean) / self.std
