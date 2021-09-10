@@ -9,19 +9,19 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 ### Table of contents
 
 - [SRGAN-PyTorch](#srgan-pytorch)
-    - [Overview](#overview)
-        - [Table of contents](#table-of-contents)
-        - [Download weights](#download-weights)
-        - [Download dataset](#download-dataset)
-            - [Download train dataset](#download-train-dataset)
-            - [Download val dataset](#download-val-dataset)
-            - [Test (e.g Set5)](#test-eg-set5)
-        - [Train (e.g DIV2K)](#train-eg-div2k)
-        - [Model performance](#model-performance)
-        - [Result](#result)
-        - [Contributing](#contributing)
-        - [Credit](#credit)
-            - [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](#photo-realistic-single-image-super-resolution-using-a-generative-adversarial-network)
+  - [Overview](#overview)
+    - [Table of contents](#table-of-contents)
+    - [Download weights](#download-weights)
+    - [Download dataset](#download-dataset)
+      - [Download train dataset](#download-train-dataset)
+      - [Download val dataset](#download-val-dataset)
+    - [Test (e.g Set5)](#test-eg-set5)
+    - [Train (e.g DIV2K)](#train-eg-div2k)
+    - [Model performance](#model-performance)
+    - [Result](#result)
+    - [Contributing](#contributing)
+    - [Credit](#credit)
+      - [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](#photo-realistic-single-image-super-resolution-using-a-generative-adversarial-network)
 
 ### Download weights
 
@@ -54,7 +54,7 @@ Bsd100 dataset:
 - [Google Driver](https://drive.google.com/file/d/1RTlPATPBCfUufJspgTik5KUEzAuVcyFF/view?usp=sharing)
 - [Baidu Driver](https://pan.baidu.com/s/1Ig8t3_G4Nzhl8MvPAvdzFA) access:`llot`
 
-#### Test (e.g Set5)
+### Test (e.g Set5)
 
 Modify the contents of the file as follows.
 
