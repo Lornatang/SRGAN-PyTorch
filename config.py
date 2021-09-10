@@ -69,7 +69,8 @@ if mode == "train":
     content_criterion     = ContentLoss().to(device)              # Content loss.
     adversarial_criterion = nn.BCELoss().to(device)               # Fight against loss.
     # Perceptual loss function weight.
-    content_weight        = 0.006
+    pixel_weight          = 0.01
+    content_weight        = 1.0
     adversarial_weight    = 0.001
 
     # Optimizer.
