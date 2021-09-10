@@ -17,7 +17,6 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
       - [Download val dataset](#download-val-dataset)
     - [Test (e.g Set5)](#test-eg-set5)
     - [Train (e.g DIV2K)](#train-eg-div2k)
-    - [Model performance](#model-performance)
     - [Result](#result)
     - [Contributing](#contributing)
     - [Credit](#credit)
@@ -76,12 +75,6 @@ If you want to load weights that you've trained before, modify the contents of t
 3. `config.py` line 58 `resume=False` change to `resume=True`;
 4. `config.py` line 59 `resume_p_weight=""` change to `resume_p_weight=<YOUR-RESUME-WIGHTS-PATH>`;
 5. Run `python train.py`.
-
-### Model performance
-
-| Model | Params | FLOPs | CPU Speed | GPU Speed |
-| :---: | :----: | :---: | :-------: | :-------: |
-| srgan | 1.55M  | 2.6G  |    9ms    |    7ms    |
 
 ### Result
 
