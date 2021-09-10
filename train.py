@@ -101,11 +101,12 @@ def train_adversarial(train_dataloader, epoch) -> None:
         generator.zero_grad()
         # Calculate the loss of the identification model on the super-resolution image.
         output = discriminator(sr)
-        # Perceptual loss=0.006 * content loss + 0.001 * adversarial loss.
+        # Perceptual loss=0.01 * pixel loss + 1.0 * content loss + 0.001 * adversarial loss.
+        pixel_loss = pixel_weight * pixel_criterion(sr, hr.detach())
         perceptual_loss = content_weight * content_criterion(sr, hr.detach())
         adversarial_loss = adversarial_weight * adversarial_criterion(output, real_label)
         # Update the weights of the generated model.
-        g_loss = perceptual_loss + adversarial_loss
+        g_loss = pixel_loss + perceptual_loss + adversarial_loss
         g_loss.backward()
         g_optimizer.step()
         d_sr2 = output.mean().item()
