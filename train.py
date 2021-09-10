@@ -231,14 +231,14 @@ def main() -> None:
         if is_best:
             torch.save(discriminator.state_dict(), os.path.join(exp_dir2, "d-best.pth"))
             torch.save(generator.state_dict(), os.path.join(exp_dir2, "g-best.pth"))
+        # Adjust the learning rate of the adversarial model.
+        d_scheduler.step()
+        g_scheduler.step()
 
     # Save the weight of the adversarial model under the last Epoch in this stage.
     torch.save(discriminator.state_dict(), os.path.join(exp_dir2, "d-last.pth"))
     torch.save(generator.state_dict(), os.path.join(exp_dir2, "g-last.pth"))
-    # Adjust the learning rate of the adversarial model.
-    d_scheduler.step()
-    g_scheduler.step()
-
+    
 
 if __name__ == "__main__":
     main()
