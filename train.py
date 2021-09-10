@@ -81,35 +81,40 @@ def train_adversarial(train_dataloader, epoch) -> None:
 
         # Initialize the identification model gradient.
         discriminator.zero_grad()
-        # Calculate the loss of the identification model on the high-resolution image.
-        output = discriminator(hr)
-        d_loss_hr = adversarial_criterion(output, real_label)
-        d_loss_hr.backward()
-        d_hr = output.mean().item()
         # Generate super-resolution images.
         sr = generator(lr)
+        # Calculate the loss of the identification model on the high-resolution image.
+        hr_output = discriminator(hr)
+        sr_output = discriminator(sr.detach())
+        d_loss_hr = adversarial_criterion(hr_output - torch.mean(sr_output), real_label)
+        d_loss_hr.backward()
+        d_hr = hr_output.mean().item()
         # Calculate the loss of the identification model on the super-resolution image.
-        output = discriminator(sr.detach())
-        d_loss_sr = adversarial_criterion(output, fake_label)
+        hr_output = discriminator(hr)
+        sr_output = discriminator(sr.detach())
+        d_loss_sr = adversarial_criterion(sr_output - torch.mean(hr_output), fake_label)
         d_loss_sr.backward()
-        d_sr1 = output.mean().item()
+        d_sr1 = sr_output.mean().item()
         # Update the weights of the authentication model.
         d_loss = d_loss_hr + d_loss_sr
         d_optimizer.step()
 
         # Initialize the gradient of the generated model.
         generator.zero_grad()
+        # Generate super-resolution images.
+        sr = generator(lr)
         # Calculate the loss of the identification model on the super-resolution image.
-        output = discriminator(sr)
-        # Perceptual loss=0.01 * pixel loss + 1.0 * content loss + 0.001 * adversarial loss.
+        hr_output = discriminator(hr.detach())
+        sr_output = discriminator(sr)
+        # Perceptual loss = 0.01 * pixel loss + 1.0 * content loss + 0.005 * counter loss.
         pixel_loss = pixel_weight * pixel_criterion(sr, hr.detach())
-        perceptual_loss = content_weight * content_criterion(sr, hr.detach())
-        adversarial_loss = adversarial_weight * adversarial_criterion(output, real_label)
+        content_loss = content_weight * content_criterion(sr, hr.detach())
+        adversarial_loss = adversarial_weight * adversarial_criterion(sr_output - torch.mean(hr_output), real_label)
         # Update the weights of the generated model.
-        g_loss = pixel_loss + perceptual_loss + adversarial_loss
+        g_loss = pixel_loss + content_loss + adversarial_loss
         g_loss.backward()
         g_optimizer.step()
-        d_sr2 = output.mean().item()
+        d_sr2 = sr_output.mean().item()
 
         # Write the loss during training into Tensorboard.
         iters = index + epoch * batches + 1
@@ -207,6 +212,8 @@ def main() -> None:
         torch.save(generator.state_dict(), os.path.join(exp_dir1, f"p_epoch{epoch + 1}.pth"))
         if is_best:
             torch.save(generator.state_dict(), os.path.join(exp_dir2, "p-best.pth"))
+        # Adjust the learning rate of the generator model.
+        p_scheduler.step()
 
     # Save the weight of the last generated model under Epoch in this stage.
     torch.save(generator.state_dict(), os.path.join(exp_dir2, "p-last.pth"))
@@ -238,7 +245,7 @@ def main() -> None:
     # Save the weight of the adversarial model under the last Epoch in this stage.
     torch.save(discriminator.state_dict(), os.path.join(exp_dir2, "d-last.pth"))
     torch.save(generator.state_dict(), os.path.join(exp_dir2, "g-last.pth"))
-    
+
 
 if __name__ == "__main__":
     main()
