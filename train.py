@@ -27,7 +27,6 @@ def train_generator(train_dataloader, epoch) -> None:
     Args:
         train_dataloader (torch.utils.data.DataLoader): The loader of the training data set.
         epoch (int): number of training cycles.
-
     """
     # Calculate how many iterations there are under Epoch.
     batches = len(train_dataloader)
@@ -62,7 +61,6 @@ def train_adversarial(train_dataloader, epoch) -> None:
     Args:
         train_dataloader (torch.utils.data.DataLoader): The loader of the training data set.
         epoch (int): number of training cycles.
-
     """
     # Calculate how many iterations there are under Epoch.
     batches = len(train_dataloader)
@@ -136,7 +134,6 @@ def validate(valid_dataloader, epoch, stage) -> float:
 
     Returns:
         PSNR value(float).
-
     """
     # Calculate how many iterations there are under Epoch.
     batches = len(valid_dataloader)
