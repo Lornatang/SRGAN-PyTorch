@@ -48,7 +48,7 @@ def train_generator(train_dataloader, epoch) -> None:
         p_optimizer.step()
         # Write the loss during training into Tensorboard.
         iters = index + epoch * batches + 1
-        writer.add_scalar("Train/Loss", pixel_loss.item(), iters)
+        writer.add_scalar("Train_Generator/Loss", pixel_loss.item(), iters)
         # Print the loss function every ten iterations and the last iteration in this Epoch.
         if (index + 1) % 10 == 0 or (index + 1) == batches:
             print(f"Train Epoch[{epoch + 1:04d}/{p_epochs:04d}]({index + 1:05d}/{batches:05d}) "
