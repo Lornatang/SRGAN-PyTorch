@@ -25,7 +25,7 @@ def train_generator(train_dataloader, epoch) -> None:
     """Only train the generative model.
 
     Args:
-        train_dataloader (torch.utils.data.DataLoader): The loader of the training data set.
+        train_dataloader (torch.utils.data.DataLoader): The loader of the training dataset.
         epoch (int): number of training cycles.
     """
     # Calculate how many iterations there are under Epoch.
@@ -59,7 +59,7 @@ def train_adversarial(train_dataloader, epoch) -> None:
     """Training generative models and adversarial models.
 
     Args:
-        train_dataloader (torch.utils.data.DataLoader): The loader of the training data set.
+        train_dataloader (torch.utils.data.DataLoader): The loader of the training dataset.
         epoch (int): number of training cycles.
     """
     # Calculate how many iterations there are under Epoch.
@@ -128,7 +128,7 @@ def validate(valid_dataloader, epoch, stage) -> float:
     """Verify the generative model.
 
     Args:
-        valid_dataloader (torch.utils.data.DataLoader): loader for validating data set.
+        valid_dataloader (torch.utils.data.DataLoader): loader for validating dataset.
         epoch (int): number of training cycles.
         stage (str): In which stage to verify, one is `generator`, the other is `adversarial`.
 
