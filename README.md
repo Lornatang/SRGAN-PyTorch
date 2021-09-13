@@ -84,9 +84,9 @@ In the following table, the value in `()` indicates the result of the project, a
 
 | Dataset | Scale |       PSNR       |        SSIM        |     MOS     |
 | :-----: | :---: | :--------------: | :----------------: | :---------: |
-|  Set5   |   4   | 29.74(**29.88**) | 0.8509(**0.8504**) | 3.58(**-**) |
-|  Set14  |   4   | 26.76(**26.58**) | 0.7354(**0.7452**) | 3.72(**-**) |
-| BSDS100 |   4   | 26.92(**25.50**) | 0.7148(**0.7284**) | 3.56(**-**) |
+|  Set5   |   4   | 29.40(**29.74**) | 0.8472(**0.8509**) | 3.58(**-**) |
+|  Set14  |   4   | 26.02(**26.76**) | 0.7397(**0.7354**) | 3.72(**-**) |
+| BSDS100 |   4   | 25.16(**26.92**) | 0.6688(**0.7148**) | 3.56(**-**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png" alt=""></span>
