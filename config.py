@@ -93,7 +93,7 @@ if mode == "train":
 # ==============================================================================
 #                              Validate configure
 # ==============================================================================
-if mode == "validate":
+if mode == "valid":
     exp_dir    = os.path.join("results", "test", exp_name)  # Additional variables.
 
     model      = Generator().to(device)                     # Load the super-resolution model.
