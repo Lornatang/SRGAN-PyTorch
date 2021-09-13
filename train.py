@@ -73,7 +73,7 @@ def train_adversarial(train_dataloader, epoch) -> None:
         lr = lr.to(device)
         hr = hr.to(device)
         label_size = lr.size(0)
-        # 打label. Set the real sample label to 1, and the false sample label to 0.
+        # Create label. Set the real sample label to 1, and the false sample label to 0.
         real_label = torch.full([label_size, 1], 1.0, dtype=lr.dtype, device=device)
         fake_label = torch.full([label_size, 1], 0.0, dtype=lr.dtype, device=device)
 
