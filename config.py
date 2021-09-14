@@ -43,32 +43,32 @@ exp_name         = "exp000"                # Experiment name.
 # ==============================================================================
 if mode == "train":
     # Configure dataset.
-    train_dir             = "data/ImageNet/train"                 # The address of the training data set.
-    valid_dir             = "data/ImageNet/valid"                 # Verify the address of the data set.
-    image_size            = 96                                    # High-resolution image size in the training data set.
-    batch_size            = 16                                    # Training data batch size.
+    train_dir             = "data/ImageNet/train"       # The address of the training data set.
+    valid_dir             = "data/ImageNet/valid"       # Verify the address of the data set.
+    image_size            = 96                          # High-resolution image size in the training data set.
+    batch_size            = 16                          # Training data batch size.
 
     # Configure model.
-    discriminator         = Discriminator().to(device)            # Load the discriminator model.
-    generator             = Generator().to(device)                # Load the generative model.
+    discriminator         = Discriminator().to(device)  # Load the discriminator model.
+    generator             = Generator().to(device)      # Load the generative model.
 
     # Resume training.
-    start_p_epoch         = 0                                     # The number of initial iterations of the generator training phase. When set to 0, it means incremental training.
-    start_epoch           = 0                                     # The number of initial iterations of the adversarial network training. When set to 0, it means incremental training.
-    resume                = False                                 # Set to `True` to continue training from the previous training progress.
-    resume_p_weight       = ""                                    # Restore the weight of the generative model during generator training.
-    resume_d_weight       = ""                                    # Restore the weight of the generative model during the training of the adversarial network.
-    resume_g_weight       = ""                                    # Restore the weight of the discriminator model during the training of the adversarial network.
+    start_p_epoch         = 0                           # The number of initial iterations of the generator training phase. When set to 0, it means incremental training.
+    start_epoch           = 0                           # The number of initial iterations of the adversarial network training. When set to 0, it means incremental training.
+    resume                = False                       # Set to `True` to continue training from the previous training progress.
+    resume_p_weight       = ""                          # Restore the weight of the generative model during generator training.
+    resume_d_weight       = ""                          # Restore the weight of the generative model during the training of the adversarial network.
+    resume_g_weight       = ""                          # Restore the weight of the discriminator model during the training of the adversarial network.
 
     # Train epochs.
-    p_epochs              = 46                                    # The total number of cycles of the generator training phase.
-    epochs                = 10                                    # The total number of cycles in the training phase of the adversarial network.
+    p_epochs              = 46                          # The total number of cycles of the generator training phase.
+    epochs                = 10                          # The total number of cycles in the training phase of the adversarial network.
 
     # Loss function.
-    psnr_criterion        = nn.MSELoss().to(device)               # PSNR metrics.
-    pixel_criterion       = nn.MSELoss().to(device)               # Pixel loss.
-    content_criterion     = ContentLoss().to(device)              # Content loss.
-    adversarial_criterion = nn.BCELoss().to(device)               # Fight against loss.
+    psnr_criterion        = nn.MSELoss().to(device)     # PSNR metrics.
+    pixel_criterion       = nn.MSELoss().to(device)     # Pixel loss.
+    content_criterion     = ContentLoss().to(device)    # Content loss.
+    adversarial_criterion = nn.BCELoss().to(device)     # Fight against loss.
     # Perceptual loss function weight.
     pixel_weight          = 0.01
     content_weight        = 1.0
