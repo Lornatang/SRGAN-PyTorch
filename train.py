@@ -30,7 +30,7 @@ def train_generator(train_dataloader, epoch) -> None:
     """
     # Calculate how many iterations there are under epoch.
     batches = len(train_dataloader)
-    # Set generator model in training mode.
+    # Set generator network in training mode.
     generator.train()
 
     for index, (lr, hr) in enumerate(train_dataloader):
@@ -64,7 +64,7 @@ def train_adversarial(train_dataloader, epoch) -> None:
     """
     # Calculate how many iterations there are under Epoch.
     batches = len(train_dataloader)
-    # Put the two models in training mode.
+    # Set adversarial network in training mode.
     discriminator.train()
     generator.train()
 
@@ -190,41 +190,41 @@ def main() -> None:
 
     # Initialize the evaluation indicators for the training stage of the generator model.
     best_psnr_value = 0.0
-    # Train the generative model stage.
+    # Train the generative network stage.
     for epoch in range(start_p_epoch, p_epochs):
-        # Train each epoch for generator model.
+        # Train each epoch for generator network.
         train_generator(train_dataloader, epoch)
-        # Verify each epoch for generator model.
+        # Verify each epoch for generator network.
         psnr_value = validate(valid_dataloader, epoch, "generator")
-        # Determine whether the performance of the generator model under epoch is the best.
+        # Determine whether the performance of the generator network under epoch is the best.
         is_best = psnr_value > best_psnr_value
         best_psnr_value = max(psnr_value, best_psnr_value)
-        # Save the weight of the generator model under Epoch. If the performance of the generator model under epoch
+        # Save the weight of the generator network under epoch. If the performance of the generator network under epoch
         # is best, save a file ending with `-best.pth` in the `results` directory.
         torch.save(generator.state_dict(), os.path.join(exp_dir1, f"p_epoch{epoch + 1}.pth"))
         if is_best:
             torch.save(generator.state_dict(), os.path.join(exp_dir2, "p-best.pth"))
 
-    # Save the weight of the last generator model under Epoch in this stage.
+    # Save the weight of the last generator network under Epoch in this stage.
     torch.save(generator.state_dict(), os.path.join(exp_dir2, "p-last.pth"))
 
-    # Initialize the evaluation index of the adversarial model training phase.
+    # Initialize the evaluation index of the adversarial network training phase.
     best_psnr_value = 0.0
     # Load the model weights with the best indicators in the previous round of training.
     generator.load_state_dict(torch.load(os.path.join(exp_dir2, "p-best.pth")))
-    # Training the adversarial model stage.
+    # Training the adversarial network stage.
     for epoch in range(start_epoch, epochs):
         # Adjust the learning rate of the adversarial model.
         d_scheduler.step()
         g_scheduler.step()
-        # Train each epoch for adversarial model.
+        # Train each epoch for adversarial network.
         train_adversarial(train_dataloader, epoch)
-        # Verify each epoch for adversarial model.
+        # Verify each epoch for adversarial network.
         psnr_value = validate(valid_dataloader, epoch, "adversarial")
-        # Determine whether the performance of the adversarial model under epoch is the best.
+        # Determine whether the performance of the adversarial network under epoch is the best.
         is_best = psnr_value > best_psnr_value
         best_psnr_value = max(psnr_value, best_psnr_value)
-        # Save the weight of the adversarial model under Epoch. If the performance of the adversarial model
+        # Save the weight of the adversarial network under epoch. If the performance of the adversarial network
         # under epoch is the best, it will save two additional files ending with `-best.pth` in the `results` directory.
         torch.save(discriminator.state_dict(), os.path.join(exp_dir1, f"d_epoch{epoch + 1}.pth"))
         torch.save(generator.state_dict(), os.path.join(exp_dir1, f"g_epoch{epoch + 1}.pth"))
@@ -232,7 +232,7 @@ def main() -> None:
             torch.save(discriminator.state_dict(), os.path.join(exp_dir2, "d-best.pth"))
             torch.save(generator.state_dict(), os.path.join(exp_dir2, "g-best.pth"))
 
-    # Save the weight of the adversarial model under the last epoch in this stage.
+    # Save the weight of the adversarial network under the last epoch in this stage.
     torch.save(discriminator.state_dict(), os.path.join(exp_dir2, "d-last.pth"))
     torch.save(generator.state_dict(), os.path.join(exp_dir2, "g-last.pth"))
 
