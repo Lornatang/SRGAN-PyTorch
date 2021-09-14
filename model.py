@@ -134,13 +134,16 @@ class Generator(nn.Module):
             nn.PReLU()
         )
 
-        # Third conv layer.
+        # Output layer.
         self.conv_block3 = nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4))
 
-        # Init all layer weights.
+        # Initialize neural network weights.
         self._initialize_weights()
 
-    # The tracking operator in the PyTorch model must be written like this.
+    def forward(self, x: Tensor) -> Tensor:
+        return self._forward_impl(x)
+
+    # Support torch.script function.
     def _forward_impl(self, x: Tensor) -> Tensor:
         out1 = self.conv_block1(x)
         out = self.trunk(out1)
@@ -150,9 +153,6 @@ class Generator(nn.Module):
         out = self.conv_block3(out)
 
         return out
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
 
     def _initialize_weights(self) -> None:
         for m in self.modules():
@@ -186,7 +186,7 @@ class ContentLoss(nn.Module):
         for parameters in self.feature_extractor.parameters():
             parameters.requires_grad = False
 
-        # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet data set.
+        # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet dataset.
         self.register_buffer("mean", torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
         self.register_buffer("std", torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
 
