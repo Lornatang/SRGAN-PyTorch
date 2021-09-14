@@ -105,4 +105,3 @@ if mode == "valid":
     lr_dir     = f"data/Set5/LRbicx4"
     sr_dir     = f"results/test/{exp_name}"
     hr_dir     = f"data/Set5/GTmod12"
-
