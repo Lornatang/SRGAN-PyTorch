@@ -214,6 +214,9 @@ def main() -> None:
     generator.load_state_dict(torch.load(os.path.join(exp_dir2, "p-best.pth")))
     # Training the adversarial model stage.
     for epoch in range(start_epoch, epochs):
+        # Adjust the learning rate of the adversarial model.
+        d_scheduler.step()
+        g_scheduler.step()
         # Train the adversarial model every time under Epoch.
         train_adversarial(train_dataloader, epoch)
         # Verify the adversarial model every time under Epoch.
@@ -228,9 +231,6 @@ def main() -> None:
         if is_best:
             torch.save(discriminator.state_dict(), os.path.join(exp_dir2, "d-best.pth"))
             torch.save(generator.state_dict(), os.path.join(exp_dir2, "g-best.pth"))
-        # Adjust the learning rate of the adversarial model.
-        d_scheduler.step()
-        g_scheduler.step()
 
     # Save the weight of the adversarial model under the last Epoch in this stage.
     torch.save(discriminator.state_dict(), os.path.join(exp_dir2, "d-last.pth"))
