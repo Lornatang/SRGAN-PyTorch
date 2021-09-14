@@ -2,8 +2,7 @@
 
 ## Overview
 
-This repository contains an op-for-op PyTorch reimplementation
-of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5)
+This repository contains an op-for-op PyTorch reimplementation of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5)
 .
 
 ### Table of contents
@@ -57,20 +56,20 @@ Bsd100 dataset:
 
 Modify the contents of the file as follows.
 
-1. `config.py` line 38 `mode="train"` change to `model="validate"`;
-2. `config.py` line 99 `model_path=f"results/{exp_name}/g-best.pth"` change to `model_path=f"<YOUR-WEIGHTS-PATH>.pth"`;
+1. `config.py` line 38 `mode="train"` change to `model="valid"`;
+2. `config.py` line 102 `model_path=f"results/{exp_name}/g-best.pth"` change to `model_path=f"<YOUR-WEIGHTS-PATH>.pth"`;
 3. Run `python validate.py`.
 
 ### Train (e.g DIV2K)
 
 Modify the contents of the file as follows.
 
-1. `config.py` line 38 `mode="validate"` change to `model="train"`;
+1. `config.py` line 38 `mode="valid"` change to `model="train"`;
 2. Run `python train.py`.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
-1. `config.py` line 38 `mode="validate"` change to `model="train"`;
+1. `config.py` line 38 `mode="valid"` change to `model="train"`;
 2. `config.py` line 56 `start_p_epoch=0` change to `start_p_epoch=XXX`;
 3. `config.py` line 58 `resume=False` change to `resume=True`;
 4. `config.py` line 59 `resume_p_weight=""` change to `resume_p_weight=<YOUR-RESUME-WIGHTS-PATH>`;
@@ -89,7 +88,7 @@ In the following table, the value in `()` indicates the result of the project, a
 | BSDS100 |   4   | 25.16(**26.92**) | 0.6688(**0.7148**) | 3.56(**-**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
-<span align="center"><img src="assets/result.png" alt=""></span>
+<span align="center"><img src="assets/result.png"/></span>
 
 ### Contributing
 
