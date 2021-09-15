@@ -22,7 +22,7 @@ from dataset import BaseDataset
 
 
 def train_generator(train_dataloader, epoch) -> None:
-    """Only train the generative model.
+    """Training the generator network.
 
     Args:
         train_dataloader (torch.utils.data.DataLoader): The loader of the training dataset.
@@ -56,7 +56,7 @@ def train_generator(train_dataloader, epoch) -> None:
 
 
 def train_adversarial(train_dataloader, epoch) -> None:
-    """Training generative models and adversarial models.
+    """Training the adversarial network.
 
     Args:
         train_dataloader (torch.utils.data.DataLoader): The loader of the training dataset.
