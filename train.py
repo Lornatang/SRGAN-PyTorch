@@ -125,7 +125,7 @@ def train_adversarial(train_dataloader, epoch) -> None:
 
 
 def validate(valid_dataloader, epoch, stage) -> float:
-    """Verify the generative model.
+    """Verify the generator model.
 
     Args:
         valid_dataloader (torch.utils.data.DataLoader): loader for validating dataset.
