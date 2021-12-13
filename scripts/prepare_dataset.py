@@ -33,8 +33,9 @@ def main():
         # Use PIL to read high-resolution image
         image = Image.open(f"{args.inputs_dir}/{file_name}").convert("RGB")
 
-        new_image = RandomResizedCrop([args.image_size, args.image_size], interpolation=IMode.BICUBIC)(image)
-        new_image.save(f"{image_dir}/{file_name.split('.')[-2]}.{file_name.split('.')[-1]}")
+        for i in range(7):
+            new_image = RandomResizedCrop([args.image_size, args.image_size], interpolation=IMode.BICUBIC)(image)
+            new_image.save(f"{image_dir}/{file_name.split('.')[-2]}_{i:02d}.{file_name.split('.')[-1]}")
     print("Data split successful.")
 
 
