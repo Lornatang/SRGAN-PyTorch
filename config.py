@@ -44,10 +44,10 @@ if mode == "train_srresnet":
     num_workers = 4
 
     # Incremental training and migration training
-    resume = True
+    resume = False
     strict = False
     start_epoch = 0
-    resume_weight = "results/p-last.pth"
+    resume_weight = ""
 
     # Total num epochs
     epochs = 46
@@ -74,7 +74,7 @@ if mode == "train_srgan":
 
     # Incremental training and migration training
     resume = False
-    strict = True
+    strict = False
     start_epoch = 0
     resume_d_weight = ""
     resume_g_weight = ""
