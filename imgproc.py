@@ -156,7 +156,7 @@ def convert_ycbcr_to_rgb(image: Any) -> Any:
         raise Exception("Unknown Type", type(image))
 
 
-def center_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> list[Any, Any]:
+def center_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> [Any, Any]:
     """Cut ``PIL.Image`` in the center area of the image.
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
@@ -182,7 +182,7 @@ def center_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> list[
     return lr, hr
 
 
-def random_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> list[Any, Any]:
+def random_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> [Any, Any]:
     """Will ``PIL.Image`` randomly capture the specified area of the image.
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
@@ -207,7 +207,7 @@ def random_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> list[
     return lr, hr
 
 
-def random_rotate(lr: Any, hr: Any, angle: int) -> list[Any, Any]:
+def random_rotate(lr: Any, hr: Any, angle: int) -> [Any, Any]:
     """Will ``PIL.Image`` randomly rotate the image.
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
@@ -223,7 +223,7 @@ def random_rotate(lr: Any, hr: Any, angle: int) -> list[Any, Any]:
     return lr, hr
 
 
-def random_horizontally_flip(lr: Any, hr: Any, p=0.5) -> list[Any, Any]:
+def random_horizontally_flip(lr: Any, hr: Any, p=0.5) -> [Any, Any]:
     """Flip the ``PIL.Image`` image horizontally randomly.
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
@@ -239,7 +239,7 @@ def random_horizontally_flip(lr: Any, hr: Any, p=0.5) -> list[Any, Any]:
     return lr, hr
 
 
-def random_vertically_flip(lr: Any, hr: Any, p=0.5) -> list[Any, Any]:
+def random_vertically_flip(lr: Any, hr: Any, p=0.5) -> [Any, Any]:
     """Turn the ``PIL.Image`` image upside down randomly.
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
@@ -255,7 +255,7 @@ def random_vertically_flip(lr: Any, hr: Any, p=0.5) -> list[Any, Any]:
     return lr, hr
 
 
-def random_adjust_brightness(lr: Any, hr: Any) -> list[Any, Any]:
+def random_adjust_brightness(lr: Any, hr: Any) -> [Any, Any]:
     """Set ``PIL.Image`` to randomly adjust the image brightness.
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
@@ -271,7 +271,7 @@ def random_adjust_brightness(lr: Any, hr: Any) -> list[Any, Any]:
     return lr, hr
 
 
-def random_adjust_contrast(lr: Any, hr: Any) -> list[Any, Any]:
+def random_adjust_contrast(lr: Any, hr: Any) -> [Any, Any]:
     """Set ``PIL.Image`` to randomly adjust the image contrast.
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
