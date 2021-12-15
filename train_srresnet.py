@@ -207,9 +207,10 @@ def train(model, train_dataloader, criterion, optimizer, epoch, scaler, writer) 
 
         # In this Epoch, every one hundred iterations and the last iteration print the loss function
         # and write it to Tensorboard at the same time
-        writer.add_scalar("Train/Loss", loss.item(), index + epoch * batches + 1)
 
         if index % config.print_frequency == 0:
+            writer.add_scalar("Train/Loss", loss.item(), index + epoch * batches + 1)
+
             progress.display(index)
 
 
