@@ -83,7 +83,6 @@ if mode == "train_srgan":
     epochs = 10
 
     # Loss function weight
-    pixel_weight = 0.01
     content_weight = 1.0
     adversarial_weight = 0.001
 
