@@ -37,19 +37,19 @@ class ResidualConvBlock(nn.Module):
 
     def __init__(self, channels: int) -> None:
         super(ResidualConvBlock, self).__init__()
-        self.rc_block = nn.Sequential(
+        self.rcb = nn.Sequential(
             nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
             nn.BatchNorm2d(channels),
             nn.PReLU(),
             nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
-            nn.BatchNorm2d(channels)
+            nn.BatchNorm2d(channels),
         )
 
     def forward(self, x: Tensor) -> Tensor:
         identity = x
 
-        out = self.rc_block(x)
-        out = out + identity
+        out = self.rcb(x)
+        out = torch.add(out, identity)
 
         return out
 
@@ -59,7 +59,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
             # input size. (3) x 96 x 96
-            nn.Conv2d(3, 64, (3, 3), (1, 1), (1, 1), bias=True),
+            nn.Conv2d(3, 64, (3, 3), (1, 1), (1, 1), bias=False),
             nn.LeakyReLU(0.2, True),
             # state size. (64) x 48 x 48
             nn.Conv2d(64, 64, (3, 3), (2, 2), (1, 1), bias=False),
@@ -85,14 +85,13 @@ class Discriminator(nn.Module):
             # state size. (512) x 6 x 6
             nn.Conv2d(512, 512, (3, 3), (2, 2), (1, 1), bias=False),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True)
+            nn.LeakyReLU(0.2, True),
         )
 
         self.classifier = nn.Sequential(
             nn.Linear(512 * 6 * 6, 1024),
             nn.LeakyReLU(0.2, True),
             nn.Linear(1024, 1),
-            nn.Sigmoid()
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -109,7 +108,7 @@ class Generator(nn.Module):
         # First conv layer.
         self.conv_block1 = nn.Sequential(
             nn.Conv2d(3, 64, (9, 9), (1, 1), (4, 4)),
-            nn.PReLU()
+            nn.PReLU(),
         )
 
         # Features trunk blocks.
@@ -121,7 +120,7 @@ class Generator(nn.Module):
         # Second conv layer.
         self.conv_block2 = nn.Sequential(
             nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1), bias=False),
-            nn.BatchNorm2d(64)
+            nn.BatchNorm2d(64),
         )
 
         # Upscale conv block.
@@ -131,7 +130,7 @@ class Generator(nn.Module):
             nn.PReLU(),
             nn.Conv2d(64, 256, (3, 3), (1, 1), (1, 1)),
             nn.PixelShuffle(2),
-            nn.PReLU()
+            nn.PReLU(),
         )
 
         # Output layer.
@@ -148,38 +147,39 @@ class Generator(nn.Module):
         out1 = self.conv_block1(x)
         out = self.trunk(out1)
         out2 = self.conv_block2(out)
-        out = out1 + out2
+        out = torch.add(out1, out2)
         out = self.upsampling(out)
         out = self.conv_block3(out)
 
         return out
 
     def _initialize_weights(self) -> None:
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-                m.weight.data *= 0.1
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                m.weight.data *= 0.1
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.kaiming_normal_(module.weight)
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
+                module.weight.data *= 0.1
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
+                module.weight.data *= 0.1
 
 
 class ContentLoss(nn.Module):
-    """ Constructs a content loss function based on the VGG19 network.
-        Using high-level feature mapping layers from the latter layers will focus more on the texture content of the image.
+    """Constructs a content loss function based on the VGG19 network.
+    Using high-level feature mapping layers from the latter layers will focus more on the texture content of the image.
 
     Paper reference list:
         -`Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network <https://arxiv.org/pdf/1609.04802.pdf>` paper.
         -`ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks                    <https://arxiv.org/pdf/1809.00219.pdf>` paper.
         -`Perceptual Extreme Super Resolution Network with Receptive Field Block               <https://arxiv.org/pdf/2005.12597.pdf>` paper.
+
      """
 
     def __init__(self) -> None:
         super(ContentLoss, self).__init__()
         # Load the VGG19 model trained on the ImageNet dataset.
-        vgg19 = models.vgg19(pretrained=True, num_classes=1000).eval()
+        vgg19 = models.vgg19(pretrained=True).eval()
         # Extract the thirty-sixth layer output in the VGG19 model as the content loss.
         self.feature_extractor = nn.Sequential(*list(vgg19.features.children())[:36])
         # Freeze model parameters.
@@ -191,10 +191,11 @@ class ContentLoss(nn.Module):
         self.register_buffer("std", torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
 
     def forward(self, sr: Tensor, hr: Tensor) -> Tensor:
-        # Standardized operations.
-        sr = (sr - self.mean) / self.std
-        hr = (hr - self.mean) / self.std
-        # Find the feature map difference between the two images.
-        loss = F.mse_loss(self.feature_extractor(sr), self.feature_extractor(hr))
+        # Standardized operations
+        sr = sr.sub(self.mean).div(self.std)
+        hr = hr.sub(self.mean).div(self.std)
+
+        # Find the feature map difference between the two images
+        loss = F.l1_loss(self.feature_extractor(sr), self.feature_extractor(hr))
 
         return loss

@@ -11,118 +11,113 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
-# ==============================================================================
-# File description: Realize the function of data set preparation.
-# ==============================================================================
+"""Realize the function of dataset preparation."""
+import io
 import os
-from typing import Tuple
 
-import torchvision.transforms as transforms
+import lmdb
+import numpy as np
 from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
+from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode as IMode
 
-from imgproc import center_crop
-from imgproc import image2tensor
-from imgproc import random_crop
-from imgproc import random_horizontally_flip
-from imgproc import random_rotate
+import imgproc
 
-__all__ = ["BaseDataset", "CustomDataset"]
+__all__ = ["ImageDataset", "LMDBDataset"]
 
 
-class BaseDataset(Dataset):
-    """The basic data set loading function only needs to prepare high-resolution image data.
-
-    Args:
-        dataroot         (str): Training data set address.
-        image_size       (int): High resolution image size.
-        upscale_factor   (int): Magnification.
-        mode             (str): Data set loading method, the training data set is for data enhancement,
-                                and the verification data set is not for data enhancement.
-    """
-
-    def __init__(self, dataroot: str, image_size: int, upscale_factor: int, mode: str) -> None:
-        super(BaseDataset, self).__init__()
-        lr_image_size = (image_size // upscale_factor, image_size // upscale_factor)
-        hr_image_size = (image_size, image_size)
-        self.filenames = [os.path.join(dataroot, x) for x in os.listdir(dataroot)]
-        # Low-resolution images and high-resolution images have different processing methods.
-        if mode == "train":
-            self.hr_transforms = transforms.Compose([
-                transforms.RandomCrop(hr_image_size),
-                transforms.RandomRotation(90),
-                transforms.RandomHorizontalFlip(0.5),
-                transforms.ToTensor()
-            ])
-        else:
-            self.hr_transforms = transforms.Compose([
-                transforms.CenterCrop(hr_image_size),
-                transforms.ToTensor()
-            ])
-        self.lr_transforms = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize(lr_image_size, interpolation=IMode.BICUBIC),
-            transforms.ToTensor()
-        ])
-
-    def __getitem__(self, index) -> Tuple[Tensor, Tensor]:
-        hr = Image.open(self.filenames[index])
-
-        hr = self.hr_transforms(hr)
-        lr = self.lr_transforms(hr)
-
-        return lr, hr
-
-    def __len__(self) -> int:
-        return len(self.filenames)
-
-
-class CustomDataset(Dataset):
+class ImageDataset(Dataset):
     """Customize the data set loading function and prepare low/high resolution image data in advance.
 
     Args:
-        dataroot         (str): Training data set address.
-        image_size       (int): High resolution image size.
-        upscale_factor   (int): Magnification.
+        dataroot         (str): Training data set address
+        image_size       (int): High resolution image size
+        upscale_factor   (int): Image magnification
         mode             (str): Data set loading method, the training data set is for data enhancement,
-                                and the verification data set is not for data enhancement.
+                             and the verification data set is not for data enhancement
+
     """
 
     def __init__(self, dataroot: str, image_size: int, upscale_factor: int, mode: str) -> None:
-        super(CustomDataset, self).__init__()
-        # Get the index of all images in the high-resolution folder and low-resolution folder
-        # under the data set address.
-        # Note: The high and low resolution file index should be corresponding.
-        lr_dir_path = os.path.join(dataroot, f"LRunknownx{upscale_factor}")
-        hr_dir_path = os.path.join(dataroot, f"HR")
-        self.filenames = os.listdir(lr_dir_path)
-        self.lr_filenames = [os.path.join(lr_dir_path, x) for x in self.filenames]
-        self.hr_filenames = [os.path.join(hr_dir_path, x) for x in self.filenames]
+        super(ImageDataset, self).__init__()
+        self.filenames = [os.path.join(dataroot, x) for x in os.listdir(dataroot)]
 
-        self.image_size = image_size  # HR image size.
-        self.upscale_factor = upscale_factor
-        self.mode = mode
-
-    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
-        lr = Image.open(self.lr_filenames[index])
-        hr = Image.open(self.hr_filenames[index])
-
-        # Data enhancement methods.
-        if self.mode == "train":
-            lr, hr = random_crop(lr, hr, self.image_size, self.upscale_factor)
-            lr, hr = random_rotate(lr, hr, 90)
-            lr, hr = random_horizontally_flip(lr, hr, 0.5)
+        if mode == "train":
+            self.hr_transforms = transforms.RandomCrop(image_size)
         else:
-            lr, hr = center_crop(lr, hr, self.image_size, self.upscale_factor)
+            self.hr_transforms = transforms.CenterCrop(image_size)
 
-        # `PIL.Image` image data is converted to `Tensor` format data.
-        lr = image2tensor(lr)
-        hr = image2tensor(hr)
+        self.lr_transforms = transforms.Resize(image_size // upscale_factor, interpolation=IMode.BICUBIC, antialias=True)
 
-        return lr, hr
+    def __getitem__(self, batch_index: int) -> [Tensor, Tensor]:
+        # Read a batch of image data
+        image = Image.open(self.filenames[batch_index])
+
+        # Transform image
+        hr_image = self.hr_transforms(image)
+        lr_image = self.lr_transforms(hr_image)
+
+        # Convert image data into Tensor stream format (PyTorch).
+        # Note: The range of input and output is between [0, 1]
+        lr_tensor = imgproc.image2tensor(lr_image, range_norm=False, half=False)
+        hr_tensor = imgproc.image2tensor(hr_image, range_norm=False, half=False)
+
+        return lr_tensor, hr_tensor
 
     def __len__(self) -> int:
         return len(self.filenames)
+
+
+class LMDBDataset(Dataset):
+    """Load the data set as a data set in the form of LMDB.
+
+    Attributes:
+        lr_datasets (list): Low-resolution image data in the dataset
+        hr_datasets (list): High-resolution image data in the dataset
+
+    """
+
+    def __init__(self, lr_lmdb_path, hr_lmdb_path) -> None:
+        super(LMDBDataset, self).__init__()
+        # Create low/high resolution image array
+        self.lr_datasets = []
+        self.hr_datasets = []
+
+        # Initialize the LMDB database file address
+        self.lr_lmdb_path = lr_lmdb_path
+        self.hr_lmdb_path = hr_lmdb_path
+
+        # Write image data in LMDB database to memory
+        self.read_lmdb_dataset()
+
+    def __getitem__(self, batch_index: int) -> [Tensor, Tensor]:
+        # Read a batch of image data
+        lr_image = self.lr_datasets[batch_index]
+        hr_image = self.hr_datasets[batch_index]
+
+        # Convert image data into Tensor stream format (PyTorch).
+        # Note: The range of input and output is between [0, 1]
+        lr_tensor = imgproc.image2tensor(lr_image, range_norm=False, half=False)
+        hr_tensor = imgproc.image2tensor(hr_image, range_norm=False, half=False)
+
+        return lr_tensor, hr_tensor
+
+    def __len__(self) -> int:
+        return len(self.hr_datasets)
+
+    def read_lmdb_dataset(self) -> [list, list]:
+        # Open two LMDB database writing environments to read low/high image data
+        lr_lmdb_env = lmdb.open(self.lr_lmdb_path)
+        hr_lmdb_env = lmdb.open(self.hr_lmdb_path)
+
+        # Write the image data in the low-resolution LMDB data set to the memory
+        for _, image_bytes in lr_lmdb_env.begin().cursor():
+            image = Image.open(io.BytesIO(image_bytes))
+            self.lr_datasets.append(image)
+
+        # Write the image data in the high-resolution LMDB data set to the memory
+        for _, image_bytes in hr_lmdb_env.begin().cursor():
+            image = Image.open(io.BytesIO(image_bytes))
+            self.hr_datasets.append(image)

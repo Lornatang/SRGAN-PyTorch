@@ -27,7 +27,7 @@ URL = "https://github.com/Lornatang/SRGAN-PyTorch"
 EMAIL = "liu_changyu@dakewe.com"
 AUTHOR = "Liu Goodfellow"
 REQUIRES_PYTHON = ">=3.8.0"
-VERSION = "1.0.0"
+VERSION = "1.0.2"
 
 # Libraries that must be installed.
 REQUIRED = ["torch"]
