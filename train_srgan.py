@@ -319,17 +319,17 @@ def train(discriminator,
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # In this Epoch, every one hundred iterations and the last iteration print the loss function
-        # and write it to Tensorboard at the same time
-        iters = index + epoch * batches + 1
-        writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
-        writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
-        writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
-        writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
-        writer.add_scalar("Train/D(HR)_Probability", d_hr_probability.item(), iters)
-        writer.add_scalar("Train/D(SR)_Probability", d_sr_probability.item(), iters)
-
         if index % config.print_frequency == 0:
+            # In this Epoch, every one hundred iterations and the last iteration print the loss function
+            # and write it to Tensorboard at the same time
+            iters = index + epoch * batches + 1
+            writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
+            writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
+            writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
+            writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
+            writer.add_scalar("Train/D(HR)_Probability", d_hr_probability.item(), iters)
+            writer.add_scalar("Train/D(SR)_Probability", d_sr_probability.item(), iters)
+
             progress.display(index)
 
 
