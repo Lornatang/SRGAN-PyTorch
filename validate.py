@@ -49,7 +49,7 @@ def main() -> None:
     total_psnr = 0.0
 
     # Get a list of test image file names.
-    file_names = natsorted(os.listdir(config.hr_dir))
+    file_names = natsorted(os.listdir(config.lr_dir))
     # Get the number of test image files.
     total_files = len(file_names)
 
@@ -58,7 +58,7 @@ def main() -> None:
         sr_image_path = os.path.join(config.sr_dir, file_names[index])
         hr_image_path = os.path.join(config.hr_dir, file_names[index])
 
-        print(f"Processing `{os.path.abspath(hr_image_path)}`...")
+        print(f"Processing `{os.path.abspath(lr_image_path)}`...")
         lr_image = Image.open(lr_image_path).convert("RGB")
         hr_image = Image.open(hr_image_path).convert("RGB")
 
@@ -70,14 +70,14 @@ def main() -> None:
         with torch.no_grad():
             sr_tensor = model(lr_tensor)
 
+        sr_image = imgproc.tensor2image(sr_tensor, range_norm=False, half=True)
+        sr_image = Image.fromarray(sr_image)
+        sr_image.save(sr_image_path)
+
         # Cal PSNR
         sr_y_tensor = imgproc.convert_rgb_to_y(sr_tensor)
         hr_y_tensor = imgproc.convert_rgb_to_y(hr_tensor)
         total_psnr += 10. * torch.log10(1. / torch.mean((sr_y_tensor - hr_y_tensor) ** 2))
-
-        sr_image = imgproc.tensor2image(sr_tensor, range_norm=False, half=True)
-        sr_image = Image.fromarray(sr_image)
-        sr_image.save(sr_image_path)
 
     print(f"PSNR: {total_psnr / total_files:.2f} dB.\n")
 
