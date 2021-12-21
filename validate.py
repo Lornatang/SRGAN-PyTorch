@@ -14,7 +14,6 @@
 """File description: Realize the verification function after model training."""
 import os
 
-import numpy as np
 import torch
 from PIL import Image
 from natsort import natsorted
@@ -63,11 +62,8 @@ def main() -> None:
         lr_image = Image.open(lr_image_path).convert("RGB")
         hr_image = Image.open(hr_image_path).convert("RGB")
 
-        # Extract RGB channel lr image data
-        lr_image = np.array(lr_image).astype(np.float32)
+        # Extract RGB channel image data
         lr_tensor = imgproc.image2tensor(lr_image, range_norm=False, half=True).to(config.device).unsqueeze_(0)
-        # Extract RGB channel hr image data.
-        hr_image = np.array(hr_image).astype(np.float32)
         hr_tensor = imgproc.image2tensor(hr_image, range_norm=False, half=True).to(config.device).unsqueeze_(0)
 
         # Only reconstruct the Y channel image data.
