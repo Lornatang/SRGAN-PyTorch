@@ -70,14 +70,14 @@ def main() -> None:
         with torch.no_grad():
             sr_tensor = model(lr_tensor)
 
-        sr_image = imgproc.tensor2image(sr_tensor, range_norm=False, half=True)
-        sr_image = Image.fromarray(sr_image)
-        sr_image.save(sr_image_path)
-
         # Cal PSNR
         sr_y_tensor = imgproc.convert_rgb_to_y(sr_tensor)
         hr_y_tensor = imgproc.convert_rgb_to_y(hr_tensor)
         total_psnr += 10. * torch.log10(1. / torch.mean((sr_y_tensor - hr_y_tensor) ** 2))
+
+        sr_image = imgproc.tensor2image(sr_tensor, range_norm=False, half=True)
+        sr_image = Image.fromarray(sr_image)
+        sr_image.save(sr_image_path)
 
     print(f"PSNR: {total_psnr / total_files:.2f} dB.\n")
 
