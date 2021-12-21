@@ -68,7 +68,7 @@ def main() -> None:
 
         # Only reconstruct the Y channel image data.
         with torch.no_grad():
-            sr_tensor = model(lr_tensor)
+            sr_tensor = model(lr_tensor).clamp_(0, 1)
 
         # Cal PSNR
         sr_y_tensor = imgproc.convert_rgb_to_y(sr_tensor)
