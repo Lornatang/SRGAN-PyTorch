@@ -87,7 +87,7 @@ def main():
         torch.save(generator.state_dict(), os.path.join(samples_dir, f"g_epoch{epoch + 1}.pth"))
         if is_best:
             torch.save(discriminator.state_dict(), os.path.join(results_dir, "d-best.pth"))
-            torch.save(generator.state_dict(), os.path.join(samples_dir, f"g-best.pth"))
+            torch.save(generator.state_dict(), os.path.join(results_dir, f"g-best.pth"))
 
     # Save the generator weight under the last Epoch in this stage
     torch.save(discriminator.state_dict(), os.path.join(results_dir, "d-last.pth"))
@@ -354,7 +354,7 @@ def validate(model, valid_dataloader, psnr_criterion, epoch, writer) -> float:
                 loss = psnr_criterion(sr, hr)
 
             # measure accuracy and record loss
-            psnr = 10. * torch.log10(1. / torch.mean((sr - hr) ** 2))
+            psnr = 10. * torch.log10(1. / loss)
             losses.update(loss.item(), hr.size(0))
             psnres.update(psnr.item(), hr.size(0))
 
