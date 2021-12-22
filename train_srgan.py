@@ -49,7 +49,7 @@ def main():
     print("Build SRGAN model successfully.")
 
     print("Define all loss functions...")
-    psnr_criterion, content_criterion, adversarial_criterion = define_loss()
+    psnr_criterion, pixel_criterion, content_criterion, adversarial_criterion = define_loss()
     print("Define all loss functions successfully.")
 
     print("Define all optimizer functions...")
@@ -71,6 +71,7 @@ def main():
         train(discriminator,
               generator,
               train_dataloader,
+              pixel_criterion,
               content_criterion,
               adversarial_criterion,
               d_optimizer,
@@ -83,8 +84,8 @@ def main():
         # Automatically save the model with the highest index
         is_best = psnr > best_psnr
         best_psnr = max(psnr, best_psnr)
-        torch.save(discriminator.state_dict(), os.path.join(samples_dir, f"d_epoch{epoch + 1}.pth"))
-        torch.save(generator.state_dict(), os.path.join(samples_dir, f"g_epoch{epoch + 1}.pth"))
+        torch.save(discriminator.state_dict(), os.path.join(samples_dir, f"d_epoch_{epoch + 1}.pth"))
+        torch.save(generator.state_dict(), os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth"))
         if is_best:
             torch.save(discriminator.state_dict(), os.path.join(results_dir, "d-best.pth"))
             torch.save(generator.state_dict(), os.path.join(results_dir, f"g-best.pth"))
@@ -135,18 +136,19 @@ def build_model() -> nn.Module:
     return discriminator, generator
 
 
-def define_loss() -> [nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]:
+def define_loss() -> [nn.MSELoss, nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]:
     """Defines all loss functions
 
     Returns:
-        PSNR criterion, content loss, adversarial loss
+        PSNR loss, pixel loss, content loss, adversarial loss
 
     """
     psnr_criterion = nn.MSELoss().to(config.device)
+    pixel_criterion = nn.MSELoss().to(config.device)
     content_criterion = ContentLoss().to(config.device)
     adversarial_criterion = nn.BCEWithLogitsLoss().to(config.device)
 
-    return psnr_criterion, content_criterion, adversarial_criterion
+    return psnr_criterion, pixel_criterion, content_criterion, adversarial_criterion
 
 
 def define_optimizer(discriminator: nn.Module, generator: nn.Module) -> [optim.Adam, optim.Adam]:
@@ -201,6 +203,7 @@ def resume_checkpoint(discriminator: nn.Module, generator: nn.Module) -> None:
 def train(discriminator,
           generator,
           train_dataloader,
+          pixel_criterion,
           content_criterion,
           adversarial_criterion,
           d_optimizer,
@@ -213,6 +216,7 @@ def train(discriminator,
 
     batch_time = AverageMeter("Time", ":6.3f")
     data_time = AverageMeter("Data", ":6.3f")
+    pixel_losses = AverageMeter("Pixel loss", ":6.6f")
     content_losses = AverageMeter("Content loss", ":6.6f")
     adversarial_losses = AverageMeter("Adversarial loss", ":6.6f")
     d_hr_probabilities = AverageMeter("D(HR)", ":6.3f")
@@ -220,7 +224,7 @@ def train(discriminator,
     psnres = AverageMeter("PSNR", ":4.2f")
     progress = ProgressMeter(batches,
                              [batch_time, data_time,
-                              content_losses, adversarial_losses,
+                              pixel_losses, content_losses, adversarial_losses,
                               d_hr_probabilities, d_sr_probabilities,
                               psnres],
                              prefix=f"Epoch: [{epoch + 1}]")
@@ -288,10 +292,11 @@ def train(discriminator,
         # Calculate the loss of the generator on the super-resolution image
         with amp.autocast():
             output = discriminator(sr)
+            pixel_loss = config.pixel_weight * pixel_criterion(sr, hr.detach())
             content_loss = config.content_weight * content_criterion(sr, hr.detach())
             adversarial_loss = config.adversarial_weight * adversarial_criterion(output, real_label)
         # Count discriminator total loss
-        g_loss = content_loss + adversarial_loss
+        g_loss = pixel_loss + content_loss + adversarial_loss
         # Gradient zoom
         scaler.scale(g_loss).backward()
         # Optimizer unscale + clip model gradient
@@ -309,6 +314,7 @@ def train(discriminator,
 
         # measure accuracy and record loss
         psnr = 10. * torch.log10(1. / torch.mean((sr - hr) ** 2))
+        pixel_losses.update(pixel_loss.item(), lr.size(0))
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
         d_hr_probabilities.update(d_hr_probability.item(), lr.size(0))
@@ -325,6 +331,7 @@ def train(discriminator,
             iters = index + epoch * batches + 1
             writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
             writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
+            writer.add_scalar("Train/Pixel_Loss", pixel_loss.item(), iters)
             writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
             writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
             writer.add_scalar("Train/D(HR)_Probability", d_hr_probability.item(), iters)
