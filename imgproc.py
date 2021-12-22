@@ -88,7 +88,8 @@ def tensor2image(tensor: torch.Tensor, range_norm: bool, half: bool) -> Any:
         tensor = tensor.add_(1.0).div_(2.0)
     if half:
         tensor = tensor.half()
-    image = tensor.mul_(255.0).squeeze_(0).squeeze_(0).cpu().numpy()
+
+    image = tensor.squeeze_(0).permute(1, 2, 0).mul_(255).clamp_(0, 255).cpu().numpy().astype("uint8")
 
     return image
 
