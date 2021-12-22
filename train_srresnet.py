@@ -73,12 +73,12 @@ def main():
         # Automatically save the model with the highest index
         is_best = psnr > best_psnr
         best_psnr = max(psnr, best_psnr)
-        torch.save(model.state_dict(), os.path.join(samples_dir, f"epoch_{epoch + 1}.pth"))
+        torch.save(model.state_dict(), os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth"))
         if is_best:
-            torch.save(model.state_dict(), os.path.join(results_dir, "best.pth"))
+            torch.save(model.state_dict(), os.path.join(results_dir, "g-best.pth"))
 
     # Save the generator weight under the last Epoch in this stage
-    torch.save(model.state_dict(), os.path.join(results_dir, "last.pth"))
+    torch.save(model.state_dict(), os.path.join(results_dir, "g-last.pth"))
     print("End train SRResNet model.")
 
 
