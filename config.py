@@ -27,7 +27,7 @@ cudnn.benchmark = True
 # Image magnification factor
 upscale_factor = 4
 # Current configuration parameter method
-mode = "train_srresnet"
+mode = "train"
 # Experiment name, easy to save weights and log files
 exp_name = "Train_SRResNet_baseline"
 
@@ -73,16 +73,17 @@ if mode == "train_srgan":
     num_workers = 4
 
     # Incremental training and migration training
-    resume = False
+    resume = True
     strict = False
     start_epoch = 0
     resume_d_weight = ""
-    resume_g_weight = ""
+    resume_g_weight = "results/Train_SRResNet_baseline/last.pth"
 
     # Total num epochs
     epochs = 10
 
     # Loss function weight
+    pixel_weight = 1.0
     content_weight = 1.0
     adversarial_weight = 0.001
 
@@ -115,4 +116,4 @@ if mode == "valid":
     sr_dir = f"results/test/{exp_name}"
     hr_dir = f"data/Set5/GTmod12"
 
-    model_path = f"results/{exp_name}/last.pth"
+    model_path = f"results/{exp_name}/g-last.pth"
