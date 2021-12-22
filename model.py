@@ -159,10 +159,8 @@ class Generator(nn.Module):
                 nn.init.kaiming_normal_(module.weight)
                 if module.bias is not None:
                     nn.init.constant_(module.bias, 0)
-                module.weight.data *= 0.1
             elif isinstance(module, nn.BatchNorm2d):
                 nn.init.constant_(module.weight, 1)
-                module.weight.data *= 0.1
 
 
 class ContentLoss(nn.Module):
