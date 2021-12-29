@@ -270,9 +270,6 @@ def train(discriminator,
             d_loss_sr = adversarial_criterion(sr_output, fake_label)
         # Gradient zoom
         scaler.scale(d_loss_sr).backward()
-        # Optimizer unscale + clip model gradient
-        scaler.unscale_(d_optimizer)
-        torch.nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=config.model_clip_gradient, norm_type=2.0)
         # Update discriminator parameters
         scaler.step(d_optimizer)
         scaler.update()
@@ -299,9 +296,6 @@ def train(discriminator,
         g_loss = pixel_loss + content_loss + adversarial_loss
         # Gradient zoom
         scaler.scale(g_loss).backward()
-        # Optimizer unscale + clip model gradient
-        scaler.unscale_(g_optimizer)
-        torch.nn.utils.clip_grad_norm_(generator.parameters(), max_norm=config.model_clip_gradient, norm_type=2.0)
         # Update generator parameters
         scaler.step(g_optimizer)
         scaler.update()
