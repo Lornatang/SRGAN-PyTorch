@@ -55,7 +55,6 @@ if mode == "train_srresnet":
     # Adam optimizer parameter for SRResNet(p)
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
-    model_clip_gradient = 1.0
 
     # Print the training log every one hundred iterations
     print_frequency = 100
@@ -94,9 +93,6 @@ if mode == "train_srgan":
     # Adam optimizer parameter for Generator
     g_model_lr = 1e-4
     g_model_betas = (0.9, 0.999)
-
-    # clip gradient value
-    model_clip_gradient = 1.0
 
     # MultiStepLR scheduler parameter for SRGAN
     d_optimizer_step_size = epochs // 2
