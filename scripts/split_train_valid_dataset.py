@@ -34,9 +34,7 @@ def main():
     process_bar = tqdm(valid_files, total=len(valid_files))
 
     for image_file_name in process_bar:
-        train_image_path = f"{train_image_dir}/{image_file_name}"
-        valid_image_path = f"{valid_image_dir}/{image_file_name}"
-        shutil.copyfile(train_image_path, valid_image_path)
+        shutil.copyfile(f"{train_image_dir}/{image_file_name}", f"{valid_image_dir}/{image_file_name}")
 
 
 if __name__ == "__main__":
