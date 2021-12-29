@@ -57,7 +57,7 @@ if mode == "train_srresnet":
     model_betas = (0.9, 0.999)
 
     # Print the training log every one hundred iterations
-    print_frequency = 100
+    print_frequency = 1000
 
 # ==============================================================================
 # Training SRGAN model configuration
