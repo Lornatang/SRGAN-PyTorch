@@ -16,12 +16,11 @@ import os
 import shutil
 
 from PIL import Image
+from torchvision.transforms import RandomCrop
 from tqdm import tqdm
-from torchvision.transforms import RandomResizedCrop
-from torchvision.transforms.functional import InterpolationMode as IMode
 
 
-def main():
+def main() -> None:
     image_dir = f"{args.output_dir}/train"
 
     if os.path.exists(image_dir):
@@ -33,9 +32,10 @@ def main():
         # Use PIL to read high-resolution image
         image = Image.open(f"{args.inputs_dir}/{file_name}").convert("RGB")
 
-        for i in range(7):
-            new_image = RandomResizedCrop([args.image_size, args.image_size], interpolation=IMode.BICUBIC)(image)
-            new_image.save(f"{image_dir}/{file_name.split('.')[-2]}_{i:02d}.{file_name.split('.')[-1]}")
+        if image.width >= args.image_size and image.height >= args.image_size:
+            for i in range(10):
+                new_image = RandomCrop([args.image_size, args.image_size])(image)
+                new_image.save(f"{image_dir}/{file_name.split('.')[-2]}_{i:03d}.{file_name.split('.')[-1]}")
     print("Data split successful.")
 
 
