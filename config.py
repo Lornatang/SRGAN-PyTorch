@@ -27,7 +27,7 @@ cudnn.benchmark = True
 # Image magnification factor
 upscale_factor = 4
 # Current configuration parameter method
-mode = "train"
+mode = "train_srresnet"
 # Experiment name, easy to save weights and log files
 exp_name = "Train_SRResNet_baseline"
 
@@ -77,7 +77,7 @@ if mode == "train_srgan":
     strict = False
     start_epoch = 0
     resume_d_weight = ""
-    resume_g_weight = "results/Train_SRResNet_baseline/last.pth"
+    resume_g_weight = "results/Train_SRResNet_baseline/g-last.pth"
 
     # Total num epochs
     epochs = 10
@@ -105,15 +105,15 @@ if mode == "train_srgan":
     g_optimizer_gamma = 0.1
 
     # Print the training log every one hundred iterations
-    print_frequency = 100
+    print_frequency = 1000
 
 # ==============================================================================
 # Verify configuration
 # ==============================================================================
 if mode == "valid":
     # Test data address
-    lr_dir = f"data/Set5/LRbicx{upscale_factor}"
+    lr_dir = f"data/Set14/LRbicx{upscale_factor}"
     sr_dir = f"results/test/{exp_name}"
-    hr_dir = f"data/Set5/GTmod12"
+    hr_dir = f"data/Set14/GTmod12"
 
     model_path = f"results/{exp_name}/g-last.pth"
