@@ -319,26 +319,22 @@ def train(discriminator,
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if index % config.print_frequency == 0:
-            # In this Epoch, every one hundred iterations and the last iteration print the loss function
-            # and write it to Tensorboard at the same time
-            iters = index + epoch * batches + 1
-            writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
-            writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
-            writer.add_scalar("Train/Pixel_Loss", pixel_loss.item(), iters)
-            writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
-            writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
-            writer.add_scalar("Train/D(HR)_Probability", d_hr_probability.item(), iters)
-            writer.add_scalar("Train/D(SR)_Probability", d_sr_probability.item(), iters)
-
+        iters = index + epoch * batches + 1
+        writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
+        writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
+        writer.add_scalar("Train/Pixel_Loss", pixel_loss.item(), iters)
+        writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
+        writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
+        writer.add_scalar("Train/D(HR)_Probability", d_hr_probability.item(), iters)
+        writer.add_scalar("Train/D(SR)_Probability", d_sr_probability.item(), iters)
+        if index % config.print_frequency == 0 and index != 0:
             progress.display(index)
 
 
 def validate(model, valid_dataloader, psnr_criterion, epoch, writer) -> float:
     batch_time = AverageMeter("Time", ":6.3f")
-    losses = AverageMeter("Loss", ":6.6f")
     psnres = AverageMeter("PSNR", ":4.2f")
-    progress = ProgressMeter(len(valid_dataloader), [batch_time, losses, psnres], prefix="Valid: ")
+    progress = ProgressMeter(len(valid_dataloader), [batch_time, psnres], prefix="Valid: ")
 
     # Put the generator in verification mode.
     model.eval()
@@ -352,11 +348,9 @@ def validate(model, valid_dataloader, psnr_criterion, epoch, writer) -> float:
             # Mixed precision
             with amp.autocast():
                 sr = model(lr)
-                loss = psnr_criterion(sr, hr)
 
             # measure accuracy and record loss
-            psnr = 10. * torch.log10(1. / loss)
-            losses.update(loss.item(), hr.size(0))
+            psnr = 10. * torch.log10(1. / psnr_criterion(sr, hr))
             psnres.update(psnr.item(), hr.size(0))
 
             # measure elapsed time
