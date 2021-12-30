@@ -45,7 +45,11 @@ class ImageDataset(Dataset):
         self.filenames = [os.path.join(dataroot, x) for x in os.listdir(dataroot)]
 
         if mode == "train":
-            self.hr_transforms = transforms.RandomCrop(image_size)
+            self.hr_transforms = transforms.Compose([
+                transforms.RandomCrop(image_size),
+                transforms.RandomRotation(90),
+                transforms.RandomHorizontalFlip(0.5),
+            ])
         else:
             self.hr_transforms = transforms.CenterCrop(image_size)
 
