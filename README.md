@@ -72,7 +72,7 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 - Image format
     - [Google Driver](https://drive.google.com/file/d/1cdMYTPr77RdOgyAvJPMQqaJHWrD5ma5n/view?usp=sharing)
     - [Baidu Driver](https://pan.baidu.com/s/1xahPw4dNNc3XspMMOuw1Bw) access:`llot`
-    
+
 ## Test
 
 Modify the contents of the file as follows.
@@ -111,10 +111,10 @@ Source of original paper results: [https://arxiv.org/pdf/1609.04802v5.pdf](https
 
 In the following table, the psnr value in `()` indicates the result of the project, and `-` indicates no test.
 
-| Dataset | Scale |     SRResNet     |      SRGAN       |
+| Dataset | Scale | SRResNet (PSNR)  |   SRGAN (PSNR)   |
 |:-------:|:-----:|:----------------:|:----------------:|
-|  Set5   |   4   | 32.05(**31.55**) | 29.40(**27.91**) |
-|  Set14  |   4   | 28.49(**27.88**) | 26.02(**26.08**) |
+|  Set5   |   4   | 32.05(**31.72**) | 29.40(**27.91**) |
+|  Set14  |   4   | 28.49(**28.12**) | 26.02(**26.08**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png"/></span>
