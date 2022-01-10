@@ -16,7 +16,6 @@ import os
 import shutil
 
 from PIL import Image
-from torchvision.transforms import RandomCrop
 from tqdm import tqdm
 
 
@@ -30,12 +29,16 @@ def main() -> None:
     file_names = os.listdir(args.inputs_dir)
     for file_name in tqdm(file_names, total=len(file_names)):
         # Use PIL to read high-resolution image
-        image = Image.open(f"{args.inputs_dir}/{file_name}").convert("RGB")
+        image = Image.open(f"{args.inputs_dir}/{file_name}")
 
         if image.width >= args.image_size and image.height >= args.image_size:
-            for i in range(10):
-                new_image = RandomCrop([args.image_size, args.image_size])(image)
-                new_image.save(f"{image_dir}/{file_name.split('.')[-2]}_{i:03d}.{file_name.split('.')[-1]}")
+            index = 1
+            for pos_x in range(0, image.width - args.image_size + 1, args.step):
+                for pos_y in range(0, image.height - args.image_size + 1, args.step):
+                    crop_image = image.crop([pos_x, pos_y, pos_x + args.image_size, pos_y + args.image_size])
+                    # Save all images
+                    crop_image.save(f"{image_dir}/{file_name.split('.')[-2]}_{index:04d}.{file_name.split('.')[-1]}")
+                index += 1
     print("Data split successful.")
 
 
@@ -44,6 +47,7 @@ if __name__ == "__main__":
     parser.add_argument("--inputs_dir", type=str, default="ImageNet/original", help="Path to input image directory. (Default: `ImageNet/original`)")
     parser.add_argument("--output_dir", type=str, default="ImageNet/SRGAN", help="Path to generator image directory. (Default: `ImageNet/SRGAN`)")
     parser.add_argument("--image_size", type=int, default=96, help="Low-resolution image size from raw image. (Default: 96)")
+    parser.add_argument("--step", type=int, default=48, help="Crop image similar to sliding window.  (Default: 48)")
     args = parser.parse_args()
 
     main()
