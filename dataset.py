@@ -100,6 +100,10 @@ class LMDBDataset(Dataset):
         # Read a batch of image data
         lr_image = self.lr_datasets[batch_index]
         hr_image = self.hr_datasets[batch_index]
+        
+        # Data augment
+        lr_image, hr_image = imgproc.random_rotate(lr_image, hr_image, angle=90)
+        lr_image, hr_image = imgproc.random_horizontally_flip(lr_image, hr_image, p=0.5)
 
         # Convert image data into Tensor stream format (PyTorch).
         # Note: The range of input and output is between [0, 1]
