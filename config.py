@@ -29,7 +29,7 @@ upscale_factor = 4
 # Current configuration parameter method
 mode = "train_srresnet"
 # Experiment name, easy to save weights and log files
-exp_name = "Train_SRResNet_baseline"
+exp_name = "train_SRResNet_baseline"
 
 # ==============================================================================
 # Training SRResNet model configuration
@@ -55,6 +55,7 @@ if mode == "train_srresnet":
     # Adam optimizer parameter for SRResNet(p)
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
+    model_eps = 1e-3
 
     # Print the training log every one hundred iterations
     print_frequency = 1000
@@ -89,10 +90,12 @@ if mode == "train_srgan":
     # Adam optimizer parameter for Discriminator
     d_model_lr = 1e-4
     d_model_betas = (0.9, 0.999)
+    d_model_eps = 1e-3
 
     # Adam optimizer parameter for Generator
     g_model_lr = 1e-4
     g_model_betas = (0.9, 0.999)
+    g_model_eps = 1e-3
 
     # MultiStepLR scheduler parameter for SRGAN
     d_optimizer_step_size = epochs // 2
