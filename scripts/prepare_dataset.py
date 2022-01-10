@@ -29,7 +29,7 @@ def main() -> None:
     file_names = os.listdir(args.inputs_dir)
     for file_name in tqdm(file_names, total=len(file_names)):
         # Use PIL to read high-resolution image
-        image = Image.open(f"{args.inputs_dir}/{file_name}")
+        image = Image.open(f"{args.inputs_dir}/{file_name}").convert("RGB")
 
         if image.width >= args.image_size and image.height >= args.image_size:
             index = 1
