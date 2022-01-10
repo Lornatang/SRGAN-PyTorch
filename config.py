@@ -89,12 +89,10 @@ if mode == "train_srgan":
 
     # Adam optimizer parameter for Discriminator
     d_model_lr = 1e-4
-    d_model_betas = (0.9, 0.999)
-    d_model_eps = 1e-3
-
-    # Adam optimizer parameter for Generator
     g_model_lr = 1e-4
+    d_model_betas = (0.9, 0.999)
     g_model_betas = (0.9, 0.999)
+    d_model_eps = 1e-3
     g_model_eps = 1e-3
 
     # MultiStepLR scheduler parameter for SRGAN
@@ -115,4 +113,4 @@ if mode == "valid":
     sr_dir = f"results/test/{exp_name}"
     hr_dir = f"data/Set5/GTmod12"
 
-    model_path = f"results/{exp_name}/g-last.pth"
+    model_path = f"results/{exp_name}/g-last.pth"、
