@@ -50,7 +50,7 @@ if mode == "train_srresnet":
     resume_weight = ""
 
     # Total num epochs
-    epochs = 35
+    epochs = 40
 
     # Adam optimizer parameter for SRResNet(p)
     model_lr = 1e-4
@@ -79,7 +79,7 @@ if mode == "train_srgan":
     resume_g_weight = "results/Train_SRResNet_baseline/g-last.pth"
 
     # Total num epochs
-    epochs = 7
+    epochs = 8
 
     # Loss function weight
     pixel_weight = 1.0
