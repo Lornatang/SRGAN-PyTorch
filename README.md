@@ -79,7 +79,7 @@ Modify the contents of the file as follows.
 
 - line 28: `upscale_factor` change to the magnification you need to enlarge.
 - line 30: `mode` change Set to valid mode.
-- line 116: `model_path` change weight address after training.
+- line 113: `model_path` change weight address after training.
 
 ## Train
 
