@@ -99,11 +99,11 @@ If you want to load weights that you've trained before, modify the contents of t
 
 ### Train SRGAN model
 
-- line 76: `resume` change to `True`.
-- line 77: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 78: `start_epoch` change number of training iterations in the previous round.
-- line 79: `resume_d_weight` the discriminator weight address that needs to be loaded.
-- line 80: `resume_g_weight` the generator weight address that needs to be loaded.
+- line 75: `resume` change to `True`.
+- line 76: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
+- line 77: `start_epoch` change number of training iterations in the previous round.
+- line 78: `resume_d_weight` the discriminator weight address that needs to be loaded.
+- line 79: `resume_g_weight` the generator weight address that needs to be loaded.
 
 ## Result
 
