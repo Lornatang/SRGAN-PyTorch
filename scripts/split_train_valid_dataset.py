@@ -19,28 +19,26 @@ import shutil
 from tqdm import tqdm
 
 
-def main():
-    train_image_dir = f"{args.inputs_dir}/train"
-    valid_image_dir = f"{args.inputs_dir}/valid"
+def main(args) -> None:
+    if not os.path.exists(args.train_images_dir):
+        os.makedirs(args.train_images_dir)
+    if not os.path.exists(args.valid_images_dir):
+        os.makedirs(args.valid_images_dir)
 
-    if not os.path.exists(train_image_dir):
-        os.makedirs(train_image_dir)
-    if not os.path.exists(valid_image_dir):
-        os.makedirs(valid_image_dir)
-
-    train_files = os.listdir(train_image_dir)
+    train_files = os.listdir(args.train_images_dir)
     valid_files = random.sample(train_files, int(len(train_files) * args.valid_samples_ratio))
 
-    process_bar = tqdm(valid_files, total=len(valid_files))
+    process_bar = tqdm(valid_files, total=len(valid_files), unit="image", desc="Split")
 
     for image_file_name in process_bar:
-        shutil.copyfile(f"{train_image_dir}/{image_file_name}", f"{valid_image_dir}/{image_file_name}")
+        shutil.copyfile(f"{args.train_images_dir}/{image_file_name}", f"{args.valid_images_dir}/{image_file_name}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Split train and valid dataset scripts.")
-    parser.add_argument("--inputs_dir", type=str, default="ImageNet/SRGAN", help="Path to input image directory. (Default: ``ImageNet/SRGAN``)")
+    parser.add_argument("--train_images_dir", type=str, default="ImageNet/SRGAN/train", help="Path to train image directory. (Default: ``ImageNet/SRGAN/train``)")
+    parser.add_argument("--valid_images_dir", type=str, default="ImageNet/SRGAN/valid", help="Path to valid image directory. (Default: ``ImageNet/SRGAN/valid``)")
     parser.add_argument("--valid_samples_ratio", type=float, default=0.1, help="What percentage of the data is extracted from the training set into the validation set.  (Default: 0.1)")
     args = parser.parse_args()
 
-    main()
+    main(args)
