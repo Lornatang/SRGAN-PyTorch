@@ -113,8 +113,8 @@ In the following table, the psnr value in `()` indicates the result of the proje
 
 | Dataset | Scale | SRResNet (PSNR)  |   SRGAN (PSNR)   |
 |:-------:|:-----:|:----------------:|:----------------:|
-|  Set5   |   4   | 32.05(**31.72**) | 29.40(**27.91**) |
-|  Set14  |   4   | 28.49(**28.12**) | 26.02(**26.08**) |
+|  Set5   |   4   | 32.05(**31.80**) | 29.40(**28.88**) |
+|  Set14  |   4   | 28.49(**28.20**) | 26.02(**25.70**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png"/></span>
