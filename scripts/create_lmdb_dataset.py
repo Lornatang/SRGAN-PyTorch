@@ -20,17 +20,17 @@ import lmdb
 from tqdm import tqdm
 
 
-def main():
+def main(args) -> None:
     if os.path.exists(args.lmdb_path):
         shutil.rmtree(args.lmdb_path)
 
     os.makedirs(args.lmdb_path)
 
-    image_file_names = os.listdir(args.inputs_dir)
+    image_file_names = os.listdir(args.images_dir)
     total_image_number = len(image_file_names)
 
     # Determine the LMDB database file size according to the image size
-    image = cv2.imread(os.path.abspath(f"{args.inputs_dir}/{image_file_names[0]}"))
+    image = cv2.imread(os.path.abspath(f"{args.images_dir}/{image_file_names[0]}"))
     image = cv2.resize(image, [image.shape[0] // args.upscale_factor, image.shape[1] // args.upscale_factor], interpolation=cv2.INTER_CUBIC)
     _, image_byte = cv2.imencode(f".{image_file_names[0].split('.')[-1]}", image)
     lmdb_map_size = image_byte.nbytes * total_image_number * 3
@@ -47,7 +47,7 @@ def main():
 
     for file_name in process_bar:
         # Use OpenCV to read low-resolution and high-resolution images
-        image = cv2.imread(f"{args.inputs_dir}/{file_name}")
+        image = cv2.imread(f"{args.images_dir}/{file_name}")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Process HR to LR image
@@ -75,9 +75,9 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create LMDB database scripts.")
-    parser.add_argument("--inputs_dir", type=str, default="ImageNet/SRGAN/train", help="Path to image directory. (Default: ``ImageNet/SRGAN/train``)")
-    parser.add_argument("--lmdb_path", type=str, default="train_lmdb/SRGAN/ImageNet_HR_lmdb", help="Path to lmdb database. (Default: ``train_lmdb/SRGAN/ImageNet_HR_lmdb``)")
-    parser.add_argument("--upscale_factor", type=int, default=1, help="Image zoom factor. (Default: 1)")
+    parser.add_argument("--images_dir", type=str, help="Path to image directory.")
+    parser.add_argument("--lmdb_path", type=str, help="Path to lmdb database.")
+    parser.add_argument("--upscale_factor", type=int, help="Image zoom factor.")
     args = parser.parse_args()
 
-    main()
+    main(args)
