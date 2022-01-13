@@ -56,6 +56,10 @@ def main():
     d_optimizer, g_optimizer = define_optimizer(discriminator, generator)
     print("Define all optimizer functions successfully.")
 
+    print("Define all optimizer scheduler functions...")
+    d_scheduler, g_scheduler = define_optimizer(discriminator, generator)
+    print("Define all optimizer scheduler functions successfully.")
+
     print("Check whether the training weight is restored...")
     resume_checkpoint(discriminator, generator)
     print("Check whether the training weight is restored successfully.")
@@ -71,6 +75,7 @@ def main():
         train(discriminator,
               generator,
               train_dataloader,
+              psnr_criterion,
               pixel_criterion,
               content_criterion,
               adversarial_criterion,
@@ -89,6 +94,10 @@ def main():
         if is_best:
             torch.save(discriminator.state_dict(), os.path.join(results_dir, "d-best.pth"))
             torch.save(generator.state_dict(), os.path.join(results_dir, f"g-best.pth"))
+
+        # Update LR
+        d_scheduler.step()
+        g_scheduler.step()
 
     # Save the generator weight under the last Epoch in this stage
     torch.save(discriminator.state_dict(), os.path.join(results_dir, "d-last.pth"))
@@ -111,12 +120,14 @@ def load_dataset() -> [DataLoader, DataLoader]:
                                   batch_size=config.batch_size,
                                   shuffle=True,
                                   num_workers=config.num_workers,
-                                  pin_memory=True)
+                                  pin_memory=True,
+                                  persistent_workers=False)
     valid_dataloader = DataLoader(valid_datasets,
                                   batch_size=config.batch_size,
                                   shuffle=False,
                                   num_workers=config.num_workers,
-                                  pin_memory=True)
+                                  pin_memory=True,
+                                  persistent_workers=False)
 
     return train_dataloader, valid_dataloader
 
@@ -201,6 +212,7 @@ def resume_checkpoint(discriminator: nn.Module, generator: nn.Module) -> None:
 def train(discriminator,
           generator,
           train_dataloader,
+          psnr_criterion,
           pixel_criterion,
           content_criterion,
           adversarial_criterion,
@@ -305,7 +317,7 @@ def train(discriminator,
         d_sr_probability = torch.sigmoid(torch.mean(sr_output))
 
         # measure accuracy and record loss
-        psnr = 10. * torch.log10(1. / torch.mean((sr - hr) ** 2))
+        psnr = 10. * torch.log10(1. / psnr_criterion(sr, hr))
         pixel_losses.update(pixel_loss.item(), lr.size(0))
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
