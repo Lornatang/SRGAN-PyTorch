@@ -53,11 +53,11 @@ def worker(image_file_name, args) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare database scripts.")
-    parser.add_argument("--images_dir", type=str, default="ImageNet/original", help="Path to input image directory. (Default: `ImageNet/original`)")
-    parser.add_argument("--output_dir", type=str, default="ImageNet/SRGAN/train", help="Path to generator image directory. (Default: `ImageNet/SRGAN/train`)")
-    parser.add_argument("--image_size", type=int, default=96, help="Low-resolution image size from raw image. (Default: 96)")
-    parser.add_argument("--step", type=int, default=48, help="Crop image similar to sliding window.  (Default: 48)")
-    parser.add_argument("--num_workers", type=int, default=10, help="How many threads to open at the same time. (Default: 10)")
+    parser.add_argument("--images_dir", type=str, help="Path to input image directory.")
+    parser.add_argument("--output_dir", type=str, help="Path to generator image directory.")
+    parser.add_argument("--image_size", type=int, help="Low-resolution image size from raw image.")
+    parser.add_argument("--step", type=int, help="Crop image similar to sliding window.")
+    parser.add_argument("--num_workers", type=int, help="How many threads to open at the same time.")
     args = parser.parse_args()
 
     main(args)
