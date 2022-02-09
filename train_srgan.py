@@ -29,17 +29,6 @@ from model import Discriminator, Generator, ContentLoss
 
 
 def main():
-    # Create a folder of super-resolution experiment results
-    samples_dir = os.path.join("samples", config.exp_name)
-    results_dir = os.path.join("results", config.exp_name)
-    if not os.path.exists(samples_dir):
-        os.makedirs(samples_dir)
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
-
-    # Create training process log file
-    writer = SummaryWriter(os.path.join("samples", "logs", config.exp_name))
-
     print("Load train dataset and valid dataset...")
     train_dataloader, valid_dataloader = load_dataset()
     print("Load train dataset and valid dataset successfully.")
@@ -63,6 +52,17 @@ def main():
     print("Check whether the training weight is restored...")
     resume_checkpoint(discriminator, generator)
     print("Check whether the training weight is restored successfully.")
+
+    # Create a folder of super-resolution experiment results
+    samples_dir = os.path.join("samples", config.exp_name)
+    results_dir = os.path.join("results", config.exp_name)
+    if not os.path.exists(samples_dir):
+        os.makedirs(samples_dir)
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
+
+    # Create training process log file
+    writer = SummaryWriter(os.path.join("samples", "logs", config.exp_name))
 
     # Initialize the gradient scaler.
     scaler = amp.GradScaler()
