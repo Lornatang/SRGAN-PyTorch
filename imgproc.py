@@ -32,36 +32,46 @@ __all__ = [
 
 def normalize(image: np.ndarray) -> np.ndarray:
     """Normalize the ``OpenCV.imread`` or ``skimage.io.imread`` data.
+
     Args:
         image (np.ndarray): The image data read by ``OpenCV.imread`` or ``skimage.io.imread``.
+
     Returns:
         Normalized image data. Data range [0, 1].
     """
+
     return image.astype(np.float64) / 255.0
 
 
 def unnormalize(image: np.ndarray) -> np.ndarray:
     """Un-normalize the ``OpenCV.imread`` or ``skimage.io.imread`` data.
+
     Args:
         image (np.ndarray): The image data read by ``OpenCV.imread`` or ``skimage.io.imread``.
+
     Returns:
         Denormalized image data. Data range [0, 255].
     """
+
     return image.astype(np.float64) * 255.0
 
 
 def image2tensor(image: np.ndarray, range_norm: bool, half: bool) -> torch.Tensor:
     """Convert ``PIL.Image`` to Tensor.
+
     Args:
         image (np.ndarray): The image data read by ``PIL.Image``
         range_norm (bool): Scale [0, 1] data to between [-1, 1]
         half (bool): Whether to convert torch.float32 similarly to torch.half type.
+
     Returns:
         Normalized image data
+
     Examples:
         >>> image = Image.open("image.bmp")
         >>> tensor_image = image2tensor(image, range_norm=False, half=False)
     """
+
     tensor = F.to_tensor(image)
 
     if range_norm:
@@ -74,16 +84,20 @@ def image2tensor(image: np.ndarray, range_norm: bool, half: bool) -> torch.Tenso
 
 def tensor2image(tensor: torch.Tensor, range_norm: bool, half: bool) -> Any:
     """Converts ``torch.Tensor`` to ``PIL.Image``.
+
     Args:
         tensor (torch.Tensor): The image that needs to be converted to ``PIL.Image``
         range_norm (bool): Scale [-1, 1] data to between [0, 1]
         half (bool): Whether to convert torch.float32 similarly to torch.half type.
+
     Returns:
         Convert image data to support PIL library
+
     Examples:
         >>> tensor = torch.randn([1, 3, 128, 128])
         >>> image = tensor2image(tensor, range_norm=False, half=False)
     """
+
     if range_norm:
         tensor = tensor.add_(1.0).div_(2.0)
     if half:
@@ -96,11 +110,14 @@ def tensor2image(tensor: torch.Tensor, range_norm: bool, half: bool) -> Any:
 
 def convert_rgb_to_y(image: Any) -> Any:
     """Convert RGB image or tensor image data to YCbCr(Y) format.
+
     Args:
         image: RGB image data read by ``PIL.Image''.
+
     Returns:
         Y image array data.
     """
+
     if type(image) == np.ndarray:
         return 16. + (64.738 * image[:, :, 0] + 129.057 * image[:, :, 1] + 25.064 * image[:, :, 2]) / 256.
     elif type(image) == torch.Tensor:
@@ -113,11 +130,14 @@ def convert_rgb_to_y(image: Any) -> Any:
 
 def convert_rgb_to_ycbcr(image: Any) -> Any:
     """Convert RGB image or tensor image data to YCbCr format.
+
     Args:
         image: RGB image data read by ``PIL.Image''.
+
     Returns:
         YCbCr image array data.
     """
+
     if type(image) == np.ndarray:
         y = 16. + (64.738 * image[:, :, 0] + 129.057 * image[:, :, 1] + 25.064 * image[:, :, 2]) / 256.
         cb = 128. + (-37.945 * image[:, :, 0] - 74.494 * image[:, :, 1] + 112.439 * image[:, :, 2]) / 256.
@@ -136,11 +156,14 @@ def convert_rgb_to_ycbcr(image: Any) -> Any:
 
 def convert_ycbcr_to_rgb(image: Any) -> Any:
     """Convert YCbCr format image to RGB format.
+
     Args:
        image: YCbCr image data read by ``PIL.Image''.
+
     Returns:
         RGB image array data.
     """
+
     if type(image) == np.ndarray:
         r = 298.082 * image[:, :, 0] / 256. + 408.583 * image[:, :, 2] / 256. - 222.921
         g = 298.082 * image[:, :, 0] / 256. - 100.291 * image[:, :, 1] / 256. - 208.120 * image[:, :, 2] / 256. + 135.576
@@ -159,14 +182,17 @@ def convert_ycbcr_to_rgb(image: Any) -> Any:
 
 def center_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> [Any, Any]:
     """Cut ``PIL.Image`` in the center area of the image.
+
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
         hr: High-resolution image data read by ``PIL.Image``.
         image_size (int): The size of the captured image area. It should be the size of the high-resolution image.
         upscale_factor (int): magnification factor.
+
     Returns:
         Randomly cropped low-resolution images and high-resolution images.
     """
+
     w, h = hr.size
 
     left = (w - image_size) // 2
@@ -185,14 +211,17 @@ def center_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> [Any,
 
 def random_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> [Any, Any]:
     """Will ``PIL.Image`` randomly capture the specified area of the image.
+
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
         hr: High-resolution image data read by ``PIL.Image``.
         image_size (int): The size of the captured image area. It should be the size of the high-resolution image.
         upscale_factor (int): magnification factor.
+
     Returns:
         Randomly cropped low-resolution images and high-resolution images.
     """
+
     w, h = hr.size
     left = torch.randint(0, w - image_size + 1, size=(1,)).item()
     top = torch.randint(0, h - image_size + 1, size=(1,)).item()
@@ -208,16 +237,19 @@ def random_crop(lr: Any, hr: Any, image_size: int, upscale_factor: int) -> [Any,
     return lr, hr
 
 
-def random_rotate(lr: Any, hr: Any, angle: int) -> [Any, Any]:
+def random_rotate(lr: Any, hr: Any, degrees: list) -> [Any, Any]:
     """Will ``PIL.Image`` randomly rotate the image.
+
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
         hr: High-resolution image data read by ``PIL.Image``.
-        angle (int): rotation angle, clockwise and counterclockwise rotation.
+        degrees (list): rotation angle, clockwise and counterclockwise rotation.
+
     Returns:
         Randomly rotated low-resolution images and high-resolution images.
     """
-    angle = random.choice((+angle, -angle))
+
+    angle = random.choice(degrees)
     lr = F.rotate(lr, angle)
     hr = F.rotate(hr, angle)
 
@@ -226,13 +258,16 @@ def random_rotate(lr: Any, hr: Any, angle: int) -> [Any, Any]:
 
 def random_horizontally_flip(lr: Any, hr: Any, p=0.5) -> [Any, Any]:
     """Flip the ``PIL.Image`` image horizontally randomly.
+
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
         hr: High-resolution image data read by ``PIL.Image``.
         p (optional, float): rollover probability. (Default: 0.5)
+
     Returns:
         Low-resolution image and high-resolution image after random horizontal flip.
     """
+
     if torch.rand(1).item() > p:
         lr = F.hflip(lr)
         hr = F.hflip(hr)
@@ -242,13 +277,16 @@ def random_horizontally_flip(lr: Any, hr: Any, p=0.5) -> [Any, Any]:
 
 def random_vertically_flip(lr: Any, hr: Any, p=0.5) -> [Any, Any]:
     """Turn the ``PIL.Image`` image upside down randomly.
+
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
         hr: High-resolution image data read by ``PIL.Image``.
         p (optional, float): rollover probability. (Default: 0.5)
+
     Returns:
         Randomly rotated up and down low-resolution images and high-resolution images.
     """
+
     if torch.rand(1).item() > p:
         lr = F.vflip(lr)
         hr = F.vflip(hr)
@@ -256,33 +294,41 @@ def random_vertically_flip(lr: Any, hr: Any, p=0.5) -> [Any, Any]:
     return lr, hr
 
 
-def random_adjust_brightness(lr: Any, hr: Any) -> [Any, Any]:
+def random_adjust_brightness(lr: Any, hr: Any, factor: list) -> [Any, Any]:
     """Set ``PIL.Image`` to randomly adjust the image brightness.
+
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
         hr: High-resolution image data read by ``PIL.Image``.
+        factor (list): Brightness coefficient adjustment range.
+
     Returns:
         Low-resolution image and high-resolution image with randomly adjusted brightness.
     """
+
     # Randomly adjust the brightness gain range.
-    factor = random.uniform(0.5, 2)
-    lr = F.adjust_brightness(lr, factor)
-    hr = F.adjust_brightness(hr, factor)
+    brightness_factor = random.choice(factor)
+    lr = F.adjust_brightness(lr, brightness_factor)
+    hr = F.adjust_brightness(hr, brightness_factor)
 
     return lr, hr
 
 
-def random_adjust_contrast(lr: Any, hr: Any) -> [Any, Any]:
+def random_adjust_contrast(lr: Any, hr: Any, factor: list) -> [Any, Any]:
     """Set ``PIL.Image`` to randomly adjust the image contrast.
+
     Args:
         lr: Low-resolution image data read by ``PIL.Image``.
         hr: High-resolution image data read by ``PIL.Image``.
+        factor (list): Contrast coefficient adjustment range.
+
     Returns:
         Low-resolution image and high-resolution image with randomly adjusted contrast.
     """
+
     # Randomly adjust the contrast gain range.
-    factor = random.uniform(0.5, 2)
-    lr = F.adjust_contrast(lr, factor)
-    hr = F.adjust_contrast(hr, factor)
+    contrast_factor = random.choice(factor)
+    lr = F.adjust_contrast(lr, contrast_factor)
+    hr = F.adjust_contrast(hr, contrast_factor)
 
     return lr, hr

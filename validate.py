@@ -24,21 +24,21 @@ from model import Generator
 
 
 def main() -> None:
+    # Initialize the super-resolution model
+    print("Build SRGAN model...")
+    model = Generator().to(config.device)
+    print("Build SRGAN model successfully.")
+
+    # Load the super-resolution model weights
+    print(f"Load SRGAN model weights `{os.path.abspath(config.model_path)}`...")
+    state_dict = torch.load(config.model_path, map_location=config.device)
+    model.load_state_dict(state_dict)
+    print(f"Load SRGAN model weights `{os.path.abspath(config.model_path)}` successfully.")
+
     # Create a folder of super-resolution experiment results
     results_dir = os.path.join("results", "test", config.exp_name)
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-
-    # Initialize the super-resolution model
-    print("Build SR model...")
-    model = Generator().to(config.device)
-    print("Build SR model successfully.")
-
-    # Load the super-resolution model weights
-    print(f"Load SR model weights `{os.path.abspath(config.model_path)}`...")
-    state_dict = torch.load(config.model_path, map_location=config.device)
-    model.load_state_dict(state_dict)
-    print(f"Load SR model weights `{os.path.abspath(config.model_path)}` successfully.")
 
     # Start the verification mode of the model.
     model.eval()

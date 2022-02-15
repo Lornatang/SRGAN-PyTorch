@@ -16,7 +16,6 @@ import io
 import os
 
 import lmdb
-import numpy as np
 from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -37,27 +36,26 @@ class ImageDataset(Dataset):
         upscale_factor   (int): Image magnification
         mode             (str): Data set loading method, the training data set is for data enhancement,
                              and the verification data set is not for data enhancement
-
     """
 
     def __init__(self, dataroot: str, image_size: int, upscale_factor: int, mode: str) -> None:
         super(ImageDataset, self).__init__()
-        self.filenames = [os.path.join(dataroot, x) for x in os.listdir(dataroot)]
+        self.image_file_names = [os.path.join(dataroot, x) for x in os.listdir(dataroot)]
 
         if mode == "train":
             self.hr_transforms = transforms.Compose([
                 transforms.RandomCrop(image_size),
-                transforms.RandomRotation(90),
+                transforms.RandomRotation([0, 90]),
                 transforms.RandomHorizontalFlip(0.5),
             ])
         else:
             self.hr_transforms = transforms.CenterCrop(image_size)
 
-        self.lr_transforms = transforms.Resize(image_size // upscale_factor, interpolation=IMode.BICUBIC, antialias=True)
+        self.lr_transforms = transforms.Resize(image_size // upscale_factor, interpolation=IMode.BICUBIC)
 
     def __getitem__(self, batch_index: int) -> [Tensor, Tensor]:
         # Read a batch of image data
-        image = Image.open(self.filenames[batch_index])
+        image = Image.open(self.image_file_names[batch_index])
 
         # Transform image
         hr_image = self.hr_transforms(image)
@@ -71,7 +69,7 @@ class ImageDataset(Dataset):
         return lr_tensor, hr_tensor
 
     def __len__(self) -> int:
-        return len(self.filenames)
+        return len(self.image_file_names)
 
 
 class LMDBDataset(Dataset):
@@ -80,7 +78,6 @@ class LMDBDataset(Dataset):
     Attributes:
         lr_datasets (list): Low-resolution image data in the dataset
         hr_datasets (list): High-resolution image data in the dataset
-
     """
 
     def __init__(self, lr_lmdb_path, hr_lmdb_path) -> None:
@@ -100,7 +97,7 @@ class LMDBDataset(Dataset):
         # Read a batch of image data
         lr_image = self.lr_datasets[batch_index]
         hr_image = self.hr_datasets[batch_index]
-        
+
         # Data augment
         lr_image, hr_image = imgproc.random_rotate(lr_image, hr_image, angle=90)
         lr_image, hr_image = imgproc.random_horizontally_flip(lr_image, hr_image, p=0.5)

@@ -13,11 +13,8 @@
 # ==============================================================================
 """Realize the parameter configuration function of dataset, model, training and verification code."""
 import torch
-from torch.backends import cudnn as cudnn
+from torch.backends import cudnn
 
-# ==============================================================================
-# General configuration
-# ==============================================================================
 # Random seed to maintain reproducible results
 torch.manual_seed(0)
 # Use GPU for training by default
@@ -29,11 +26,8 @@ upscale_factor = 4
 # Current configuration parameter method
 mode = "train_srresnet"
 # Experiment name, easy to save weights and log files
-exp_name = "train_SRResNet_baseline"
+exp_name = "SRResNet_baseline"
 
-# ==============================================================================
-# Training SRResNet model configuration
-# ==============================================================================
 if mode == "train_srresnet":
     # Dataset address
     train_image_dir = "data/ImageNet/SRGAN/train"
@@ -45,23 +39,20 @@ if mode == "train_srresnet":
 
     # Incremental training and migration training
     resume = False
-    strict = False
+    strict = True
     start_epoch = 0
     resume_weight = ""
 
     # Total num epochs
-    epochs = 40
+    epochs = 45
 
-    # Adam optimizer parameter for SRResNet(p)
+    # Adam optimizer parameter
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
 
     # Print the training log every one hundred iterations
     print_frequency = 1000
 
-# ==============================================================================
-# Training SRGAN model configuration
-# ==============================================================================
 if mode == "train_srgan":
     # Dataset address
     train_image_dir = "data/ImageNet/SRGAN/train"
@@ -76,23 +67,23 @@ if mode == "train_srgan":
     strict = False
     start_epoch = 0
     resume_d_weight = ""
-    resume_g_weight = "results/Train_SRResNet_baseline/g-last.pth"
+    resume_g_weight = "results/SRResNet_baseline/g-last.pth"
 
     # Total num epochs
-    epochs = 8
+    epochs = 9
 
     # Loss function weight
     pixel_weight = 1.0
     content_weight = 1.0
     adversarial_weight = 0.001
 
-    # Adam optimizer parameter for Discriminator
+    # Adam optimizer parameter
     d_model_lr = 1e-4
     g_model_lr = 1e-4
     d_model_betas = (0.9, 0.999)
     g_model_betas = (0.9, 0.999)
 
-    # MultiStepLR scheduler parameter for SRGAN
+    # MultiStepLR scheduler parameter
     d_optimizer_step_size = epochs // 2
     g_optimizer_step_size = epochs // 2
     d_optimizer_gamma = 0.1
@@ -101,13 +92,39 @@ if mode == "train_srgan":
     # Print the training log every one hundred iterations
     print_frequency = 1000
 
-# ==============================================================================
-# Verify configuration
-# ==============================================================================
 if mode == "valid":
     # Test data address
     lr_dir = f"data/Set5/LRbicx{upscale_factor}"
     sr_dir = f"results/test/{exp_name}"
     hr_dir = f"data/Set5/GTmod12"
 
-    model_path = f"results/{exp_name}/g-last.pth"
+    model_path = f"results/{exp_name}/g-best.pth"
+
+if mode == "valid2":
+    # Test data address
+    lr_image_path = f"data/Camelyon/test/Dakewe_slide_20210923_8/LR/00000288.bmp"
+    sr_image_path = f"00000288.bmp"
+    hr_image_path = f"data/Camelyon/test/Dakewe_slide_20210923_8/HR/00000288.bmp"
+
+    model_dir = f"C:/Code/Real-ESRGAN/experiments/finetune_train_RealESRNet_x2_Camelyon_single_scale_300K_ImageSize256_BS8_LR0.0002/models"
+
+
+if mode == "valid3":
+    # Test data address
+    lr_dir = f"data/Camelyon/test/Dakewe_slide_20210923_8/LR"
+    sr_dir = f"data/Camelyon/test/Dakewe_slide_20210923_8/SRx2"
+    hr_dir = f"data/Camelyon/test/Dakewe_slide_20210923_8/HR"
+
+    model_path = f"C:/Code/Real-ESRGAN/experiments/train_RealESRGAN_x2_Camelyon_single_scale_400K_ImageSize128_BS16/net_g_latest.pth"
+
+
+if mode == "valid4":
+    # Test data address
+    lr_image_path = f"C:/Code/Image-Quality-Assesment/Python/libsvm/python/test/Dakewe_slide_20210923_8/LR/00000288.bmp"
+    sr_image_path = f"C:/Code/Image-Quality-Assesment/Python/libsvm/python/test/Dakewe_slide_20210923_8/SRx2/00000288.bmp"
+
+    model_path = f"C:/Code/Real-ESRGAN/experiments/train_PMIGAN_x2_Camelyon_single_scale_400K_ImageSize128_BS16_LR0.0001/models/net_g_latest.pth"
+
+
+# Camelyon: camelyon17_slide_1_46288_28080_000.bmp
+# Dakewe: 00000288.bmp

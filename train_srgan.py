@@ -106,13 +106,6 @@ def main():
 
 
 def load_dataset() -> [DataLoader, DataLoader]:
-    """Load super-resolution data set
-
-     Returns:
-         training data set iterator, validation data set iterator
-
-    """
-    # Initialize the LMDB data set class and write the contents of the LMDB database file into memory
     train_datasets = ImageDataset(config.train_image_dir, config.image_size, config.upscale_factor, "train")
     valid_datasets = ImageDataset(config.valid_image_dir, config.image_size, config.upscale_factor, "valid")
     # Make it into a data set type supported by PyTorch
@@ -121,24 +114,18 @@ def load_dataset() -> [DataLoader, DataLoader]:
                                   shuffle=True,
                                   num_workers=config.num_workers,
                                   pin_memory=True,
-                                  persistent_workers=False)
+                                  persistent_workers=True)
     valid_dataloader = DataLoader(valid_datasets,
                                   batch_size=config.batch_size,
                                   shuffle=False,
                                   num_workers=config.num_workers,
                                   pin_memory=True,
-                                  persistent_workers=False)
+                                  persistent_workers=True)
 
     return train_dataloader, valid_dataloader
 
 
 def build_model() -> nn.Module:
-    """Building discriminator and generators model
-
-    Returns:
-        SRGAN model
-
-    """
     discriminator = Discriminator().to(config.device)
     generator = Generator().to(config.device)
 
@@ -146,12 +133,6 @@ def build_model() -> nn.Module:
 
 
 def define_loss() -> [nn.MSELoss, nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]:
-    """Defines all loss functions
-
-    Returns:
-        PSNR loss, pixel loss, content loss, adversarial loss
-
-    """
     psnr_criterion = nn.MSELoss().to(config.device)
     pixel_criterion = nn.MSELoss().to(config.device)
     content_criterion = ContentLoss().to(config.device)
@@ -161,16 +142,6 @@ def define_loss() -> [nn.MSELoss, nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]
 
 
 def define_optimizer(discriminator: nn.Module, generator: nn.Module) -> [optim.Adam, optim.Adam]:
-    """Define all optimizer functions
-
-    Args:
-        discriminator (nn.Module): Discriminator model
-        generator (nn.Module): Generator model
-
-    Returns:
-        SRGAN optimizer
-
-    """
     d_optimizer = optim.Adam(discriminator.parameters(), config.d_model_lr, config.d_model_betas)
     g_optimizer = optim.Adam(generator.parameters(), config.g_model_lr, config.g_model_betas)
 
@@ -178,16 +149,6 @@ def define_optimizer(discriminator: nn.Module, generator: nn.Module) -> [optim.A
 
 
 def define_scheduler(d_optimizer: optim.Adam, g_optimizer: optim.Adam) -> [lr_scheduler.StepLR, lr_scheduler.StepLR]:
-    """Define learning rate scheduler
-
-    Args:
-        d_optimizer (optim.Adam): Discriminator optimizer
-        g_optimizer (optim.Adam): Generator optimizer
-
-    Returns:
-        SRGAN model scheduler
-
-    """
     d_scheduler = lr_scheduler.StepLR(d_optimizer, config.d_optimizer_step_size, config.d_optimizer_gamma)
     g_scheduler = lr_scheduler.StepLR(g_optimizer, config.g_optimizer_step_size, config.g_optimizer_gamma)
 
@@ -195,18 +156,25 @@ def define_scheduler(d_optimizer: optim.Adam, g_optimizer: optim.Adam) -> [lr_sc
 
 
 def resume_checkpoint(discriminator: nn.Module, generator: nn.Module) -> None:
-    """Transfer training or recovery training
-
-    Args:
-        discriminator (nn.Module): Discriminator model
-        generator (nn.Module): Generator model
-
-    """
     if config.resume:
         if config.resume_d_weight != "":
-            discriminator.load_state_dict(torch.load(config.resume_d_weight), strict=config.strict)
+            # Get pretrained model state dict
+            pretrained_state_dict = torch.load(config.resume_d_weight)
+            model_state_dict = discriminator.state_dict()
+            # Extract the fitted model weights
+            new_state_dict = {k: v for k, v in pretrained_state_dict.items() if k in model_state_dict.items()}
+            # Overwrite the pretrained model weights to the current model
+            model_state_dict.update(new_state_dict)
+            discriminator.load_state_dict(model_state_dict, strict=config.strict)
         if config.resume_g_weight != "":
-            generator.load_state_dict(torch.load(config.resume_g_weight), strict=config.strict)
+            # Get pretrained model state dict
+            pretrained_state_dict = torch.load(config.resume_g_weight)
+            model_state_dict = generator.state_dict()
+            # Extract the fitted model weights
+            new_state_dict = {k: v for k, v in pretrained_state_dict.items() if k in model_state_dict.items()}
+            # Overwrite the pretrained model weights to the current model
+            model_state_dict.update(new_state_dict)
+            generator.load_state_dict(model_state_dict, strict=config.strict)
 
 
 def train(discriminator,

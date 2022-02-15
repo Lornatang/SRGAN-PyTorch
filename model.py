@@ -49,7 +49,23 @@ class ResidualConvBlock(nn.Module):
         identity = x
 
         out = self.rcb(x)
+
         out = torch.add(out, identity)
+
+        return out
+
+
+class UpsampleBlock(nn.Module):
+    def __init__(self, channels: int) -> None:
+        super(UpsampleBlock, self).__init__()
+        self.upsample_block = nn.Sequential(
+            nn.Conv2d(channels, channels * 4, (3, 3), (1, 1), (1, 1)),
+            nn.PixelShuffle(2),
+            nn.PReLU(),
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.upsample_block(x)
 
         return out
 
@@ -123,15 +139,11 @@ class Generator(nn.Module):
             nn.BatchNorm2d(64),
         )
 
-        # Upscale conv block.
-        self.upsampling = nn.Sequential(
-            nn.Conv2d(64, 256, (3, 3), (1, 1), (1, 1)),
-            nn.PixelShuffle(2),
-            nn.PReLU(),
-            nn.Conv2d(64, 256, (3, 3), (1, 1), (1, 1)),
-            nn.PixelShuffle(2),
-            nn.PReLU(),
-        )
+        # Upscale block
+        upsampling = []
+        for _ in range(2):
+            upsampling.append(UpsampleBlock(64))
+        self.upsampling = nn.Sequential(*upsampling)
 
         # Output layer.
         self.conv_block3 = nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4))

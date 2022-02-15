@@ -2,9 +2,7 @@
 
 ## Overview
 
-This repository contains an op-for-op PyTorch reimplementation
-of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5)
-.
+This repository contains an op-for-op PyTorch reimplementation of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5).
 
 ## Table of contents
 
@@ -26,8 +24,8 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 
 ## Download weights
 
-- [Google Driver](https://drive.google.com/drive/folders/17jla_EWn52dC7w8J0VlNreY0ipLjk0tE?usp=sharing)
-- [Baidu Driver](https://pan.baidu.com/s/1iyGBVXCwiBNyTINUAyjBqg) access:`llot`
+- [Google Driver](https://drive.google.com/drive/folders/17ju2HN7Y6pyPK2CC_AqnAfTOe9_3hCQ8?usp=sharing)
+- [Baidu Driver](https://pan.baidu.com/s/1yNs4rqIb004-NKEdKBJtYg?pwd=llot)
 
 ## Download dataset
 
@@ -36,16 +34,7 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 #### ImageNet
 
 - Image format
-    - [Google Driver](https://drive.google.com/drive/folders/1yqbT5gLUuOpemk0IvWNC08080GY7qwNI?usp=sharing)
     - [Baidu Driver](https://pan.baidu.com/s/18OBZKb-LnNz_a55rtWq1zg) access: `llot`
-
-- LMDB format (train)
-    - [Google Driver](https://drive.google.com/drive/folders/1BPqN08QHk_xFnMJWMS8grfh_vesVs8Jf?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1eqeORnKcTmGatx2kAG92-A) access: `llot`
-
-- LMDB format (valid)
-    - [Google Driver](https://drive.google.com/drive/folders/1bYqqKk6NJ9wUfxTH2t_LbdMTB04OUicc?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1W34MeEtLY0m-bOrnaveVmw) access: `llot`
 
 ### Download valid dataset
 
@@ -77,33 +66,33 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 
 Modify the contents of the file as follows.
 
-- line 28: `upscale_factor` change to the magnification you need to enlarge.
-- line 30: `mode` change Set to valid mode.
-- line 113: `model_path` change weight address after training.
+- line 25: `upscale_factor` change to the magnification you need to enlarge.
+- line 27: `mode` change Set to valid mode.
+- line 101: `model_path` change weight address after training.
 
 ## Train
 
 Modify the contents of the file as follows.
 
-- line 28: `upscale_factor` change to the magnification you need to enlarge.
-- line 30: `mode` change Set to train mode.
+- line 25: `upscale_factor` change to the magnification you need to enlarge.
+- line 27: `mode` change Set to train mode.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
 ### Train SRResNet model
 
-- line 47: `resume` change to `True`.
-- line 48: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 49: `start_epoch` change number of training iterations in the previous round.
-- line 50: `resume_weight` the weight address that needs to be loaded.
+- line 41: `resume` change to `True`.
+- line 42: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
+- line 43: `start_epoch` change number of training iterations in the previous round.
+- line 44: `resume_weight` the weight address that needs to be loaded.
 
 ### Train SRGAN model
 
-- line 75: `resume` change to `True`.
-- line 76: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 77: `start_epoch` change number of training iterations in the previous round.
-- line 78: `resume_d_weight` the discriminator weight address that needs to be loaded.
-- line 79: `resume_g_weight` the generator weight address that needs to be loaded.
+- line 66: `resume` change to `True`.
+- line 67: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
+- line 68: `start_epoch` change number of training iterations in the previous round.
+- line 69: `resume_d_weight` the discriminator weight address that needs to be loaded.
+- line 70: `resume_g_weight` the generator weight address that needs to be loaded.
 
 ## Result
 
