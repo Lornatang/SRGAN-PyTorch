@@ -12,117 +12,214 @@
 # limitations under the License.
 # ==============================================================================
 """Realize the function of dataset preparation."""
-import io
 import os
+import queue
+import threading
 
-import lmdb
-from PIL import Image
-from torch import Tensor
-from torch.utils.data import Dataset
-from torchvision import transforms
-from torchvision.transforms.functional import InterpolationMode as IMode
+import cv2
+import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
 
 import imgproc
 
-__all__ = ["ImageDataset", "LMDBDataset"]
+__all__ = [
+    "TrainValidImageDataset", "TestImageDataset",
+    "PrefetchGenerator", "PrefetchDataLoader", "CPUPrefetcher", "CUDAPrefetcher",
+]
 
 
-class ImageDataset(Dataset):
-    """Customize the data set loading function and prepare low/high resolution image data in advance.
+class TrainValidImageDataset(Dataset):
+    """Define training/valid dataset loading methods.
 
     Args:
-        dataroot         (str): Training data set address
-        image_size       (int): High resolution image size
-        upscale_factor   (int): Image magnification
-        mode             (str): Data set loading method, the training data set is for data enhancement,
-                             and the verification data set is not for data enhancement
+        image_dir (str): Train/Valid dataset address.
+        image_size (int): High resolution image size.
+        upscale_factor (int): Image up scale factor.
+        mode (str): Data set loading method, the training data set is for data enhancement, and the verification data set is not for data enhancement.
     """
 
-    def __init__(self, dataroot: str, image_size: int, upscale_factor: int, mode: str) -> None:
-        super(ImageDataset, self).__init__()
-        self.image_file_names = [os.path.join(dataroot, x) for x in os.listdir(dataroot)]
+    def __init__(self, image_dir: str, image_size: int, upscale_factor: int, mode: str) -> None:
+        super(TrainValidImageDataset, self).__init__()
+        # Get all image file names in folder
+        self.image_file_names = [os.path.join(image_dir, image_file_name) for image_file_name in os.listdir(image_dir)]
+        # Specify the high-resolution image size, with equal length and width
+        self.image_size = image_size
+        # How many times the high-resolution image is the low-resolution image
+        self.upscale_factor = upscale_factor
+        # Load training dataset or test dataset
+        self.mode = mode
 
-        if mode == "train":
-            self.hr_transforms = transforms.Compose([
-                transforms.RandomCrop(image_size),
-                transforms.RandomRotation([0, 90]),
-                transforms.RandomHorizontalFlip(0.5),
-            ])
-        else:
-            self.hr_transforms = transforms.CenterCrop(image_size)
-
-        self.lr_transforms = transforms.Resize(image_size // upscale_factor, interpolation=IMode.BICUBIC)
-
-    def __getitem__(self, batch_index: int) -> [Tensor, Tensor]:
+    def __getitem__(self, batch_index: int) -> [torch.Tensor, torch.Tensor]:
         # Read a batch of image data
-        image = Image.open(self.image_file_names[batch_index])
+        image = cv2.imread(self.image_file_names[batch_index], cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.
 
-        # Transform image
-        hr_image = self.hr_transforms(image)
-        lr_image = self.lr_transforms(hr_image)
+        # Image processing operations
+        if self.mode == "Train":
+            hr_image = imgproc.random_crop(image, self.image_size)
+        elif self.mode == "Valid":
+            hr_image = imgproc.center_crop(image, self.image_size)
+        else:
+            raise ValueError("Unsupported data processing model, please use `Train` or `Valid`.")
+
+        lr_image = imgproc.imresize(hr_image, 1 / self.upscale_factor)
+
+        # BGR convert to RGB
+        lr_image = cv2.cvtColor(lr_image, cv2.COLOR_BGR2RGB)
+        hr_image = cv2.cvtColor(hr_image, cv2.COLOR_BGR2RGB)
 
         # Convert image data into Tensor stream format (PyTorch).
         # Note: The range of input and output is between [0, 1]
         lr_tensor = imgproc.image2tensor(lr_image, range_norm=False, half=False)
         hr_tensor = imgproc.image2tensor(hr_image, range_norm=False, half=False)
 
-        return lr_tensor, hr_tensor
+        return {"lr": lr_tensor, "hr": hr_tensor}
 
     def __len__(self) -> int:
         return len(self.image_file_names)
 
 
-class LMDBDataset(Dataset):
-    """Load the data set as a data set in the form of LMDB.
+class TestImageDataset(Dataset):
+    """Define Test dataset loading methods.
 
-    Attributes:
-        lr_datasets (list): Low-resolution image data in the dataset
-        hr_datasets (list): High-resolution image data in the dataset
+    Args:
+        test_image_dir (str): Test dataset address for high resolution image dir.
+        upscale_factor (int): Image up scale factor.
     """
 
-    def __init__(self, lr_lmdb_path, hr_lmdb_path) -> None:
-        super(LMDBDataset, self).__init__()
-        # Create low/high resolution image array
-        self.lr_datasets = []
-        self.hr_datasets = []
+    def __init__(self, test_image_dir: str, upscale_factor: int) -> None:
+        super(TestImageDataset, self).__init__()
+        # Get all image file names in folder
+        self.image_file_names = [os.path.join(test_image_dir, x) for x in os.listdir(test_image_dir)]
+        # How many times the high-resolution image is the low-resolution image
+        self.upscale_factor = upscale_factor
 
-        # Initialize the LMDB database file address
-        self.lr_lmdb_path = lr_lmdb_path
-        self.hr_lmdb_path = hr_lmdb_path
-
-        # Write image data in LMDB database to memory
-        self.read_lmdb_dataset()
-
-    def __getitem__(self, batch_index: int) -> [Tensor, Tensor]:
+    def __getitem__(self, batch_index: int) -> [torch.Tensor, torch.Tensor]:
         # Read a batch of image data
-        lr_image = self.lr_datasets[batch_index]
-        hr_image = self.hr_datasets[batch_index]
+        hr_image = cv2.imread(self.image_file_names[batch_index], cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.
 
-        # Data augment
-        lr_image, hr_image = imgproc.random_rotate(lr_image, hr_image, angle=90)
-        lr_image, hr_image = imgproc.random_horizontally_flip(lr_image, hr_image, p=0.5)
+        # Use high-resolution image to make low-resolution image
+        lr_image = imgproc.imresize(hr_image, 1 / self.upscale_factor)
 
         # Convert image data into Tensor stream format (PyTorch).
         # Note: The range of input and output is between [0, 1]
         lr_tensor = imgproc.image2tensor(lr_image, range_norm=False, half=False)
         hr_tensor = imgproc.image2tensor(hr_image, range_norm=False, half=False)
 
-        return lr_tensor, hr_tensor
+        return {"lr": lr_tensor, "hr": hr_tensor}
 
     def __len__(self) -> int:
-        return len(self.hr_datasets)
+        return len(self.image_file_names)
 
-    def read_lmdb_dataset(self) -> [list, list]:
-        # Open two LMDB database writing environments to read low/high image data
-        lr_lmdb_env = lmdb.open(self.lr_lmdb_path)
-        hr_lmdb_env = lmdb.open(self.hr_lmdb_path)
 
-        # Write the image data in the low-resolution LMDB data set to the memory
-        for _, image_bytes in lr_lmdb_env.begin().cursor():
-            image = Image.open(io.BytesIO(image_bytes))
-            self.lr_datasets.append(image)
+class PrefetchGenerator(threading.Thread):
+    """A fast data prefetch generator.
 
-        # Write the image data in the high-resolution LMDB data set to the memory
-        for _, image_bytes in hr_lmdb_env.begin().cursor():
-            image = Image.open(io.BytesIO(image_bytes))
-            self.hr_datasets.append(image)
+    Args:
+        generator: Data generator.
+        num_data_prefetch_queue (int): How many early data load queues.
+    """
+
+    def __init__(self, generator, num_data_prefetch_queue: int) -> None:
+        threading.Thread.__init__(self)
+        self.queue = queue.Queue(num_data_prefetch_queue)
+        self.generator = generator
+        self.daemon = True
+        self.start()
+
+    def run(self) -> None:
+        for item in self.generator:
+            self.queue.put(item)
+        self.queue.put(None)
+
+    def __next__(self):
+        next_item = self.queue.get()
+        if next_item is None:
+            raise StopIteration
+        return next_item
+
+    def __iter__(self):
+        return self
+
+
+class PrefetchDataLoader(DataLoader):
+    """A fast data prefetch dataloader.
+
+    Args:
+        num_data_prefetch_queue (int): How many early data load queues.
+        kwargs (dict): Other extended parameters.
+    """
+
+    def __init__(self, num_data_prefetch_queue: int, **kwargs) -> None:
+        self.num_data_prefetch_queue = num_data_prefetch_queue
+        super(PrefetchDataLoader, self).__init__(**kwargs)
+
+    def __iter__(self):
+        return PrefetchGenerator(super().__iter__(), self.num_data_prefetch_queue)
+
+
+class CPUPrefetcher:
+    """Use the CPU side to accelerate data reading.
+
+    Args:
+        dataloader (DataLoader): Data loader. Combines a dataset and a sampler, and provides an iterable over the given dataset.
+    """
+
+    def __init__(self, dataloader) -> None:
+        self.original_dataloader = dataloader
+        self.data = iter(dataloader)
+
+    def next(self):
+        try:
+            return next(self.data)
+        except StopIteration:
+            return None
+
+    def reset(self):
+        self.data = iter(self.original_dataloader)
+
+    def __len__(self) -> int:
+        return len(self.original_dataloader)
+
+
+class CUDAPrefetcher:
+    """Use the CUDA side to accelerate data reading.
+
+    Args:
+        dataloader (DataLoader): Data loader. Combines a dataset and a sampler, and provides an iterable over the given dataset.
+        device (torch.device): Specify running device.
+    """
+
+    def __init__(self, dataloader, device: torch.device):
+        self.batch_data = None
+        self.original_dataloader = dataloader
+        self.device = device
+
+        self.data = iter(dataloader)
+        self.stream = torch.cuda.Stream()
+        self.preload()
+
+    def preload(self):
+        try:
+            self.batch_data = next(self.data)
+        except StopIteration:
+            self.batch_data = None
+            return None
+
+        with torch.cuda.stream(self.stream):
+            for k, v in self.batch_data.items():
+                if torch.is_tensor(v):
+                    self.batch_data[k] = self.batch_data[k].to(self.device, non_blocking=True)
+
+    def next(self):
+        torch.cuda.current_stream().wait_stream(self.stream)
+        batch_data = self.batch_data
+        self.preload()
+        return batch_data
+
+    def reset(self):
+        self.data = iter(self.original_dataloader)
+        self.preload()
+
+    def __len__(self) -> int:
+        return len(self.original_dataloader)

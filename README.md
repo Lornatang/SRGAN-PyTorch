@@ -10,9 +10,7 @@ This repository contains an op-for-op PyTorch reimplementation of [Photo-Realist
     - [Overview](#overview)
     - [Table of contents](#table-of-contents)
     - [Download weights](#download-weights)
-    - [Download dataset](#download-dataset)
-        - [Download train dataset](#download-train-dataset)
-        - [Download valid dataset](#download-valid-dataset)
+    - [Download datasets](#download-datasets)
     - [Test](#test)
     - [Train](#train)
         - [Train SRResNet model](#train-srresnet-model)
@@ -27,72 +25,40 @@ This repository contains an op-for-op PyTorch reimplementation of [Photo-Realist
 - [Google Driver](https://drive.google.com/drive/folders/17ju2HN7Y6pyPK2CC_AqnAfTOe9_3hCQ8?usp=sharing)
 - [Baidu Driver](https://pan.baidu.com/s/1yNs4rqIb004-NKEdKBJtYg?pwd=llot)
 
-## Download dataset
+## Download datasets
 
-### Download train dataset
+Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc.
 
-#### ImageNet
-
-- Image format
-    - [Baidu Driver](https://pan.baidu.com/s/18OBZKb-LnNz_a55rtWq1zg) access: `llot`
-
-### Download valid dataset
-
-#### Set5
-
-- Image format
-    - [Google Driver](https://drive.google.com/file/d/1GtQuoEN78q3AIP8vkh-17X90thYp_FfU/view?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1dlPcpwRPUBOnxlfW5--S5g) access:`llot`
-
-#### Set14
-
-- Image format
-    - [Google Driver](https://drive.google.com/file/d/1CzwwAtLSW9sog3acXj8s7Hg3S7kr2HiZ/view?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1KBS38UAjM7bJ_e6a54eHaA) access:`llot`
-
-#### BSD100
-
-- Image format
-    - [Google Driver](https://drive.google.com/file/d/1xkjWJGZgwWjDZZFN6KWlNMvHXmRORvdG/view?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1EBVulUpsQrDmZfqnm4jOZw) access:`llot`
-
-#### BSD200
-
-- Image format
-    - [Google Driver](https://drive.google.com/file/d/1cdMYTPr77RdOgyAvJPMQqaJHWrD5ma5n/view?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1xahPw4dNNc3XspMMOuw1Bw) access:`llot`
+- [Google Driver](https://drive.google.com/drive/folders/1A6lzGeQrFMxPqJehK9s37ce-tPDj20mD?usp=sharing)
+- [Baidu Driver](https://pan.baidu.com/s/1o-8Ty_7q6DiS3ykLU09IVg?pwd=llot)
 
 ## Test
 
 Modify the contents of the file as follows.
 
-- line 25: `upscale_factor` change to the magnification you need to enlarge.
-- line 27: `mode` change Set to valid mode.
-- line 101: `model_path` change weight address after training.
+- line 30: `upscale_factor` change to the magnification you need to enlarge.
+- line 32: `mode` change Set to valid mode.
+- line 98: `model_path` change weight address after training.
 
 ## Train
 
 Modify the contents of the file as follows.
 
-- line 25: `upscale_factor` change to the magnification you need to enlarge.
-- line 27: `mode` change Set to train mode.
+- line 30: `upscale_factor` change to the magnification you need to enlarge.
+- line 32: `mode` change Set to train mode.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
 ### Train SRResNet model
 
-- line 41: `resume` change to `True`.
-- line 42: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 43: `start_epoch` change number of training iterations in the previous round.
-- line 44: `resume_weight` the weight address that needs to be loaded.
+- line 47: `start_epoch` change number of SRResNet training iterations in the previous round.
+- line 48: `resume` change to SRResNet weight address that needs to be loaded.
 
 ### Train SRGAN model
 
-- line 66: `resume` change to `True`.
-- line 67: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 68: `start_epoch` change number of training iterations in the previous round.
-- line 69: `resume_d_weight` the discriminator weight address that needs to be loaded.
-- line 70: `resume_g_weight` the generator weight address that needs to be loaded.
+- line 70: `start_epoch` change number of SRGAN training iterations in the previous round.
+- line 71: `resume_d` change to Discriminator weight address that needs to be loaded.
+- line 72: `resume_g` change to Generator weight address that needs to be loaded.
 
 ## Result
 
@@ -102,8 +68,8 @@ In the following table, the psnr value in `()` indicates the result of the proje
 
 | Dataset | Scale | SRResNet (PSNR)  |   SRGAN (PSNR)   |
 |:-------:|:-----:|:----------------:|:----------------:|
-|  Set5   |   4   | 32.05(**31.80**) | 29.40(**28.88**) |
-|  Set14  |   4   | 28.49(**28.20**) | 26.02(**25.70**) |
+|  Set5   |   4   | 32.05(**32.00**) | 29.40(**28.91**) |
+|  Set14  |   4   | 28.49(**28.28**) | 26.02(**25.70**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png"/></span>

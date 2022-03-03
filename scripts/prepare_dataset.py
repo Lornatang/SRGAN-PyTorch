@@ -12,11 +12,12 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
+import multiprocessing
 import os
 import shutil
-from multiprocessing import Pool
 
-from PIL import Image
+import cv2
+import numpy as np
 from tqdm import tqdm
 
 
@@ -29,8 +30,8 @@ def main(args) -> None:
     image_file_names = os.listdir(args.images_dir)
 
     # Splitting images with multiple threads
-    progress_bar = tqdm(total=len(image_file_names), unit="image", desc="Split")
-    workers_pool = Pool(args.num_workers)
+    progress_bar = tqdm(total=len(image_file_names), unit="image", desc="Prepare split image")
+    workers_pool = multiprocessing.Pool(args.num_workers)
     for image_file_name in image_file_names:
         workers_pool.apply_async(worker, args=(image_file_name, args), callback=lambda arg: progress_bar.update(1))
     workers_pool.close()
@@ -39,15 +40,19 @@ def main(args) -> None:
 
 
 def worker(image_file_name, args) -> None:
-    image = Image.open(f"{args.images_dir}/{image_file_name}").convert("RGB")
+    image = cv2.imread(f"{args.images_dir}/{image_file_name}", cv2.IMREAD_UNCHANGED)
+
+    image_height, image_width = image.shape[0:2]
 
     index = 1
-    if image.width >= args.image_size and image.height >= args.image_size:
-        for pos_x in range(0, image.width - args.image_size + 1, args.step):
-            for pos_y in range(0, image.height - args.image_size + 1, args.step):
-                crop_image = image.crop([pos_x, pos_y, pos_x + args.image_size, pos_y + args.image_size])
-                # Save all images
-                crop_image.save(f"{args.output_dir}/{image_file_name.split('.')[-2]}_{index:04d}.{image_file_name.split('.')[-1]}")
+    if image_height >= args.image_size and image_width >= args.image_size:
+        for pos_y in range(0, image_height - args.image_size + 1, args.step):
+            for pos_x in range(0, image_width - args.image_size + 1, args.step):
+                # Crop
+                crop_image = image[pos_y: pos_y + args.image_size, pos_x:pos_x + args.image_size, ...]
+                crop_image = np.ascontiguousarray(crop_image)
+                # Save image
+                cv2.imwrite(f"{args.output_dir}/{image_file_name.split('.')[-2]}_{index:04d}.{image_file_name.split('.')[-1]}", crop_image)
 
                 index += 1
 

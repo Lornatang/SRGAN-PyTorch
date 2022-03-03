@@ -28,7 +28,7 @@ def main(args) -> None:
     train_files = os.listdir(args.train_images_dir)
     valid_files = random.sample(train_files, int(len(train_files) * args.valid_samples_ratio))
 
-    process_bar = tqdm(valid_files, total=len(valid_files), unit="image", desc="Split")
+    process_bar = tqdm(valid_files, total=len(valid_files), unit="image", desc="Split train/valid dataset")
 
     for image_file_name in process_bar:
         shutil.copyfile(f"{args.train_images_dir}/{image_file_name}", f"{args.valid_images_dir}/{image_file_name}")

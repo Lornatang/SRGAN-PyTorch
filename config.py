@@ -12,11 +12,16 @@
 # limitations under the License.
 # ==============================================================================
 """Realize the parameter configuration function of dataset, model, training and verification code."""
+import random
+
+import numpy as np
 import torch
 from torch.backends import cudnn
 
 # Random seed to maintain reproducible results
+random.seed(0)
 torch.manual_seed(0)
+np.random.seed(0)
 # Use GPU for training by default
 device = torch.device("cuda", 0)
 # Turning on when the image size does not change during training can speed up training
@@ -32,16 +37,15 @@ if mode == "train_srresnet":
     # Dataset address
     train_image_dir = "data/ImageNet/SRGAN/train"
     valid_image_dir = "data/ImageNet/SRGAN/valid"
+    test_image_dir = "data/Set5/GTmod12"
 
     image_size = 96
     batch_size = 16
     num_workers = 4
 
     # Incremental training and migration training
-    resume = False
-    strict = True
     start_epoch = 0
-    resume_weight = ""
+    resume = ""
 
     # Total num epochs
     epochs = 45
@@ -50,24 +54,22 @@ if mode == "train_srresnet":
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
 
-    # Print the training log every one hundred iterations
     print_frequency = 1000
 
 if mode == "train_srgan":
     # Dataset address
     train_image_dir = "data/ImageNet/SRGAN/train"
     valid_image_dir = "data/ImageNet/SRGAN/valid"
+    test_image_dir = "data/Set5/GTmod12"
 
     image_size = 96
     batch_size = 16
     num_workers = 4
 
     # Incremental training and migration training
-    resume = True
-    strict = False
     start_epoch = 0
-    resume_d_weight = ""
-    resume_g_weight = "results/SRResNet_baseline/g-last.pth"
+    resume_d = ""
+    resume_g = "results/SRResNet_baseline/g_best.pth.tar"
 
     # Total num epochs
     epochs = 9
@@ -78,19 +80,14 @@ if mode == "train_srgan":
     adversarial_weight = 0.001
 
     # Adam optimizer parameter
-    d_model_lr = 1e-4
-    g_model_lr = 1e-4
-    d_model_betas = (0.9, 0.999)
-    g_model_betas = (0.9, 0.999)
+    model_lr = 1e-4
+    model_betas = (0.9, 0.999)
 
     # MultiStepLR scheduler parameter
-    d_optimizer_step_size = epochs // 2
-    g_optimizer_step_size = epochs // 2
-    d_optimizer_gamma = 0.1
-    g_optimizer_gamma = 0.1
+    optimizer_step_size = epochs // 2
+    optimizer_gamma = 0.1
 
-    # Print the training log every one hundred iterations
-    print_frequency = 1000
+    print_frequency = 100
 
 if mode == "valid":
     # Test data address
@@ -98,33 +95,4 @@ if mode == "valid":
     sr_dir = f"results/test/{exp_name}"
     hr_dir = f"data/Set5/GTmod12"
 
-    model_path = f"results/{exp_name}/g-best.pth"
-
-if mode == "valid2":
-    # Test data address
-    lr_image_path = f"data/Camelyon/test/Dakewe_slide_20210923_8/LR/00000288.bmp"
-    sr_image_path = f"00000288.bmp"
-    hr_image_path = f"data/Camelyon/test/Dakewe_slide_20210923_8/HR/00000288.bmp"
-
-    model_dir = f"C:/Code/Real-ESRGAN/experiments/finetune_train_RealESRNet_x2_Camelyon_single_scale_300K_ImageSize256_BS8_LR0.0002/models"
-
-
-if mode == "valid3":
-    # Test data address
-    lr_dir = f"data/Camelyon/test/Dakewe_slide_20210923_8/LR"
-    sr_dir = f"data/Camelyon/test/Dakewe_slide_20210923_8/SRx2"
-    hr_dir = f"data/Camelyon/test/Dakewe_slide_20210923_8/HR"
-
-    model_path = f"C:/Code/Real-ESRGAN/experiments/train_RealESRGAN_x2_Camelyon_single_scale_400K_ImageSize128_BS16/net_g_latest.pth"
-
-
-if mode == "valid4":
-    # Test data address
-    lr_image_path = f"C:/Code/Image-Quality-Assesment/Python/libsvm/python/test/Dakewe_slide_20210923_8/LR/00000288.bmp"
-    sr_image_path = f"C:/Code/Image-Quality-Assesment/Python/libsvm/python/test/Dakewe_slide_20210923_8/SRx2/00000288.bmp"
-
-    model_path = f"C:/Code/Real-ESRGAN/experiments/train_PMIGAN_x2_Camelyon_single_scale_400K_ImageSize128_BS16_LR0.0001/models/net_g_latest.pth"
-
-
-# Camelyon: camelyon17_slide_1_46288_28080_000.bmp
-# Dakewe: 00000288.bmp
+    model_path = f"results/{exp_name}/g_best.pth.tar"
