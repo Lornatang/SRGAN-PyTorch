@@ -68,8 +68,9 @@ if mode == "train_srgan":
 
     # Incremental training and migration training
     start_epoch = 0
+    resume = "results/SRResNet_baseline/g_best.pth.tar"
     resume_d = ""
-    resume_g = "results/SRResNet_baseline/g_best.pth.tar"
+    resume_g = ""
 
     # Total num epochs
     epochs = 9

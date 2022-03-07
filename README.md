@@ -38,7 +38,7 @@ Modify the contents of the file as follows.
 
 - line 30: `upscale_factor` change to the magnification you need to enlarge.
 - line 32: `mode` change Set to valid mode.
-- line 98: `model_path` change weight address after training.
+- line 99: `model_path` change weight address after training.
 
 ## Train
 
@@ -57,8 +57,9 @@ If you want to load weights that you've trained before, modify the contents of t
 ### Train SRGAN model
 
 - line 70: `start_epoch` change number of SRGAN training iterations in the previous round.
-- line 71: `resume_d` change to Discriminator weight address that needs to be loaded.
-- line 72: `resume_g` change to Generator weight address that needs to be loaded.
+- line 71: `resume` change to RRDBNet weight address that needs to be loaded.
+- line 72: `resume_d` change to Discriminator weight address that needs to be loaded.
+- line 73: `resume_g` change to Generator weight address that needs to be loaded.
 
 ## Result
 

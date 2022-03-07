@@ -50,6 +50,13 @@ def main():
     d_scheduler, g_scheduler = define_optimizer(discriminator, generator)
     print("Define all optimizer scheduler functions successfully.")
 
+    if config.resume:
+        print("Loading SRResNet model weights")
+        # Load checkpoint model
+        checkpoint = torch.load(config.resume, map_location=lambda storage, loc: storage)
+        generator.load_state_dict(checkpoint["state_dict"])
+        print("Loaded SRResNet model weights.")
+
     print("Check whether the pretrained discriminator model is restored...")
     if config.resume_d:
         # Load checkpoint model
