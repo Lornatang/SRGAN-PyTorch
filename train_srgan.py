@@ -172,9 +172,9 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
                                   drop_last=True,
                                   persistent_workers=True)
     valid_dataloader = DataLoader(valid_datasets,
-                                  batch_size=config.batch_size,
+                                  batch_size=1,
                                   shuffle=False,
-                                  num_workers=config.num_workers,
+                                  num_workers=1,
                                   pin_memory=True,
                                   drop_last=False,
                                   persistent_workers=True)
