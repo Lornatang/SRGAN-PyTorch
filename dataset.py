@@ -83,23 +83,27 @@ class TestImageDataset(Dataset):
     """Define Test dataset loading methods.
 
     Args:
-        test_image_dir (str): Test dataset address for high resolution image dir.
+        test_lr_image_dir (str): Test dataset address for low resolution image dir.
+        test_hr_image_dir (str): Test dataset address for high resolution image dir.
         upscale_factor (int): Image up scale factor.
     """
 
-    def __init__(self, test_image_dir: str, upscale_factor: int) -> None:
+    def __init__(self, test_lr_image_dir: str, test_hr_image_dir: str, upscale_factor: int) -> None:
         super(TestImageDataset, self).__init__()
         # Get all image file names in folder
-        self.image_file_names = [os.path.join(test_image_dir, x) for x in os.listdir(test_image_dir)]
+        self.lr_image_file_names = [os.path.join(test_lr_image_dir, x) for x in os.listdir(test_lr_image_dir)]
+        self.hr_image_file_names = [os.path.join(test_hr_image_dir, x) for x in os.listdir(test_lr_image_dir)]
         # How many times the high-resolution image is the low-resolution image
         self.upscale_factor = upscale_factor
 
     def __getitem__(self, batch_index: int) -> [torch.Tensor, torch.Tensor]:
         # Read a batch of image data
-        hr_image = cv2.imread(self.image_file_names[batch_index], cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.
+        lr_image = cv2.imread(self.lr_image_file_names[batch_index], cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.
+        hr_image = cv2.imread(self.hr_image_file_names[batch_index], cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.
 
-        # Use high-resolution image to make low-resolution image
-        lr_image = imgproc.imresize(hr_image, 1 / self.upscale_factor)
+        # BGR convert to RGB
+        lr_image = cv2.cvtColor(lr_image, cv2.COLOR_BGR2RGB)
+        hr_image = cv2.cvtColor(hr_image, cv2.COLOR_BGR2RGB)
 
         # Convert image data into Tensor stream format (PyTorch).
         # Note: The range of input and output is between [0, 1]

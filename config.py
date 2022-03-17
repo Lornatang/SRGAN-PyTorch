@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Realize the parameter configuration function of dataset, model, training and verification code."""
 import random
 
 import numpy as np
@@ -37,7 +36,8 @@ if mode == "train_srresnet":
     # Dataset address
     train_image_dir = "data/ImageNet/SRGAN/train"
     valid_image_dir = "data/ImageNet/SRGAN/valid"
-    test_image_dir = "data/Set5/GTmod12"
+    test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
+    test_hr_image_dir = f"data/Set5/GTmod12"
 
     image_size = 96
     batch_size = 16
@@ -60,7 +60,8 @@ if mode == "train_srgan":
     # Dataset address
     train_image_dir = "data/ImageNet/SRGAN/train"
     valid_image_dir = "data/ImageNet/SRGAN/valid"
-    test_image_dir = "data/Set5/GTmod12"
+    test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
+    test_hr_image_dir = f"data/Set5/GTmod12"
 
     image_size = 96
     batch_size = 16

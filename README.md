@@ -2,7 +2,8 @@
 
 ## Overview
 
-This repository contains an op-for-op PyTorch reimplementation of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5).
+This repository contains an op-for-op PyTorch reimplementation
+of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5).
 
 ## Table of contents
 
@@ -36,16 +37,16 @@ Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc
 
 Modify the contents of the file as follows.
 
-- line 30: `upscale_factor` change to the magnification you need to enlarge.
-- line 32: `mode` change Set to valid mode.
-- line 99: `model_path` change weight address after training.
+- line 29: `upscale_factor` change to the magnification you need to enlarge.
+- line 31: `mode` change Set to valid mode.
+- line 100: `model_path` change weight address after training.
 
 ## Train
 
 Modify the contents of the file as follows.
 
-- line 30: `upscale_factor` change to the magnification you need to enlarge.
-- line 32: `mode` change Set to train mode.
+- line 29: `upscale_factor` change to the magnification you need to enlarge.
+- line 31: `mode` change Set to train mode.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
@@ -56,10 +57,10 @@ If you want to load weights that you've trained before, modify the contents of t
 
 ### Train SRGAN model
 
-- line 70: `start_epoch` change number of SRGAN training iterations in the previous round.
-- line 71: `resume` change to RRDBNet weight address that needs to be loaded.
-- line 72: `resume_d` change to Discriminator weight address that needs to be loaded.
-- line 73: `resume_g` change to Generator weight address that needs to be loaded.
+- line 71: `start_epoch` change number of SRGAN training iterations in the previous round.
+- line 72: `resume` change to RRDBNet weight address that needs to be loaded.
+- line 73: `resume_d` change to Discriminator weight address that needs to be loaded.
+- line 74: `resume_g` change to Generator weight address that needs to be loaded.
 
 ## Result
 

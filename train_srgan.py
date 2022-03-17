@@ -17,6 +17,7 @@ import shutil
 import time
 from enum import Enum
 
+import numpy as np
 import torch
 from torch import nn
 from torch import optim
@@ -26,6 +27,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import config
+import imgproc
 from dataset import CUDAPrefetcher
 from dataset import TrainValidImageDataset, TestImageDataset
 from model import Discriminator, Generator, ContentLoss
@@ -159,7 +161,7 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
     # Load train, test and valid datasets
     train_datasets = TrainValidImageDataset(config.train_image_dir, config.image_size, config.upscale_factor, "Train")
     valid_datasets = TrainValidImageDataset(config.valid_image_dir, config.image_size, config.upscale_factor, "Valid")
-    test_datasets = TestImageDataset(config.test_image_dir, config.upscale_factor)
+    test_datasets = TestImageDataset(config.test_lr_image_dir, config.test_hr_image_dir, config.upscale_factor)
 
     # Generator all dataloader
     train_dataloader = DataLoader(train_datasets,
