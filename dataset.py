@@ -113,7 +113,7 @@ class TestImageDataset(Dataset):
         return {"lr": lr_tensor, "hr": hr_tensor}
 
     def __len__(self) -> int:
-        return len(self.image_file_names)
+        return len(self.lr_image_file_names)
 
 
 class PrefetchGenerator(threading.Thread):
