@@ -373,7 +373,7 @@ def train(discriminator,
 def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> float:
     batch_time = AverageMeter("Time", ":6.3f")
     psnres = AverageMeter("PSNR", ":4.2f")
-    progress = ProgressMeter(len(valid_prefetcher), [batch_time, psnres], prefix="Valid: ")
+    progress = ProgressMeter(len(valid_prefetcher), [batch_time, psnres], prefix=f"{mode}: ")
 
     # Put the model in verification mode
     model.eval()
@@ -429,9 +429,9 @@ def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> fl
     progress.display_summary()
 
     if mode == "Valid":
-        writer.add_scalar("Valid/PSNR", psnres.avg, epoch + 1)
+        writer.add_scalar(f"{mode}/PSNR", psnres.avg, epoch + 1)
     elif mode == "Test":
-        writer.add_scalar("Test/PSNR", psnres.avg, epoch + 1)
+        writer.add_scalar(f"{mode}/PSNR", psnres.avg, epoch + 1)
     else:
         raise ValueError("Unsupported mode, please use `Valid` or `Test`.")
 
