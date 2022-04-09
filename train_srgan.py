@@ -38,7 +38,7 @@ def main():
     best_psnr = 0.0
 
     train_prefetcher, valid_prefetcher, test_prefetcher = load_dataset()
-    print("Load dataset successfully.")
+    print("Load all datasets successfully.")
 
     discriminator, generator = build_model()
     print("Build SRGAN model successfully.")
@@ -75,8 +75,7 @@ def main():
         # Load the optimizer model
         d_optimizer.load_state_dict(checkpoint["optimizer"])
         # Load the scheduler model
-        if checkpoint["scheduler"] is not None:
-            d_scheduler.load_state_dict(checkpoint["scheduler"])
+        d_scheduler.load_state_dict(checkpoint["scheduler"])
         print("Loaded pretrained discriminator model weights.")
 
     print("Check whether the pretrained generator model is restored...")
@@ -95,8 +94,7 @@ def main():
         # Load the optimizer model
         g_optimizer.load_state_dict(checkpoint["optimizer"])
         # Load the scheduler model
-        if checkpoint["scheduler"] is not None:
-            g_scheduler.load_state_dict(checkpoint["scheduler"])
+        g_scheduler.load_state_dict(checkpoint["scheduler"])
         print("Loaded pretrained generator model weights.")
 
     # Create a folder of super-resolution experiment results
@@ -161,7 +159,7 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
     # Load train, test and valid datasets
     train_datasets = TrainValidImageDataset(config.train_image_dir, config.image_size, config.upscale_factor, "Train")
     valid_datasets = TrainValidImageDataset(config.valid_image_dir, config.image_size, config.upscale_factor, "Valid")
-    test_datasets = TestImageDataset(config.test_lr_image_dir, config.test_hr_image_dir, config.upscale_factor)
+    test_datasets = TestImageDataset(config.test_lr_image_dir, config.test_hr_image_dir)
 
     # Generator all dataloader
     train_dataloader = DataLoader(train_datasets,
