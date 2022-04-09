@@ -85,16 +85,13 @@ class TestImageDataset(Dataset):
     Args:
         test_lr_image_dir (str): Test dataset address for low resolution image dir.
         test_hr_image_dir (str): Test dataset address for high resolution image dir.
-        upscale_factor (int): Image up scale factor.
     """
 
-    def __init__(self, test_lr_image_dir: str, test_hr_image_dir: str, upscale_factor: int) -> None:
+    def __init__(self, test_lr_image_dir: str, test_hr_image_dir: str) -> None:
         super(TestImageDataset, self).__init__()
         # Get all image file names in folder
         self.lr_image_file_names = [os.path.join(test_lr_image_dir, x) for x in os.listdir(test_lr_image_dir)]
         self.hr_image_file_names = [os.path.join(test_hr_image_dir, x) for x in os.listdir(test_lr_image_dir)]
-        # How many times the high-resolution image is the low-resolution image
-        self.upscale_factor = upscale_factor
 
     def __getitem__(self, batch_index: int) -> [torch.Tensor, torch.Tensor]:
         # Read a batch of image data
