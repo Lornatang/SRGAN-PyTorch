@@ -1,4 +1,4 @@
-# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -28,7 +28,7 @@ cudnn.benchmark = True
 # Image magnification factor
 upscale_factor = 4
 # Current configuration parameter method
-mode = "train_srresnet"
+mode = "train_srgan"
 # Experiment name, easy to save weights and log files
 exp_name = "SRResNet_baseline"
 
@@ -45,12 +45,12 @@ if mode == "train_srresnet":
 
     # Incremental training and migration training
     start_epoch = 0
-    resume = ""
+    resume = "samples/SRResNet_baseline/g_epoch_14.pth.tar"
 
     # Total num epochs
-    epochs = 45
+    epochs = 44
 
-    # Adam optimizer parameter
+    # Optimizer parameter
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
 
@@ -69,32 +69,36 @@ if mode == "train_srgan":
 
     # Incremental training and migration training
     start_epoch = 0
-    resume = "results/SRResNet_baseline/g_best.pth.tar"
+    resume = "results/SRResNet_baseline/g_last.pth.tar"
     resume_d = ""
     resume_g = ""
 
     # Total num epochs
     epochs = 9
 
+    # Feature extraction layer parameter configuration
+    feature_extractor_node = "features.35"
+    normalize_mean = [0.485, 0.456, 0.406]
+    normalize_std = [0.229, 0.224, 0.225]
+
     # Loss function weight
-    pixel_weight = 1.0
     content_weight = 1.0
     adversarial_weight = 0.001
 
-    # Adam optimizer parameter
+    # Optimizer parameter
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
 
-    # MultiStepLR scheduler parameter
-    optimizer_step_size = epochs // 2
-    optimizer_gamma = 0.1
+    # LR scheduler parameter
+    lr_scheduler_step_size = epochs // 2
+    lr_scheduler_gamma = 0.1
 
     print_frequency = 100
 
 if mode == "valid":
     # Test data address
-    lr_dir = f"data/Set5/LRbicx{upscale_factor}"
+    lr_dir = f"data/Set14/LRbicx{upscale_factor}"
     sr_dir = f"results/test/{exp_name}"
-    hr_dir = f"data/Set5/GTmod12"
+    hr_dir = f"data/Set14/GTmod12"
 
-    model_path = f"results/{exp_name}/g_best.pth.tar"
+    model_path = f"results/pretrained_models/srresnet-ImageNet-dbebcec6.pth.tar"

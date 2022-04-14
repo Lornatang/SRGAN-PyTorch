@@ -28,8 +28,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import config
 import imgproc
-from dataset import CUDAPrefetcher
-from dataset import TrainValidImageDataset, TestImageDataset
+from dataset import CUDAPrefetcher, TrainValidImageDataset, TestImageDataset
 from model import Discriminator, Generator, ContentLoss
 
 
@@ -43,7 +42,7 @@ def main():
     discriminator, generator = build_model()
     print("Build SRGAN model successfully.")
 
-    psnr_criterion, pixel_criterion, content_criterion, adversarial_criterion = define_loss()
+    psnr_criterion, feature_criterion, adversarial_criterion = define_loss()
     print("Define all loss functions successfully.")
 
     d_optimizer, g_optimizer = define_optimizer(discriminator, generator)
@@ -68,7 +67,7 @@ def main():
         best_psnr = checkpoint["best_psnr"]
         # Load checkpoint state dict. Extract the fitted model weights
         model_state_dict = discriminator.state_dict()
-        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict}
+        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
         # Overwrite the pretrained model weights to the current model
         model_state_dict.update(new_state_dict)
         discriminator.load_state_dict(model_state_dict)
@@ -87,7 +86,7 @@ def main():
         best_psnr = checkpoint["best_psnr"]
         # Load checkpoint state dict. Extract the fitted model weights
         model_state_dict = generator.state_dict()
-        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict}
+        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
         # Overwrite the pretrained model weights to the current model
         model_state_dict.update(new_state_dict)
         generator.load_state_dict(model_state_dict)
@@ -116,8 +115,7 @@ def main():
               generator,
               train_prefetcher,
               psnr_criterion,
-              pixel_criterion,
-              content_criterion,
+              feature_criterion,
               adversarial_criterion,
               d_optimizer,
               g_optimizer,
@@ -182,7 +180,7 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
                                  num_workers=1,
                                  pin_memory=True,
                                  drop_last=False,
-                                 persistent_workers=False)
+                                 persistent_workers=True)
 
     # Place all data on the preprocessing data loader
     train_prefetcher = CUDAPrefetcher(train_dataloader, config.device)
@@ -199,13 +197,12 @@ def build_model() -> nn.Module:
     return discriminator, generator
 
 
-def define_loss() -> [nn.MSELoss, nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]:
+def define_loss() -> [nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]:
     psnr_criterion = nn.MSELoss().to(config.device)
-    pixel_criterion = nn.MSELoss().to(config.device)
-    content_criterion = ContentLoss().to(config.device)
+    content_criterion = ContentLoss(config.feature_extractor_node, config.normalize_mean, config.normalize_std).to(config.device)
     adversarial_criterion = nn.BCEWithLogitsLoss().to(config.device)
 
-    return psnr_criterion, pixel_criterion, content_criterion, adversarial_criterion
+    return psnr_criterion, content_criterion, adversarial_criterion
 
 
 def define_optimizer(discriminator: nn.Module, generator: nn.Module) -> [optim.Adam, optim.Adam]:
@@ -216,8 +213,8 @@ def define_optimizer(discriminator: nn.Module, generator: nn.Module) -> [optim.A
 
 
 def define_scheduler(d_optimizer: optim.Adam, g_optimizer: optim.Adam) -> [lr_scheduler.StepLR, lr_scheduler.StepLR]:
-    d_scheduler = lr_scheduler.StepLR(d_optimizer, config.optimizer_step_size, config.optimizer_gamma)
-    g_scheduler = lr_scheduler.StepLR(g_optimizer, config.optimizer_step_size, config.optimizer_gamma)
+    d_scheduler = lr_scheduler.StepLR(d_optimizer, config.lr_scheduler_step_size, config.lr_scheduler_gamma)
+    g_scheduler = lr_scheduler.StepLR(g_optimizer, config.lr_scheduler_step_size, config.lr_scheduler_gamma)
 
     return d_scheduler, g_scheduler
 
@@ -226,7 +223,6 @@ def train(discriminator,
           generator,
           train_prefetcher,
           psnr_criterion,
-          pixel_criterion,
           content_criterion,
           adversarial_criterion,
           d_optimizer,
@@ -239,7 +235,6 @@ def train(discriminator,
 
     batch_time = AverageMeter("Time", ":6.3f")
     data_time = AverageMeter("Data", ":6.3f")
-    pixel_losses = AverageMeter("Pixel loss", ":6.6f")
     content_losses = AverageMeter("Content loss", ":6.6f")
     adversarial_losses = AverageMeter("Adversarial loss", ":6.6f")
     d_hr_probabilities = AverageMeter("D(HR)", ":6.3f")
@@ -247,7 +242,7 @@ def train(discriminator,
     psnres = AverageMeter("PSNR", ":4.2f")
     progress = ProgressMeter(batches,
                              [batch_time, data_time,
-                              pixel_losses, content_losses, adversarial_losses,
+                              content_losses, adversarial_losses,
                               d_hr_probabilities, d_sr_probabilities,
                               psnres],
                              prefix=f"Epoch: [{epoch + 1}]")
@@ -318,11 +313,10 @@ def train(discriminator,
         # Calculate the loss of the generator on the super-resolution image
         with amp.autocast():
             output = discriminator(sr)
-            pixel_loss = config.pixel_weight * pixel_criterion(sr, hr.detach())
             content_loss = config.content_weight * content_criterion(sr, hr.detach())
             adversarial_loss = config.adversarial_weight * adversarial_criterion(output, real_label)
         # Count discriminator total loss
-        g_loss = pixel_loss + content_loss + adversarial_loss
+        g_loss = content_loss + adversarial_loss
         # Gradient zoom
         scaler.scale(g_loss).backward()
         # Update generator parameters
@@ -337,7 +331,6 @@ def train(discriminator,
 
         # measure accuracy and record loss
         psnr = 10. * torch.log10(1. / psnr_criterion(sr, hr))
-        pixel_losses.update(pixel_loss.item(), lr.size(0))
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
         d_hr_probabilities.update(d_hr_probability.item(), lr.size(0))
@@ -354,7 +347,6 @@ def train(discriminator,
             iters = batch_index + epoch * batches + 1
             writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
             writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
-            writer.add_scalar("Train/Pixel_Loss", pixel_loss.item(), iters)
             writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
             writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
             writer.add_scalar("Train/D(HR)_Probability", d_hr_probability.item(), iters)

@@ -1,4 +1,4 @@
-# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -11,15 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
-# ==============================================================================
-# File description: Realize the model definition function.
-# ==============================================================================
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.models as models
-from torch import Tensor
+from torch import nn
+from torch.nn import functional as F
+from torchvision import models
+from torchvision import transforms
+from torchvision.models.feature_extraction import create_feature_extractor
 
 __all__ = [
     "ResidualConvBlock",
@@ -45,11 +42,9 @@ class ResidualConvBlock(nn.Module):
             nn.BatchNorm2d(channels),
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         identity = x
-
         out = self.rcb(x)
-
         out = torch.add(out, identity)
 
         return out
@@ -64,7 +59,7 @@ class UpsampleBlock(nn.Module):
             nn.PReLU(),
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.upsample_block(x)
 
         return out
@@ -75,7 +70,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
             # input size. (3) x 96 x 96
-            nn.Conv2d(3, 64, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.Conv2d(3, 64, (3, 3), (1, 1), (1, 1), bias=True),
             nn.LeakyReLU(0.2, True),
             # state size. (64) x 48 x 48
             nn.Conv2d(64, 64, (3, 3), (2, 2), (1, 1), bias=False),
@@ -110,7 +105,7 @@ class Discriminator(nn.Module):
             nn.Linear(1024, 1),
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.features(x)
         out = torch.flatten(out, 1)
         out = self.classifier(out)
@@ -148,20 +143,22 @@ class Generator(nn.Module):
         # Output layer.
         self.conv_block3 = nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4))
 
-        # Initialize neural network weights.
+        # Initialize neural network weights
         self._initialize_weights()
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self._forward_impl(x)
 
-    # Support torch.script function.
-    def _forward_impl(self, x: Tensor) -> Tensor:
+    # Support torch.script function
+    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
         out1 = self.conv_block1(x)
         out = self.trunk(out1)
         out2 = self.conv_block2(out)
         out = torch.add(out1, out2)
         out = self.upsampling(out)
         out = self.conv_block3(out)
+
+        out = torch.clamp_(out, 0.0, 1.0)
 
         return out
 
@@ -186,26 +183,33 @@ class ContentLoss(nn.Module):
 
      """
 
-    def __init__(self) -> None:
+    def __init__(self, feature_extractor_node: str, normalize_mean: list, normalize_std: list) -> None:
         super(ContentLoss, self).__init__()
+        # Get the name of the specified feature extraction node
+        self.feature_extractor_node = feature_extractor_node
         # Load the VGG19 model trained on the ImageNet dataset.
-        vgg19 = models.vgg19(pretrained=True).eval()
+        model = models.vgg19(True)
         # Extract the thirty-sixth layer output in the VGG19 model as the content loss.
-        self.feature_extractor = nn.Sequential(*list(vgg19.features.children())[:36])
-        # Freeze model parameters.
-        for parameters in self.feature_extractor.parameters():
-            parameters.requires_grad = False
+        self.feature_extractor = create_feature_extractor(model, [feature_extractor_node])
+        # set to validation mode
+        self.feature_extractor.eval()
 
         # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet dataset.
-        self.register_buffer("mean", torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
-        self.register_buffer("std", torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+        self.normalize = transforms.Normalize(normalize_mean, normalize_std, True)
 
-    def forward(self, sr: Tensor, hr: Tensor) -> Tensor:
+        # Freeze model parameters.
+        for model_parameters in self.feature_extractor.parameters():
+            model_parameters.requires_grad = False
+
+    def forward(self, sr_tensor: torch.Tensor, hr_tensor: torch.Tensor) -> torch.Tensor:
         # Standardized operations
-        sr = sr.sub(self.mean).div(self.std)
-        hr = hr.sub(self.mean).div(self.std)
+        sr_tensor = self.normalize(sr_tensor)
+        hr_tensor = self.normalize(hr_tensor)
+
+        sr_feature = self.feature_extractor(sr_tensor)
+        hr_feature = self.feature_extractor(hr_tensor)
 
         # Find the feature map difference between the two images
-        loss = F.l1_loss(self.feature_extractor(sr), self.feature_extractor(hr))
+        feature_loss = F.l1_loss(sr_feature[self.feature_extractor_node], hr_feature[self.feature_extractor_node])
 
-        return loss
+        return feature_loss

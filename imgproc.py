@@ -1,4 +1,4 @@
-# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Realize the function of processing the dataset before training."""
 import math
 import random
 from typing import Any
@@ -24,7 +23,7 @@ from torchvision.transforms import functional as F
 __all__ = [
     "image2tensor", "tensor2image",
     "rgb2ycbcr", "bgr2ycbcr", "ycbcr2bgr", "ycbcr2rgb",
-    "center_crop", "random_crop", "random_rotate", "random_horizontally_flip", "random_vertically_flip",
+    "center_crop", "random_crop",
 ]
 
 
@@ -395,63 +394,3 @@ def random_crop(image: np.ndarray, image_size: int) -> np.ndarray:
     patch_image = image[top:top + image_size, left:left + image_size, ...]
 
     return patch_image
-
-
-def random_rotate(image: np.ndarray, angles: list, center=None, scale_factor: float = 1.0) -> np.ndarray:
-    """Rotate an image randomly by a specified angle.
-
-    Args:
-        image (np.ndarray): The input image for `OpenCV.imread`.
-        angles (list): Specify the rotation angle.
-        center (tuple[int]): Image rotation center. If the center is None, initialize it as the center of the image. ``Default: None``.
-        scale_factor (float): scaling factor. Default: 1.0.
-
-    Returns:
-        np.ndarray: Rotated image.
-    """
-
-    image_height, image_width = image.shape[:2]
-
-    if center is None:
-        center = (image_width // 2, image_height // 2)
-
-    # Random select specific angle
-    angle = random.choice(angles)
-    matrix = cv2.getRotationMatrix2D(center, angle, scale_factor)
-    image = cv2.warpAffine(image, matrix, (image_width, image_height))
-
-    return image
-
-
-def random_horizontally_flip(image: np.ndarray, p=0.5) -> np.ndarray:
-    """Flip an image horizontally randomly.
-
-    Args:
-        image (np.ndarray): The input image for `OpenCV.imread`.
-        p (optional, float): rollover probability. (Default: 0.5)
-
-    Returns:
-        np.ndarray: Horizontally flip image.
-    """
-
-    if random.random() < p:
-        image = cv2.flip(image, 1)
-
-    return image
-
-
-def random_vertically_flip(image: np.ndarray, p=0.5) -> np.ndarray:
-    """Flip an image vertically randomly.
-
-    Args:
-        image (np.ndarray): The input image for `OpenCV.imread`.
-        p (optional, float): rollover probability. (Default: 0.5)
-
-    Returns:
-        np.ndarray: Vertically flip image.
-    """
-
-    if random.random() < p:
-        image = cv2.flip(image, 0)
-
-    return image

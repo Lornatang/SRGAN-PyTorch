@@ -2,8 +2,7 @@
 
 ## Overview
 
-This repository contains an op-for-op PyTorch reimplementation
-of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5).
+This repository contains an op-for-op PyTorch reimplementation of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5).
 
 ## Table of contents
 
@@ -33,9 +32,11 @@ Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc
 - [Google Driver](https://drive.google.com/drive/folders/1A6lzGeQrFMxPqJehK9s37ce-tPDj20mD?usp=sharing)
 - [Baidu Driver](https://pan.baidu.com/s/1o-8Ty_7q6DiS3ykLU09IVg?pwd=llot)
 
+Please refer to `README.md` in the `data` directory for the method of making a dataset.
+
 ## Test
 
-Modify the contents of the file as follows.
+Modify the contents of the `config.py` file as follows.
 
 - line 29: `upscale_factor` change to the magnification you need to enlarge.
 - line 31: `mode` change Set to valid mode.
@@ -43,7 +44,7 @@ Modify the contents of the file as follows.
 
 ## Train
 
-Modify the contents of the file as follows.
+Modify the contents of the `config.py` file as follows.
 
 - line 29: `upscale_factor` change to the magnification you need to enlarge.
 - line 31: `mode` change Set to train mode.
@@ -52,10 +53,14 @@ If you want to load weights that you've trained before, modify the contents of t
 
 ### Train SRResNet model
 
+Modify the contents of the `config.py` file as follows.
+
 - line 47: `start_epoch` change number of SRResNet training iterations in the previous round.
 - line 48: `resume` change to SRResNet weight address that needs to be loaded.
 
 ### Train SRGAN model
+
+Modify the contents of the `config.py` file as follows.
 
 - line 71: `start_epoch` change number of SRGAN training iterations in the previous round.
 - line 72: `resume` change to RRDBNet weight address that needs to be loaded.

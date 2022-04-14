@@ -74,7 +74,7 @@ def main() -> None:
 
         # Only reconstruct the Y channel image data.
         with torch.no_grad():
-            sr_tensor = model(lr_tensor).clamp_(0, 1.0)
+            sr_tensor = model(lr_tensor)
 
         # Save image
         sr_image = imgproc.tensor2image(sr_tensor, range_norm=False, half=True)

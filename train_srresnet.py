@@ -27,8 +27,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import config
 import imgproc
-from dataset import CUDAPrefetcher
-from dataset import TrainValidImageDataset, TestImageDataset
+from dataset import CUDAPrefetcher, TrainValidImageDataset, TestImageDataset
 from model import Generator
 
 
@@ -57,14 +56,12 @@ def main():
         best_psnr = checkpoint["best_psnr"]
         # Load checkpoint state dict. Extract the fitted model weights
         model_state_dict = model.state_dict()
-        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict}
+        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
         # Overwrite the pretrained model weights to the current model
         model_state_dict.update(new_state_dict)
         model.load_state_dict(model_state_dict)
         # Load the optimizer model
         optimizer.load_state_dict(checkpoint["optimizer"])
-        # Load the scheduler model
-        # scheduler.load_state_dict(checkpoint["scheduler"])
         print("Loaded pretrained model weights.")
 
     # Create a folder of super-resolution experiment results
@@ -93,8 +90,7 @@ def main():
         torch.save({"epoch": epoch + 1,
                     "best_psnr": best_psnr,
                     "state_dict": model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "scheduler": None},
+                    "optimizer": optimizer.state_dict()},
                    os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"))
         if is_best:
             shutil.copyfile(os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"), os.path.join(results_dir, "g_best.pth.tar"))
@@ -195,7 +191,6 @@ def train(model, train_prefetcher, psnr_criterion, pixel_criterion, optimizer, e
 
         # Gradient zoom
         scaler.scale(loss).backward()
-        scaler.unscale_(optimizer)
         # Update generator weight
         scaler.step(optimizer)
         scaler.update()
