@@ -210,6 +210,6 @@ class ContentLoss(nn.Module):
         hr_feature = self.feature_extractor(hr_tensor)
 
         # Find the feature map difference between the two images
-        feature_loss = F.l1_loss(sr_feature[self.feature_extractor_node], hr_feature[self.feature_extractor_node])
+        feature_loss = F.mse_loss(sr_feature[self.feature_extractor_node], hr_feature[self.feature_extractor_node])
 
         return feature_loss
