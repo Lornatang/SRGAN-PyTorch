@@ -28,7 +28,7 @@ cudnn.benchmark = True
 # Image magnification factor
 upscale_factor = 4
 # Current configuration parameter method
-mode = "train_srgan"
+mode = "train_srresnet"
 # Experiment name, easy to save weights and log files
 exp_name = "SRResNet_baseline"
 
@@ -45,7 +45,7 @@ if mode == "train_srresnet":
 
     # Incremental training and migration training
     start_epoch = 0
-    resume = "samples/SRResNet_baseline/g_epoch_14.pth.tar"
+    resume = ""
 
     # Total num epochs
     epochs = 44
@@ -54,7 +54,7 @@ if mode == "train_srresnet":
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
 
-    print_frequency = 1000
+    print_frequency = 100
 
 if mode == "train_srgan":
     # Dataset address
@@ -97,8 +97,8 @@ if mode == "train_srgan":
 
 if mode == "valid":
     # Test data address
-    lr_dir = f"data/Set14/LRbicx{upscale_factor}"
+    lr_dir = f"data/Set5/LRbicx{upscale_factor}"
     sr_dir = f"results/test/{exp_name}"
-    hr_dir = f"data/Set14/GTmod12"
+    hr_dir = f"data/Set5/GTmod12"
 
-    model_path = f"results/pretrained_models/srresnet-ImageNet-dbebcec6.pth.tar"
+    model_path = f"results/{exp_name}/g_last.pth.tar"
