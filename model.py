@@ -195,7 +195,7 @@ class ContentLoss(nn.Module):
         self.feature_extractor.eval()
 
         # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet dataset.
-        self.normalize = transforms.Normalize(normalize_mean, normalize_std, True)
+        self.normalize = transforms.Normalize(normalize_mean, normalize_std)
 
         # Freeze model parameters.
         for model_parameters in self.feature_extractor.parameters():
