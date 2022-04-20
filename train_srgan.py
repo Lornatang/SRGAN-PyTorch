@@ -289,8 +289,8 @@ def train(discriminator,
 
         # Calculate the loss of the discriminator on the super-resolution image.
         # Use generators to create super-resolution images
-        sr = generator(lr)
         with amp.autocast():
+            sr = generator(lr)
             sr_output = discriminator(sr.detach())
             d_loss_sr = adversarial_criterion(sr_output, fake_label)
         # Gradient zoom
