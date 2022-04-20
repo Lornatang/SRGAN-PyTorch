@@ -77,9 +77,9 @@ if mode == "train_srgan":
     epochs = 9
 
     # Feature extraction layer parameter configuration
-    feature_extractor_node = "features.35"
-    normalize_mean = [0.485, 0.456, 0.406]
-    normalize_std = [0.229, 0.224, 0.225]
+    feature_model_extractor_node = "features.35"
+    feature_model_normalize_mean = [0.485, 0.456, 0.406]
+    feature_model_normalize_std = [0.229, 0.224, 0.225]
 
     # Loss function weight
     content_weight = 1.0

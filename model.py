@@ -183,19 +183,21 @@ class ContentLoss(nn.Module):
 
      """
 
-    def __init__(self, feature_extractor_node: str, normalize_mean: list, normalize_std: list) -> None:
+    def __init__(self, feature_model_extractor_node: str,
+                 feature_model_normalize_mean: list,
+                 feature_model_normalize_std: list) -> None:
         super(ContentLoss, self).__init__()
         # Get the name of the specified feature extraction node
-        self.feature_extractor_node = feature_extractor_node
+        self.feature_model_extractor_node = feature_model_extractor_node
         # Load the VGG19 model trained on the ImageNet dataset.
         model = models.vgg19(True)
         # Extract the thirty-sixth layer output in the VGG19 model as the content loss.
-        self.feature_extractor = create_feature_extractor(model, [feature_extractor_node])
+        self.feature_extractor = create_feature_extractor(model, [feature_model_extractor_node])
         # set to validation mode
         self.feature_extractor.eval()
 
         # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet dataset.
-        self.normalize = transforms.Normalize(normalize_mean, normalize_std)
+        self.normalize = transforms.Normalize(feature_model_normalize_mean, feature_model_normalize_std)
 
         # Freeze model parameters.
         for model_parameters in self.feature_extractor.parameters():
@@ -206,10 +208,10 @@ class ContentLoss(nn.Module):
         sr_tensor = self.normalize(sr_tensor)
         hr_tensor = self.normalize(hr_tensor)
 
-        sr_feature = self.feature_extractor(sr_tensor)
-        hr_feature = self.feature_extractor(hr_tensor)
+        sr_feature = self.feature_extractor(sr_tensor)[self.feature_model_extractor_node]
+        hr_feature = self.feature_extractor(hr_tensor)[self.feature_model_extractor_node]
 
         # Find the feature map difference between the two images
-        feature_loss = F.mse_loss(sr_feature[self.feature_extractor_node], hr_feature[self.feature_extractor_node])
+        content_loss = F.mse_loss(sr_feature, hr_feature)
 
-        return feature_loss
+        return content_loss

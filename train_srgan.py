@@ -42,7 +42,7 @@ def main():
     discriminator, generator = build_model()
     print("Build SRGAN model successfully.")
 
-    psnr_criterion, feature_criterion, adversarial_criterion = define_loss()
+    psnr_criterion, content_criterion, adversarial_criterion = define_loss()
     print("Define all loss functions successfully.")
 
     d_optimizer, g_optimizer = define_optimizer(discriminator, generator)
@@ -115,7 +115,7 @@ def main():
               generator,
               train_prefetcher,
               psnr_criterion,
-              feature_criterion,
+              content_criterion,
               adversarial_criterion,
               d_optimizer,
               g_optimizer,
@@ -123,7 +123,7 @@ def main():
               scaler,
               writer)
         _ = validate(generator, valid_prefetcher, psnr_criterion, epoch, writer, "Valid")
-        psnr = validate(generator, test_prefetcher, psnr_criterion, epoch, writer, "Test")  # Automatically save the model with the highest index
+        psnr = validate(generator, test_prefetcher, psnr_criterion, epoch, writer, "Test")
         print("\n")
 
         # Update LR
@@ -146,11 +146,15 @@ def main():
                     "scheduler": g_scheduler.state_dict()},
                    os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"))
         if is_best:
-            shutil.copyfile(os.path.join(samples_dir, f"d_epoch_{epoch + 1}.pth.tar"), os.path.join(results_dir, "d_best.pth.tar"))
-            shutil.copyfile(os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"), os.path.join(results_dir, "g_best.pth.tar"))
+            shutil.copyfile(os.path.join(samples_dir, f"d_epoch_{epoch + 1}.pth.tar"),
+                            os.path.join(results_dir, "d_best.pth.tar"))
+            shutil.copyfile(os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"),
+                            os.path.join(results_dir, "g_best.pth.tar"))
         if (epoch + 1) == config.epochs:
-            shutil.copyfile(os.path.join(samples_dir, f"d_epoch_{epoch + 1}.pth.tar"), os.path.join(results_dir, "d_last.pth.tar"))
-            shutil.copyfile(os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"), os.path.join(results_dir, "g_last.pth.tar"))
+            shutil.copyfile(os.path.join(samples_dir, f"d_epoch_{epoch + 1}.pth.tar"),
+                            os.path.join(results_dir, "d_last.pth.tar"))
+            shutil.copyfile(os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"),
+                            os.path.join(results_dir, "g_last.pth.tar"))
 
 
 def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
@@ -190,7 +194,7 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
     return train_prefetcher, valid_prefetcher, test_prefetcher
 
 
-def build_model() -> nn.Module:
+def build_model() -> [nn.Module, nn.Module]:
     discriminator = Discriminator().to(config.device)
     generator = Generator().to(config.device)
 
@@ -199,7 +203,9 @@ def build_model() -> nn.Module:
 
 def define_loss() -> [nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]:
     psnr_criterion = nn.MSELoss().to(config.device)
-    content_criterion = ContentLoss(config.feature_extractor_node, config.normalize_mean, config.normalize_std).to(config.device)
+    content_criterion = ContentLoss(config.feature_model_extractor_node,
+                                    config.feature_model_normalize_mean,
+                                    config.feature_model_normalize_std).to(config.device)
     adversarial_criterion = nn.BCEWithLogitsLoss().to(config.device)
 
     return psnr_criterion, content_criterion, adversarial_criterion
@@ -270,16 +276,9 @@ def train(discriminator,
         real_label = torch.full([lr.size(0), 1], 1.0, dtype=lr.dtype, device=config.device)
         fake_label = torch.full([lr.size(0), 1], 0.0, dtype=lr.dtype, device=config.device)
 
-        # Use generators to create super-resolution images
-        sr = generator(lr)
-
         # Start training discriminator
-        # At this stage, the discriminator needs to require a derivative gradient
-        for p in discriminator.parameters():
-            p.requires_grad = True
-
         # Initialize the discriminator optimizer gradient
-        d_optimizer.zero_grad()
+        discriminator.zero_grad()
 
         # Calculate the loss of the discriminator on the high-resolution image
         with amp.autocast():
@@ -289,6 +288,8 @@ def train(discriminator,
         scaler.scale(d_loss_hr).backward()
 
         # Calculate the loss of the discriminator on the super-resolution image.
+        # Use generators to create super-resolution images
+        sr = generator(lr)
         with amp.autocast():
             sr_output = discriminator(sr.detach())
             d_loss_sr = adversarial_criterion(sr_output, fake_label)
@@ -303,18 +304,13 @@ def train(discriminator,
         # End training discriminator
 
         # Start training generator
-        # At this stage, the discriminator no needs to require a derivative gradient
-        for p in discriminator.parameters():
-            p.requires_grad = False
-
         # Initialize the generator optimizer gradient
-        g_optimizer.zero_grad()
+        generator.zero_grad()
 
         # Calculate the loss of the generator on the super-resolution image
         with amp.autocast():
-            output = discriminator(sr)
-            content_loss = config.content_weight * content_criterion(sr, hr.detach())
-            adversarial_loss = config.adversarial_weight * adversarial_criterion(output, real_label)
+            content_loss = config.content_weight * content_criterion(sr, hr)
+            adversarial_loss = config.adversarial_weight * adversarial_criterion(discriminator(sr), real_label)
         # Count discriminator total loss
         g_loss = content_loss + adversarial_loss
         # Gradient zoom
