@@ -278,7 +278,7 @@ def train(discriminator,
 
         # Start training discriminator
         # Initialize the discriminator optimizer gradient
-        discriminator.zero_grad()
+        discriminator.zero_grad(set_to_none=True)
 
         # Calculate the loss of the discriminator on the high-resolution image
         with amp.autocast():
@@ -300,19 +300,19 @@ def train(discriminator,
         scaler.update()
 
         # Count discriminator total loss
-        d_loss = d_loss_hr + d_loss_sr
+        d_loss = d_loss_sr + d_loss_hr
         # End training discriminator
 
         # Start training generator
         # Initialize the generator optimizer gradient
-        generator.zero_grad()
+        generator.zero_grad(set_to_none=True)
 
         # Calculate the loss of the generator on the super-resolution image
         with amp.autocast():
             content_loss = config.content_weight * content_criterion(sr, hr)
             adversarial_loss = config.adversarial_weight * adversarial_criterion(discriminator(sr), real_label)
-        # Count discriminator total loss
-        g_loss = content_loss + adversarial_loss
+            # Count generator total loss
+            g_loss = content_loss + adversarial_loss
         # Gradient zoom
         scaler.scale(g_loss).backward()
         # Update generator parameters
@@ -322,11 +322,11 @@ def train(discriminator,
         # End training generator
 
         # Calculate the scores of the two images on the discriminator
-        d_hr_probability = torch.sigmoid(torch.mean(hr_output))
-        d_sr_probability = torch.sigmoid(torch.mean(sr_output))
+        d_hr_probability = torch.sigmoid_(torch.mean(hr_output))
+        d_sr_probability = torch.sigmoid_(torch.mean(sr_output))
 
         # measure accuracy and record loss
-        psnr = 10. * torch.log10(1. / psnr_criterion(sr, hr))
+        psnr = 10. * torch.log10_(1. / psnr_criterion(sr, hr))
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
         d_hr_probabilities.update(d_hr_probability.item(), lr.size(0))

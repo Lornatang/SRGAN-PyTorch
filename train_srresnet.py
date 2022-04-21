@@ -182,7 +182,7 @@ def train(model, train_prefetcher, psnr_criterion, pixel_criterion, optimizer, e
         hr = batch_data["hr"].to(config.device, non_blocking=True)
 
         # Initialize the generator gradient
-        model.zero_grad()
+        model.zero_grad(set_to_none=True)
 
         # Mixed precision training
         with amp.autocast():
