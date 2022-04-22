@@ -195,8 +195,8 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
 
 
 def build_model() -> [nn.Module, nn.Module]:
-    discriminator = Discriminator().to(config.device)
-    generator = Generator().to(config.device)
+    discriminator = Discriminator().to(device=config.device, memory_format=torch.channels_last,)
+    generator = Generator().to(device=config.device, memory_format=torch.channels_last,)
 
     return discriminator, generator
 
@@ -269,14 +269,18 @@ def train(discriminator,
         data_time.update(time.time() - end)
 
         # Send data to designated device
-        lr = batch_data["lr"].to(config.device, non_blocking=True)
-        hr = batch_data["hr"].to(config.device, non_blocking=True)
+        lr = batch_data["lr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+        hr = batch_data["hr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
         # Set the real sample label to 1, and the false sample label to 0
         real_label = torch.full([lr.size(0), 1], 1.0, dtype=lr.dtype, device=config.device)
         fake_label = torch.full([lr.size(0), 1], 0.0, dtype=lr.dtype, device=config.device)
 
         # Start training discriminator
+        # Make the gradient flow into the discriminator
+        for d_parameters in discriminator.parameters():
+            d_parameters.requires_grad = True
+
         # Initialize the discriminator optimizer gradient
         discriminator.zero_grad(set_to_none=True)
 
@@ -291,7 +295,7 @@ def train(discriminator,
         # Use generators to create super-resolution images
         with amp.autocast():
             sr = generator(lr)
-            sr_output = discriminator(sr.detach())
+            sr_output = discriminator(sr.detach().clone())
             d_loss_sr = adversarial_criterion(sr_output, fake_label)
         # Gradient zoom
         scaler.scale(d_loss_sr).backward()
@@ -304,6 +308,10 @@ def train(discriminator,
         # End training discriminator
 
         # Start training generator
+        # Prevent gradients from flowing into the discriminator
+        for d_parameters in discriminator.parameters():
+            d_parameters.requires_grad = False
+
         # Initialize the generator optimizer gradient
         generator.zero_grad(set_to_none=True)
 
@@ -322,8 +330,8 @@ def train(discriminator,
         # End training generator
 
         # Calculate the scores of the two images on the discriminator
-        d_hr_probability = torch.sigmoid_(torch.mean(hr_output))
-        d_sr_probability = torch.sigmoid_(torch.mean(sr_output))
+        d_hr_probability = torch.sigmoid_(torch.mean(hr_output.detach()))
+        d_sr_probability = torch.sigmoid_(torch.mean(sr_output.detach()))
 
         # measure accuracy and record loss
         psnr = 10. * torch.log10_(1. / psnr_criterion(sr, hr))

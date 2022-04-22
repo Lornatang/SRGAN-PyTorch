@@ -136,7 +136,7 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
 
 
 def build_model() -> nn.Module:
-    model = Generator().to(config.device)
+    model = Generator().to(device=config.device, memory_format=torch.channels_last)
 
     return model
 
@@ -178,8 +178,8 @@ def train(model, train_prefetcher, psnr_criterion, pixel_criterion, optimizer, e
         # measure data loading time
         data_time.update(time.time() - end)
 
-        lr = batch_data["lr"].to(config.device, non_blocking=True)
-        hr = batch_data["hr"].to(config.device, non_blocking=True)
+        lr = batch_data["lr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+        hr = batch_data["hr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
         # Initialize the generator gradient
         model.zero_grad(set_to_none=True)
@@ -196,7 +196,7 @@ def train(model, train_prefetcher, psnr_criterion, pixel_criterion, optimizer, e
         scaler.update()
 
         # measure accuracy and record loss
-        psnr = 10. * torch.log10(1. / psnr_criterion(sr, hr))
+        psnr = 10. * torch.log10_(1. / psnr_criterion(sr, hr))
         losses.update(loss.item(), lr.size(0))
         psnres.update(psnr.item(), lr.size(0))
 
@@ -236,8 +236,8 @@ def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> fl
 
         while batch_data is not None:
             # measure data loading time
-            lr = batch_data["lr"].to(config.device, non_blocking=True)
-            hr = batch_data["hr"].to(config.device, non_blocking=True)
+            lr = batch_data["lr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+            hr = batch_data["hr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
             # Mixed precision
             with amp.autocast():
@@ -255,7 +255,7 @@ def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> fl
             hr_y_tensor = imgproc.image2tensor(hr_y_image, range_norm=False, half=True).to(config.device).unsqueeze_(0)
 
             # measure accuracy and record loss
-            psnr = 10. * torch.log10(1. / psnr_criterion(sr_y_tensor, hr_y_tensor))
+            psnr = 10. * torch.log10_(1. / psnr_criterion(sr_y_tensor, hr_y_tensor))
             psnres.update(psnr.item(), lr.size(0))
 
             # measure elapsed time
