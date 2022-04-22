@@ -217,10 +217,10 @@ def train(model, train_prefetcher, psnr_criterion, pixel_criterion, optimizer, e
         batch_index += 1
 
 
-def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> float:
+def validate(model, data_prefetcher, psnr_criterion, epoch, writer, mode) -> float:
     batch_time = AverageMeter("Time", ":6.3f")
     psnres = AverageMeter("PSNR", ":4.2f")
-    progress = ProgressMeter(len(valid_prefetcher), [batch_time, psnres], prefix=f"{mode}: ")
+    progress = ProgressMeter(len(data_prefetcher), [batch_time, psnres], prefix=f"{mode}: ")
 
     # Put the model in verification mode
     model.eval()
@@ -231,8 +231,8 @@ def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> fl
     end = time.time()
     with torch.no_grad():
         # enable preload
-        valid_prefetcher.reset()
-        batch_data = valid_prefetcher.next()
+        data_prefetcher.reset()
+        batch_data = data_prefetcher.next()
 
         while batch_data is not None:
             # measure data loading time
@@ -243,16 +243,25 @@ def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> fl
             with amp.autocast():
                 sr = model(lr)
 
-            # Convert RGB tensor to Y tensor
-            sr_image = imgproc.tensor2image(sr, range_norm=False, half=True)
-            sr_image = sr_image.astype(np.float32) / 255.
-            sr_y_image = imgproc.rgb2ycbcr(sr_image, use_y_channel=True)
-            sr_y_tensor = imgproc.image2tensor(sr_y_image, range_norm=False, half=True).to(config.device).unsqueeze_(0)
+            # Convert RGB tensor to RGB image
+            sr_image = imgproc.tensor2image(sr, range_norm=False, half=False)
+            hr_image = imgproc.tensor2image(hr, range_norm=False, half=False)
 
-            hr_image = imgproc.tensor2image(hr, range_norm=False, half=True)
+            # Data range 0~255 to 0~1
+            sr_image = sr_image.astype(np.float32) / 255.
             hr_image = hr_image.astype(np.float32) / 255.
+
+            # RGB convert Y
+            sr_y_image = imgproc.rgb2ycbcr(sr_image, use_y_channel=True)
             hr_y_image = imgproc.rgb2ycbcr(hr_image, use_y_channel=True)
-            hr_y_tensor = imgproc.image2tensor(hr_y_image, range_norm=False, half=True).to(config.device).unsqueeze_(0)
+
+            # Convert Y image to Y tensor
+            sr_y_tensor = imgproc.image2tensor(sr_y_image, range_norm=False, half=False).unsqueeze_(0)
+            hr_y_tensor = imgproc.image2tensor(hr_y_image, range_norm=False, half=False).unsqueeze_(0)
+
+            # Convert CPU tensor to CUDA tensor
+            sr_y_tensor = sr_y_tensor.to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+            hr_y_tensor = hr_y_tensor.to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
             # measure accuracy and record loss
             psnr = 10. * torch.log10_(1. / psnr_criterion(sr_y_tensor, hr_y_tensor))
@@ -267,7 +276,7 @@ def validate(model, valid_prefetcher, psnr_criterion, epoch, writer, mode) -> fl
                 progress.display(batch_index)
 
             # Preload the next batch of data
-            batch_data = valid_prefetcher.next()
+            batch_data = data_prefetcher.next()
 
             # After a batch of data is calculated, add 1 to the number of batches
             batch_index += 1
