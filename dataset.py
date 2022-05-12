@@ -61,7 +61,7 @@ class TrainValidImageDataset(Dataset):
         else:
             raise ValueError("Unsupported data processing model, please use `Train` or `Valid`.")
 
-        lr_image = imgproc.imresize(hr_image, 1 / self.upscale_factor)
+        lr_image = imgproc.image_resize(hr_image, 1 / self.upscale_factor)
 
         # BGR convert to RGB
         lr_image = cv2.cvtColor(lr_image, cv2.COLOR_BGR2RGB)
