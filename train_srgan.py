@@ -17,7 +17,6 @@ import shutil
 import time
 from enum import Enum
 
-import numpy as np
 import torch
 from torch import nn
 from torch import optim
@@ -27,14 +26,15 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import config
-import imgproc
 from dataset import CUDAPrefetcher, TrainValidImageDataset, TestImageDataset
+from image_quality_assessment import PSNR, SSIM
 from model import Discriminator, Generator, ContentLoss
 
 
 def main():
     # Initialize training to generate network evaluation indicators
     best_psnr = 0.0
+    best_ssim = 0.0
 
     train_prefetcher, valid_prefetcher, test_prefetcher = load_dataset()
     print("Load all datasets successfully.")
@@ -42,7 +42,7 @@ def main():
     discriminator, generator = build_model()
     print("Build SRGAN model successfully.")
 
-    psnr_criterion, content_criterion, adversarial_criterion = define_loss()
+    content_criterion, adversarial_criterion = define_loss()
     print("Define all loss functions successfully.")
 
     d_optimizer, g_optimizer = define_optimizer(discriminator, generator)
@@ -65,6 +65,7 @@ def main():
         # Restore the parameters in the training node to this point
         config.start_epoch = checkpoint["epoch"]
         best_psnr = checkpoint["best_psnr"]
+        best_ssim = checkpoint["best_ssim"]
         # Load checkpoint state dict. Extract the fitted model weights
         model_state_dict = discriminator.state_dict()
         new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
@@ -84,6 +85,7 @@ def main():
         # Restore the parameters in the training node to this point
         config.start_epoch = checkpoint["epoch"]
         best_psnr = checkpoint["best_psnr"]
+        best_ssim = checkpoint["best_ssim"]
         # Load checkpoint state dict. Extract the fitted model weights
         model_state_dict = generator.state_dict()
         new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
@@ -110,11 +112,14 @@ def main():
     # Initialize the gradient scaler.
     scaler = amp.GradScaler()
 
+    # Create an IQA evaluation model
+    psnr_model = PSNR(config.upscale_factor, config.only_test_y_channel)
+    ssim_model = SSIM(config.upscale_factor, config.only_test_y_channel)
+
     for epoch in range(config.start_epoch, config.epochs):
         train(discriminator,
               generator,
               train_prefetcher,
-              psnr_criterion,
               content_criterion,
               adversarial_criterion,
               d_optimizer,
@@ -122,8 +127,8 @@ def main():
               epoch,
               scaler,
               writer)
-        _ = validate(generator, valid_prefetcher, psnr_criterion, epoch, writer, "Valid")
-        psnr = validate(generator, test_prefetcher, psnr_criterion, epoch, writer, "Test")
+        _, _ = validate(generator, valid_prefetcher, epoch, writer, psnr_model, ssim_model, "Valid")
+        psnr, ssim = validate(generator, test_prefetcher, epoch, writer, psnr_model, ssim_model, "Test")
         print("\n")
 
         # Update LR
@@ -131,16 +136,19 @@ def main():
         g_scheduler.step()
 
         # Automatically save the model with the highest index
-        is_best = psnr > best_psnr
+        is_best = psnr > best_psnr and ssim > best_ssim
         best_psnr = max(psnr, best_psnr)
+        best_ssim = max(ssim, best_ssim)
         torch.save({"epoch": epoch + 1,
                     "best_psnr": best_psnr,
+                    "best_ssim": best_ssim,
                     "state_dict": discriminator.state_dict(),
                     "optimizer": d_optimizer.state_dict(),
                     "scheduler": d_scheduler.state_dict()},
                    os.path.join(samples_dir, f"d_epoch_{epoch + 1}.pth.tar"))
         torch.save({"epoch": epoch + 1,
                     "best_psnr": best_psnr,
+                    "best_ssim": best_ssim,
                     "state_dict": generator.state_dict(),
                     "optimizer": g_optimizer.state_dict(),
                     "scheduler": g_scheduler.state_dict()},
@@ -195,20 +203,27 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
 
 
 def build_model() -> [nn.Module, nn.Module]:
-    discriminator = Discriminator().to(device=config.device, memory_format=torch.channels_last)
-    generator = Generator().to(device=config.device, memory_format=torch.channels_last)
+    discriminator = Discriminator()
+    generator = Generator()
+
+    # Transfer to CUDA
+    discriminator = discriminator.to(device=config.device, memory_format=torch.channels_last)
+    generator = generator.to(device=config.device, memory_format=torch.channels_last)
 
     return discriminator, generator
 
 
-def define_loss() -> [nn.MSELoss, ContentLoss, nn.BCEWithLogitsLoss]:
-    psnr_criterion = nn.MSELoss().to(device=config.device)
+def define_loss() -> [ContentLoss, nn.BCEWithLogitsLoss]:
     content_criterion = ContentLoss(config.feature_model_extractor_node,
                                     config.feature_model_normalize_mean,
-                                    config.feature_model_normalize_std).to(device=config.device)
-    adversarial_criterion = nn.BCEWithLogitsLoss().to(device=config.device)
+                                    config.feature_model_normalize_std)
+    adversarial_criterion = nn.BCEWithLogitsLoss()
 
-    return psnr_criterion, content_criterion, adversarial_criterion
+    # Transfer to CUDA
+    content_criterion = content_criterion.to(device=config.device, memory_format=torch.channels_last)
+    adversarial_criterion = adversarial_criterion.to(device=config.device, memory_format=torch.channels_last)
+
+    return content_criterion, adversarial_criterion
 
 
 def define_optimizer(discriminator: nn.Module, generator: nn.Module) -> [optim.Adam, optim.Adam]:
@@ -225,129 +240,140 @@ def define_scheduler(d_optimizer: optim.Adam, g_optimizer: optim.Adam) -> [lr_sc
     return d_scheduler, g_scheduler
 
 
-def train(discriminator,
-          generator,
-          train_prefetcher,
-          psnr_criterion,
-          content_criterion,
-          adversarial_criterion,
-          d_optimizer,
-          g_optimizer,
-          epoch,
-          scaler,
-          writer) -> None:
-    # Calculate how many iterations there are under epoch
+def train(discriminator: nn.Module,
+          generator: nn.Module,
+          train_prefetcher: CUDAPrefetcher,
+          content_criterion: ContentLoss,
+          adversarial_criterion: nn.BCEWithLogitsLoss,
+          d_optimizer: optim.Adam,
+          g_optimizer: optim.Adam,
+          epoch: int,
+          scaler: amp.GradScaler,
+          writer: SummaryWriter) -> None:
+    """Training main program
+
+    Args:
+        discriminator (nn.Module): discriminator model in adversarial networks
+        generator (nn.Module): generator model in adversarial networks
+        train_prefetcher (CUDAPrefetcher): training dataset iterator
+        content_criterion (nn): Calculate the feature difference between real samples and fake samples by the feature extraction model
+        adversarial_criterion (nn.BCEWithLogitsLoss): Calculate the semantic difference between real samples and fake samples by the discriminator model
+        d_optimizer (optim.Adam): an optimizer for optimizing discriminator models in adversarial networks
+        g_optimizer (optim.Adam): an optimizer for optimizing generator models in adversarial networks
+        epoch (int): number of training epochs during training the adversarial network
+        scaler (amp.GradScaler): Mixed precision training function
+        writer (SummaryWrite): log file management function
+
+    """
+    # Calculate how many batches of data are in each Epoch
     batches = len(train_prefetcher)
 
+    # Print information of progress bar during training
     batch_time = AverageMeter("Time", ":6.3f")
     data_time = AverageMeter("Data", ":6.3f")
     content_losses = AverageMeter("Content loss", ":6.6f")
     adversarial_losses = AverageMeter("Adversarial loss", ":6.6f")
     d_hr_probabilities = AverageMeter("D(HR)", ":6.3f")
     d_sr_probabilities = AverageMeter("D(SR)", ":6.3f")
-    psnres = AverageMeter("PSNR", ":4.2f")
     progress = ProgressMeter(batches,
                              [batch_time, data_time,
                               content_losses, adversarial_losses,
-                              d_hr_probabilities, d_sr_probabilities,
-                              psnres],
+                              d_hr_probabilities, d_sr_probabilities],
                              prefix=f"Epoch: [{epoch + 1}]")
 
-    # Put all model in train mode.
+    # Put the adversarial network model in training mode
     discriminator.train()
     generator.train()
 
+    # Initialize the number of data batches to print logs on the terminal
     batch_index = 0
 
-    end = time.time()
-    # enable preload
+    # Initialize the data loader and load the first batch of data
     train_prefetcher.reset()
     batch_data = train_prefetcher.next()
 
+    # Get the initialization training time
+    end = time.time()
+
     while batch_data is not None:
-        # measure data loading time
+        # Calculate the time it takes to load a batch of data
         data_time.update(time.time() - end)
 
-        # Send data to designated device
+        # Transfer in-memory data to CUDA devices to speed up training
         lr = batch_data["lr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
         hr = batch_data["hr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
-        # Set the real sample label to 1, and the false sample label to 0
+        # Used for the output of the discriminator binary classification, the input sample is from the dataset (real sample) and marked as 1, and the input sample from the generator (fake sample) is marked as 0
         real_label = torch.full([lr.size(0), 1], 1.0, dtype=lr.dtype, device=config.device)
         fake_label = torch.full([lr.size(0), 1], 0.0, dtype=lr.dtype, device=config.device)
 
-        # Start training discriminator
-        # Make the gradient flow into the discriminator
+        # Start training the discriminator model
+        # During discriminator model training, enable discriminator model backpropagation
         for d_parameters in discriminator.parameters():
             d_parameters.requires_grad = True
 
-        # Initialize the discriminator optimizer gradient
+        # Initialize the discriminator model gradients
         discriminator.zero_grad(set_to_none=True)
 
-        # Calculate the loss of the discriminator on the high-resolution image
+        # Calculate the classification score of the discriminator model for real samples
         with amp.autocast():
             hr_output = discriminator(hr)
             d_loss_hr = adversarial_criterion(hr_output, real_label)
-        # Gradient zoom
+        # Call the gradient scaling function in the mixed precision API to backpropagate the gradient information of the real sample
         scaler.scale(d_loss_hr).backward()
 
-        # Calculate the loss of the discriminator on the super-resolution image.
-        # Use generators to create super-resolution images
+        # Calculate the classification score of the discriminator model for fake samples
         with amp.autocast():
+            # Use the generator model to generate fake samples
             sr = generator(lr)
             sr_output = discriminator(sr.detach().clone())
             d_loss_sr = adversarial_criterion(sr_output, fake_label)
-        # Gradient zoom
+            # Calculate the total discriminator loss value
+            d_loss = d_loss_sr + d_loss_hr
+        # Call the gradient scaling function in the mixed precision API to backpropagate the gradient information of the fake samples
         scaler.scale(d_loss_sr).backward()
-        # Update discriminator parameters
+        # Improve the discriminator model's ability to classify real and fake samples
         scaler.step(d_optimizer)
         scaler.update()
+        # Finish training the discriminator model
 
-        # Count discriminator total loss
-        d_loss = d_loss_sr + d_loss_hr
-        # End training discriminator
-
-        # Start training generator
-        # Prevent gradients from flowing into the discriminator
+        # Start training the generator model
+        # During generator training, turn off discriminator backpropagation
         for d_parameters in discriminator.parameters():
             d_parameters.requires_grad = False
 
-        # Initialize the generator optimizer gradient
+        # Initialize generator model gradients
         generator.zero_grad(set_to_none=True)
 
-        # Calculate the loss of the generator on the super-resolution image
+        # Calculate the perceptual loss of the generator, mainly including pixel loss, feature loss and adversarial loss
         with amp.autocast():
             content_loss = config.content_weight * content_criterion(sr, hr)
             adversarial_loss = config.adversarial_weight * adversarial_criterion(discriminator(sr), real_label)
-            # Count generator total loss
+            # Calculate the generator total loss value
             g_loss = content_loss + adversarial_loss
-        # Gradient zoom
+        # Call the gradient scaling function in the mixed precision API to backpropagate the gradient information of the fake samples
         scaler.scale(g_loss).backward()
-        # Update generator parameters
+        # Encourage the generator to generate higher quality fake samples, making it easier to fool the discriminator
         scaler.step(g_optimizer)
         scaler.update()
+        # Finish training the generator model
 
-        # End training generator
-
-        # Calculate the scores of the two images on the discriminator
+        # Calculate the score of the discriminator on real samples and fake samples, the score of real samples is close to 1, and the score of fake samples is close to 0
         d_hr_probability = torch.sigmoid_(torch.mean(hr_output.detach()))
         d_sr_probability = torch.sigmoid_(torch.mean(sr_output.detach()))
 
-        # measure accuracy and record loss
-        psnr = 10. * torch.log10_(1. / psnr_criterion(sr, hr))
+        # Statistical accuracy and loss value for terminal data output
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
         d_hr_probabilities.update(d_hr_probability.item(), lr.size(0))
         d_sr_probabilities.update(d_sr_probability.item(), lr.size(0))
-        psnres.update(psnr.item(), lr.size(0))
 
-        # measure elapsed time
+        # Calculate the time it takes to fully train a batch of data
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # Record training log information
+        # Write the data during training to the training log file
         if batch_index % config.print_frequency == 0:
-            # Writer Loss to file
             iters = batch_index + epoch * batches + 1
             writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
             writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
@@ -360,83 +386,90 @@ def train(discriminator,
         # Preload the next batch of data
         batch_data = train_prefetcher.next()
 
-        # After a batch of data is calculated, add 1 to the number of batches
+        # After training a batch of data, add 1 to the number of data batches to ensure that the terminal prints data normally
         batch_index += 1
 
 
-def validate(model, data_prefetcher, psnr_criterion, epoch, writer, mode) -> float:
+def validate(model: nn.Module,
+             data_prefetcher: CUDAPrefetcher,
+             epoch: int,
+             writer: SummaryWriter,
+             psnr_model: nn.Module,
+             ssim_model: nn.Module,
+             mode: str) -> [float, float]:
+    """Test main program
+
+    Args:
+        model (nn.Module): generator model in adversarial networks
+        data_prefetcher (CUDAPrefetcher): test dataset iterator
+        epoch (int): number of test epochs during training of the adversarial network
+        writer (SummaryWriter): log file management function
+        psnr_model (nn.Module): The model used to calculate the PSNR function
+        ssim_model (nn.Module): The model used to compute the SSIM function
+        mode (str): test validation dataset accuracy or test dataset accuracy
+
+    """
+    # Calculate how many batches of data are in each Epoch
+    batches = len(data_prefetcher)
     batch_time = AverageMeter("Time", ":6.3f")
     psnres = AverageMeter("PSNR", ":4.2f")
-    progress = ProgressMeter(len(data_prefetcher), [batch_time, psnres], prefix=f"{mode}: ")
+    ssimes = AverageMeter("SSIM", ":4.4f")
+    progress = ProgressMeter(len(data_prefetcher), [batch_time, psnres, ssimes], prefix=f"{mode}: ")
 
-    # Put the model in verification mode
+    # Put the adversarial network model in validation mode
     model.eval()
 
+    # Initialize the number of data batches to print logs on the terminal
     batch_index = 0
 
-    # Calculate the time it takes to test a batch of data
-    end = time.time()
-    with torch.no_grad():
-        # enable preload
-        data_prefetcher.reset()
-        batch_data = data_prefetcher.next()
+    # Initialize the data loader and load the first batch of data
+    data_prefetcher.reset()
+    batch_data = data_prefetcher.next()
 
+    # Get the initialization test time
+    end = time.time()
+
+    with torch.no_grad():
         while batch_data is not None:
-            # measure data loading time
+            # Transfer the in-memory data to the CUDA device to speed up the test
             lr = batch_data["lr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
             hr = batch_data["hr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
-            # Mixed precision
+            # Use the generator model to generate a fake sample
             with amp.autocast():
                 sr = model(lr)
 
-            # Convert RGB tensor to RGB image
-            sr_image = imgproc.tensor2image(sr, range_norm=False, half=False)
-            hr_image = imgproc.tensor2image(hr, range_norm=False, half=False)
-
-            # Data range 0~255 to 0~1
-            sr_image = sr_image.astype(np.float32) / 255.
-            hr_image = hr_image.astype(np.float32) / 255.
-
-            # RGB convert Y
-            sr_y_image = imgproc.rgb2ycbcr(sr_image, use_y_channel=True)
-            hr_y_image = imgproc.rgb2ycbcr(hr_image, use_y_channel=True)
-
-            # Convert Y image to Y tensor
-            sr_y_tensor = imgproc.image2tensor(sr_y_image, range_norm=False, half=False).unsqueeze_(0)
-            hr_y_tensor = imgproc.image2tensor(hr_y_image, range_norm=False, half=False).unsqueeze_(0)
-
-            # Convert CPU tensor to CUDA tensor
-            sr_y_tensor = sr_y_tensor.to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
-            hr_y_tensor = hr_y_tensor.to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
-
-            # measure accuracy and record loss
-            psnr = 10. * torch.log10_(1. / psnr_criterion(sr_y_tensor, hr_y_tensor))
+            # Statistical loss value for terminal data output
+            psnr = psnr_model(sr, hr)
+            ssim = ssim_model(sr, hr)
             psnres.update(psnr.item(), lr.size(0))
+            ssimes.update(ssim.item(), lr.size(0))
 
-            # measure elapsed time
+            # Calculate the time it takes to fully test a batch of data
             batch_time.update(time.time() - end)
             end = time.time()
 
             # Record training log information
-            if batch_index % config.print_frequency == 0:
+            if batch_index % (batches // 5) == 0:
                 progress.display(batch_index)
 
             # Preload the next batch of data
             batch_data = data_prefetcher.next()
 
-            # After a batch of data is calculated, add 1 to the number of batches
+            # After training a batch of data, add 1 to the number of data batches to ensure that the
+            # terminal prints data normally
             batch_index += 1
 
-    # Print average PSNR metrics
+    # print metrics
     progress.display_summary()
 
     if mode == "Valid" or mode == "Test":
         writer.add_scalar(f"{mode}/PSNR", psnres.avg, epoch + 1)
+        writer.add_scalar(f"{mode}/SSIM", psnres.avg, epoch + 1)
     else:
         raise ValueError("Unsupported mode, please use `Valid` or `Test`.")
 
-    return psnres.avg
+    return psnres.avg, ssimes.avg
 
 
 # Copy form "https://github.com/pytorch/examples/blob/master/imagenet/main.py"
