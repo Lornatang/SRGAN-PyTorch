@@ -79,7 +79,7 @@ In the following table, the psnr value in `()` indicates the result of the proje
 |  Set14  |   4   | 28.49(**28.28**) | 26.02(**25.70**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
-<span align="center"><img src="assets/result.png"/></span>
+<span align="center"><img src="figure/result.png"/></span>
 
 ## Contributing
 
