@@ -38,16 +38,16 @@ Please refer to `README.md` in the `data` directory for the method of making a d
 
 Modify the contents of the `config.py` file as follows.
 
-- line 29: `upscale_factor` change to the magnification you need to enlarge.
-- line 31: `mode` change Set to valid mode.
-- line 100: `model_path` change weight address after training.
+- line 32: `upscale_factor` change to the magnification you need to enlarge.
+- line 33: `mode` change Set to valid mode.
+- line 108: `model_path` change weight address after training.
 
 ## Train
 
 Modify the contents of the `config.py` file as follows.
 
-- line 29: `upscale_factor` change to the magnification you need to enlarge.
-- line 31: `mode` change Set to train mode.
+- line 32: `upscale_factor` change to the magnification you need to enlarge.
+- line 33: `mode` change Set to train mode.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
@@ -55,17 +55,17 @@ If you want to load weights that you've trained before, modify the contents of t
 
 Modify the contents of the `config.py` file as follows.
 
-- line 47: `start_epoch` change number of SRResNet training iterations in the previous round.
-- line 48: `resume` change to SRResNet weight address that needs to be loaded.
+- line 49: `start_epoch` change number of SRResNet training iterations in the previous round.
+- line 51: `resume` change to SRResNet weight address that needs to be loaded.
 
 ### Train SRGAN model
 
 Modify the contents of the `config.py` file as follows.
 
-- line 71: `start_epoch` change number of SRGAN training iterations in the previous round.
-- line 72: `resume` change to RRDBNet weight address that needs to be loaded.
-- line 73: `resume_d` change to Discriminator weight address that needs to be loaded.
-- line 74: `resume_g` change to Generator weight address that needs to be loaded.
+- line 74: `start_epoch` change number of SRGAN training iterations in the previous round.
+- line 75: `resume` change to SRResNet weight address that needs to be loaded.
+- line 76: `resume_d` change to Discriminator weight address that needs to be loaded.
+- line 77: `resume_g` change to Generator weight address that needs to be loaded.
 
 ## Result
 
@@ -73,10 +73,15 @@ Source of original paper results: [https://arxiv.org/pdf/1609.04802v5.pdf](https
 
 In the following table, the psnr value in `()` indicates the result of the project, and `-` indicates no test.
 
-| Dataset | Scale | SRResNet (PSNR)  |   SRGAN (PSNR)   |
-|:-------:|:-----:|:----------------:|:----------------:|
-|  Set5   |   4   | 32.05(**32.00**) | 29.40(**28.91**) |
-|  Set14  |   4   | 28.49(**28.28**) | 26.02(**25.70**) |
+| Set5 | Scale |      SRResNet      |       SRGAN        |
+|:----:|:-----:|:------------------:|:------------------:|
+| PSNR |   4   |  32.05(**32.16**)  |  29.40(**29.08**)  |
+| SSIM |   4   | 0.9019(**0.8961**) | 0.8472(**0.8305**) |
+
+| Set14 | Scale |      SRResNet      |       SRGAN        |
+|:-----:|:-----:|:------------------:|:------------------:|
+| PSNR  |   4   |  28.49(**28.62**)  |  26.02(**25.89**)  |
+| SSIM  |   4   | 0.8184(**0.7831**) | 0.7397(**0.6932**) |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="figure/result.png"/></span>
