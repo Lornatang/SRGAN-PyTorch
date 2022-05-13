@@ -32,7 +32,7 @@ Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc
 ## Step3: Preprocess the train dataset
 
 ```bash
-cd <SRGAN-PyTorch-master>/scripts
+cd <SRGAN-PyTorch-main>/scripts
 python run.py
 ```
 
