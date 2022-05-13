@@ -103,8 +103,8 @@ def main() -> None:
     avg_ssim = 1 if ssim_metrics / total_files > 1 else ssim_metrics / total_files
     avg_psnr = 100 if psnr_metrics / total_files > 100 else psnr_metrics / total_files
 
-    print(f"PSNR: {avg_psnr:4.2f} u\n"
-          f"SSIM: {avg_ssim:4.4f} dB")
+    print(f"PSNR: {avg_psnr:4.2f} dB\n"
+          f"SSIM: {avg_ssim:4.4f} u")
 
 
 if __name__ == "__main__":
