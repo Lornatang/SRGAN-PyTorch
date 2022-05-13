@@ -171,7 +171,7 @@ def define_optimizer(model) -> optim.Adam:
 
 def train(model: nn.Module,
           train_prefetcher: CUDAPrefetcher,
-          pixel_criterion: nn.L1Loss,
+          pixel_criterion: nn.MSELoss,
           optimizer: optim.Adam,
           epoch: int,
           scaler: amp.GradScaler,
@@ -181,7 +181,7 @@ def train(model: nn.Module,
     Args:
         model (nn.Module): the generator model in the generative network
         train_prefetcher (CUDAPrefetcher): training dataset iterator
-        pixel_criterion (nn.L1Loss): Calculate the pixel difference between real and fake samples
+        pixel_criterion (nn.MSELoss): Calculate the pixel difference between real and fake samples
         optimizer (optim.Adam): optimizer for optimizing generator models in generative networks
         epoch (int): number of training epochs during training the generative network
         scaler (amp.GradScaler): Mixed precision training function
