@@ -260,7 +260,7 @@ def train(discriminator: nn.Module,
         discriminator (nn.Module): discriminator model in adversarial networks
         generator (nn.Module): generator model in adversarial networks
         train_prefetcher (CUDAPrefetcher): training dataset iterator
-        content_criterion (nn): Calculate the feature difference between real samples and fake samples by the feature extraction model
+        content_criterion (ContentLoss): Calculate the feature difference between real samples and fake samples by the feature extraction model
         adversarial_criterion (nn.BCEWithLogitsLoss): Calculate the semantic difference between real samples and fake samples by the discriminator model
         d_optimizer (optim.Adam): an optimizer for optimizing discriminator models in adversarial networks
         g_optimizer (optim.Adam): an optimizer for optimizing generator models in adversarial networks
