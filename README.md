@@ -83,6 +83,11 @@ In the following table, the psnr value in `()` indicates the result of the proje
 | PSNR  |   4   |  28.49(**28.62**)  |  26.02(**25.89**)  |
 | SSIM  |   4   | 0.8184(**0.7831**) | 0.7397(**0.6932**) |
 
+| BSD100 | Scale |      SRResNet      |       SRGAN        |
+|:------:|:-----:|:------------------:|:------------------:|
+|  PSNR  |   4   |  27.58(**27.59**)  |  25.16(**24.91**)  |
+|  SSIM  |   4   | 0.7620(**0.7379**) | 0.6688(**0.6354**) |
+
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="figure/result.png"/></span>
 
