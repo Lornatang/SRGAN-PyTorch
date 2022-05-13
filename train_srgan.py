@@ -116,6 +116,10 @@ def main():
     psnr_model = PSNR(config.upscale_factor, config.only_test_y_channel)
     ssim_model = SSIM(config.upscale_factor, config.only_test_y_channel)
 
+    # Transfer the IQA model to the specified device
+    psnr_model = psnr_model.to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+    ssim_model = ssim_model.to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+
     for epoch in range(config.start_epoch, config.epochs):
         train(discriminator,
               generator,
