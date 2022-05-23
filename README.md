@@ -11,10 +11,12 @@ This repository contains an op-for-op PyTorch reimplementation of [Photo-Realist
     - [Table of contents](#table-of-contents)
     - [Download weights](#download-weights)
     - [Download datasets](#download-datasets)
-    - [Test](#test)
-    - [Train](#train)
+    - [How Test and Train](#how-test-and-train)
+        - [Test](#test)
         - [Train SRResNet model](#train-srresnet-model)
+        - [Resume train SRResNet model](#resume-train-srresnet-model)
         - [Train SRGAN model](#train-srgan-model)
+        - [Resume train SRGAN model](#resume-train-srgan-model)
     - [Result](#result)
     - [Contributing](#contributing)
     - [Credit](#credit)
@@ -34,38 +36,44 @@ Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc
 
 Please refer to `README.md` in the `data` directory for the method of making a dataset.
 
-## Test
+## How Test and Train
 
-Modify the contents of the `config.py` file as follows.
+Both training and testing only need to modify the `config.py` file. 
 
-- line 32: `upscale_factor` change to the magnification you need to enlarge.
-- line 33: `mode` change Set to valid mode.
-- line 108: `model_path` change weight address after training.
+### Test
 
-## Train
-
-Modify the contents of the `config.py` file as follows.
-
-- line 32: `upscale_factor` change to the magnification you need to enlarge.
-- line 33: `mode` change Set to train mode.
-
-If you want to load weights that you've trained before, modify the contents of the file as follows.
+- line 31: `upscale_factor` change to `4`.
+- line 33: `mode` change to `valid`.
+- line 106: `model_path` change to `results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar`.
 
 ### Train SRResNet model
 
-Modify the contents of the `config.py` file as follows.
+- line 31: `upscale_factor` change to `4`.
+- line 33: `mode` change to `train_srresnet`.
+- line 35: `exp_name` change to `SRResNet_baseline`.
 
-- line 49: `start_epoch` change number of SRResNet training iterations in the previous round.
-- line 51: `resume` change to SRResNet weight address that needs to be loaded.
+### Resume train SRResNet model
+
+- line 31: `upscale_factor` change to `4`.
+- line 33: `mode` change to `train`.
+- line 35: `exp_name` change to `SRResNet_baseline`.
+- line 49: `resume` change to `samples/SRResNet_baseline/g_epoch_xxx.pth.tar`.
 
 ### Train SRGAN model
 
-Modify the contents of the `config.py` file as follows.
+- line 31: `upscale_factor` change to `4`.
+- line 33: `mode` change to `train_srgan`.
+- line 35: `exp_name` change to `SRGAN_baseline`.
+- line 73: `resume` change to `results/SRResNet_baseline/g_last.pth.tar`.
 
-- line 74: `start_epoch` change number of SRGAN training iterations in the previous round.
-- line 75: `resume` change to SRResNet weight address that needs to be loaded.
-- line 76: `resume_d` change to Discriminator weight address that needs to be loaded.
-- line 77: `resume_g` change to Generator weight address that needs to be loaded.
+### Resume train SRGAN model
+
+- line 31: `upscale_factor` change to `4`.
+- line 33: `mode` change to `train_srgan`.
+- line 35: `exp_name` change to `SRGAN_baseline`.
+- line 73: `resume` change to `results/SRResNet_baseline/g_last.pth.tar`.
+- line 74: `resume_d` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
+- line 75: `resume_g` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
 
 ## Result
 

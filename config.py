@@ -46,7 +46,6 @@ if mode == "train_srresnet":
     num_workers = 4
 
     # Incremental training and migration training
-    start_epoch = 0
     resume = ""
 
     # Total num epochs
@@ -71,7 +70,6 @@ if mode == "train_srgan":
     num_workers = 4
 
     # Incremental training and migration training
-    start_epoch = 0
     resume = "results/SRResNet_baseline/g_last.pth.tar"
     resume_d = ""
     resume_g = ""
