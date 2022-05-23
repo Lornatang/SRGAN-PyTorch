@@ -103,4 +103,4 @@ if mode == "valid":
     sr_dir = f"results/test/{exp_name}"
     hr_dir = f"data/Set5/GTmod12"
 
-    model_path = f"results/{exp_name}/g_last.pth.tar"
+    model_path = "results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar"
