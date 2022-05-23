@@ -51,7 +51,7 @@ def main():
     d_optimizer, g_optimizer = define_optimizer(discriminator, generator)
     print("Define all optimizer functions successfully.")
 
-    d_scheduler, g_scheduler = define_scheduler(discriminator, generator)
+    d_scheduler, g_scheduler = define_scheduler(d_optimizer, g_optimizer)
     print("Define all optimizer scheduler functions successfully.")
 
     if config.resume:
