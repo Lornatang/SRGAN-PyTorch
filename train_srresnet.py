@@ -329,7 +329,7 @@ def validate(model: nn.Module,
 
     if mode == "Valid" or mode == "Test":
         writer.add_scalar(f"{mode}/PSNR", psnres.avg, epoch + 1)
-        writer.add_scalar(f"{mode}/SSIM", psnres.avg, epoch + 1)
+        writer.add_scalar(f"{mode}/SSIM", ssimes.avg, epoch + 1)
     else:
         raise ValueError("Unsupported mode, please use `Valid` or `Test`.")
 
