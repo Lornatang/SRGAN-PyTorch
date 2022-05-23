@@ -55,7 +55,7 @@ Both training and testing only need to modify the `config.py` file.
 ### Resume train SRResNet model
 
 - line 31: `upscale_factor` change to `4`.
-- line 33: `mode` change to `train`.
+- line 33: `mode` change to `train_srresnet`.
 - line 35: `exp_name` change to `SRResNet_baseline`.
 - line 49: `resume` change to `samples/SRResNet_baseline/g_epoch_xxx.pth.tar`.
 
