@@ -321,7 +321,7 @@ def validate(model: nn.Module,
             batch_data = data_prefetcher.next()
 
             # After training a batch of data, add 1 to the number of data batches to ensure that the
-            # terminal prints data normally
+            # terminal print data normally
             batch_index += 1
 
     # print metrics

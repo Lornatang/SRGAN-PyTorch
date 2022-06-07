@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""File description: Realize the verification function after model training."""
 import os
 
 import cv2
@@ -41,8 +40,6 @@ def main() -> None:
 
     # Start the verification mode of the model.
     model.eval()
-    # Turn on half-precision inference.
-    model.half()
 
     # Initialize the sharpness evaluation function
     psnr = PSNR(config.upscale_factor, config.only_test_y_channel)
@@ -76,8 +73,8 @@ def main() -> None:
         hr_image = cv2.cvtColor(hr_image, cv2.COLOR_BGR2RGB)
 
         # Convert RGB channel image format data to Tensor channel image format data
-        lr_tensor = imgproc.image2tensor(lr_image, range_norm=False, half=True).unsqueeze_(0)
-        hr_tensor = imgproc.image2tensor(hr_image, range_norm=False, half=True).unsqueeze_(0)
+        lr_tensor = imgproc.image2tensor(lr_image, False, False).unsqueeze_(0)
+        hr_tensor = imgproc.image2tensor(hr_image, False, False).unsqueeze_(0)
 
         # Transfer Tensor channel image format data to CUDA device
         lr_tensor = lr_tensor.to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
@@ -88,7 +85,7 @@ def main() -> None:
             sr_tensor = model(lr_tensor)
 
         # Save image
-        sr_image = imgproc.tensor2image(sr_tensor, range_norm=False, half=True)
+        sr_image = imgproc.tensor2image(sr_tensor, False, False)
         sr_image = cv2.cvtColor(sr_image, cv2.COLOR_RGB2BGR)
         cv2.imwrite(sr_image_path, sr_image)
 

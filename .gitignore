@@ -133,14 +133,3 @@ dmypy.json
 data
 results
 samples
-
-# Program run create file.
-*.JPEG
-*.jpeg
-*.bmp
-*.png
-*.mp4
-*.zip
-*.csv
-*.pth
-*.mdb

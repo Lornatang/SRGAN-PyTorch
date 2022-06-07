@@ -36,10 +36,10 @@ exp_name = "SRResNet_baseline"
 
 if mode == "train_srresnet":
     # Dataset address
-    train_image_dir = "data/ImageNet/SRGAN/train"
-    valid_image_dir = "data/ImageNet/SRGAN/valid"
-    test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
-    test_hr_image_dir = f"data/Set5/GTmod12"
+    train_image_dir = "./data/ImageNet/SRGAN/train"
+    valid_image_dir = "./data/ImageNet/SRGAN/valid"
+    test_lr_image_dir = f"./data/Set5/LRbicx{upscale_factor}"
+    test_hr_image_dir = f"./data/Set5/GTmod12"
 
     image_size = 96
     batch_size = 16
@@ -60,17 +60,17 @@ if mode == "train_srresnet":
 
 if mode == "train_srgan":
     # Dataset address
-    train_image_dir = "data/ImageNet/SRGAN/train"
-    valid_image_dir = "data/ImageNet/SRGAN/valid"
-    test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
-    test_hr_image_dir = f"data/Set5/GTmod12"
+    train_image_dir = "./data/ImageNet/SRGAN/train"
+    valid_image_dir = "./data/ImageNet/SRGAN/valid"
+    test_lr_image_dir = f"./data/Set5/LRbicx{upscale_factor}"
+    test_hr_image_dir = f"./data/Set5/GTmod12"
 
     image_size = 96
     batch_size = 16
     num_workers = 4
 
     # Incremental training and migration training
-    resume = "results/SRResNet_baseline/g_last.pth.tar"
+    resume = "./results/SRResNet_baseline/g_last.pth.tar"
     resume_d = ""
     resume_g = ""
 
@@ -97,10 +97,10 @@ if mode == "train_srgan":
     # How many iterations to print the training result
     print_frequency = 200
 
-if mode == "valid":
+if mode == "test":
     # Test data address
-    lr_dir = f"data/Set5/LRbicx{upscale_factor}"
-    sr_dir = f"results/test/{exp_name}"
-    hr_dir = f"data/Set5/GTmod12"
+    lr_dir = f"./data/Set5/LRbicx{upscale_factor}"
+    sr_dir = f"./results/test/{exp_name}"
+    hr_dir = f"./data/Set5/GTmod12"
 
-    model_path = "results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar"
+    model_path = "./results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar"

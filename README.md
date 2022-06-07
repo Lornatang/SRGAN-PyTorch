@@ -43,7 +43,7 @@ Both training and testing only need to modify the `config.py` file.
 ### Test
 
 - line 31: `upscale_factor` change to `4`.
-- line 33: `mode` change to `valid`.
+- line 33: `mode` change to `test`.
 - line 106: `model_path` change to `results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar`.
 
 ### Train SRResNet model
@@ -96,8 +96,25 @@ In the following table, the psnr value in `()` indicates the result of the proje
 |  PSNR  |   4   |  27.58(**27.59**)  |  25.16(**24.91**)  |
 |  SSIM  |   4   | 0.7620(**0.7379**) | 0.6688(**0.6354**) |
 
-Low resolution / Recovered High Resolution / Ground Truth
-<span align="center"><img src="figure/result.png"/></span>
+```bash
+# Download `SRGAN_x4-ImageNet-c71a4860.pth.tar` weights to `./results/pretrained_models`
+# More detail see `README.md<Download weights>`
+python ./inference.py --inputs_path ./figure/comic_lr.png --output_path ./figure/comic_sr.png --weights_path ./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar
+```
+
+Input: 
+
+<span align="center"><img width="240" height="360" src="figure/comic_lr.png"/></span>
+
+Output: 
+
+<span align="center"><img width="240" height="360" src="figure/comic_sr.png"/></span>
+
+```text
+Build SRGAN model successfully.
+Load SRGAN model weights `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar` successfully.
+SR image save to `./figure/comic_sr.png`
+```
 
 ## Contributing
 
@@ -126,7 +143,7 @@ perceptual similarity instead of similarity in pixel space. Our deep residual ne
 downsampled images on public benchmarks. An extensive mean-opinion-score (MOS) test shows hugely significant gains in perceptual quality using SRGAN.
 The MOS scores obtained with SRGAN are closer to those of the original high-resolution images than to those obtained with any state-of-the-art method.
 
-[[Paper]](https://arxiv.org/pdf/1609.04802)
+[[Paper]](https://arxiv.org/pdf/1609.04802v5.pdf)
 
 ```bibtex
 @InProceedings{srgan,
