@@ -14,6 +14,7 @@
 import os
 
 import cv2
+import shutil
 import torch
 from natsort import natsorted
 
@@ -34,9 +35,9 @@ def main() -> None:
     print(f"Load SRGAN model weights `{os.path.abspath(config.model_path)}` successfully.")
 
     # Create a folder of super-resolution experiment results
-    results_dir = os.path.join("results", "test", config.exp_name)
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
+    if not os.path.exists(config.sr_dir):
+        shutil.rmtree(config.sr_dir)
+    os.makedirs(config.sr_dir)
 
     # Start the verification mode of the model.
     model.eval()
