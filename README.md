@@ -44,36 +44,56 @@ Both training and testing only need to modify the `config.py` file.
 
 - line 31: `upscale_factor` change to `4`.
 - line 33: `mode` change to `test`.
-- line 106: `model_path` change to `results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar`.
+- line 112: `model_path` change to `results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar`.
+
+```bash
+python3 test.py
+```
 
 ### Train SRResNet model
 
 - line 31: `upscale_factor` change to `4`.
 - line 33: `mode` change to `train_srresnet`.
 - line 35: `exp_name` change to `SRResNet_baseline`.
+- line 49: `pretrained_model_path` change to `./results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar`.
+
+```bash
+python3 train_srresnet.py
+```
 
 ### Resume train SRResNet model
 
 - line 31: `upscale_factor` change to `4`.
 - line 33: `mode` change to `train_srresnet`.
 - line 35: `exp_name` change to `SRResNet_baseline`.
-- line 49: `resume` change to `samples/SRResNet_baseline/g_epoch_xxx.pth.tar`.
+- line 52: `resume` change to `samples/SRResNet_baseline/g_epoch_xxx.pth.tar`.
+
+```bash
+python3 train_srresnet.py
+```
 
 ### Train SRGAN model
 
 - line 31: `upscale_factor` change to `4`.
 - line 33: `mode` change to `train_srgan`.
 - line 35: `exp_name` change to `SRGAN_baseline`.
-- line 73: `resume` change to `results/SRResNet_baseline/g_last.pth.tar`.
+- line 77: `pretrained_g_model_path` change to `./results/SRResNet_baseline/g_best.pth.tar`.
+
+```bash
+python3 train_srgan.py
+```
 
 ### Resume train SRGAN model
 
 - line 31: `upscale_factor` change to `4`.
 - line 33: `mode` change to `train_srgan`.
 - line 35: `exp_name` change to `SRGAN_baseline`.
-- line 73: `resume` change to `results/SRResNet_baseline/g_last.pth.tar`.
-- line 74: `resume_d` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
-- line 75: `resume_g` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
+- line 80: `resume_d` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
+- line 81: `resume_g` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
+
+```bash
+python3 train_srgan.py
+```
 
 ## Result
 

@@ -45,6 +45,9 @@ if mode == "train_srresnet":
     batch_size = 16
     num_workers = 4
 
+    # The address to load the pretrained model
+    pretrained_model_path = "./results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar"
+
     # Incremental training and migration training
     resume = ""
 
@@ -69,8 +72,11 @@ if mode == "train_srgan":
     batch_size = 16
     num_workers = 4
 
+    # The address to load the pretrained model
+    pretrained_d_model_path = ""
+    pretrained_g_model_path = "./results/SRResNet_baseline/g_best.pth.tar"
+
     # Incremental training and migration training
-    resume = "./results/SRResNet_baseline/g_last.pth.tar"
     resume_d = ""
     resume_g = ""
 
