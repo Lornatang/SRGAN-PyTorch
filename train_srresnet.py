@@ -50,6 +50,20 @@ def main():
     optimizer = define_optimizer(model)
     print("Define all optimizer functions successfully.")
 
+    print("Check whether to load pretrained model weights...")
+    if config.pretrained_model_path:
+        # Load checkpoint model
+        checkpoint = torch.load(config.pretrained_model_path, map_location=lambda storage, loc: storage)
+        # Load model state dict. Extract the fitted model weights
+        model_state_dict = model.state_dict()
+        state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
+        # Overwrite the model weights to the current model
+        model_state_dict.update(state_dict)
+        model.load_state_dict(model_state_dict)
+        print(f"Loaded `{config.pretrained_model_path}` pretrained model weights successfully.")
+    else:
+        print("Pretrained model weights not found.")
+
     print("Check whether the pretrained model is restored...")
     if config.resume:
         # Load checkpoint model
@@ -66,7 +80,10 @@ def main():
         model.load_state_dict(model_state_dict)
         # Load the optimizer model
         optimizer.load_state_dict(checkpoint["optimizer"])
-        print("Loaded pretrained model weights.")
+        print(f"Loaded `{config.resume}` resume model weights successfully. "
+              f"Resume training from epoch {start_epoch + 1}.")
+    else:
+        print("Resume training model not found. Start training from scratch.")
 
     # Create a folder of super-resolution experiment results
     samples_dir = os.path.join("samples", config.exp_name)
@@ -104,8 +121,7 @@ def main():
                     "best_psnr": best_psnr,
                     "best_ssim": best_ssim,
                     "state_dict": model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "scheduler": None},
+                    "optimizer": optimizer.state_dict()},
                    os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"))
         if is_best:
             shutil.copyfile(os.path.join(samples_dir, f"g_epoch_{epoch + 1}.pth.tar"),
@@ -245,7 +261,7 @@ def train(model: nn.Module,
         if batch_index % config.print_frequency == 0:
             # Record loss during training and output to file
             writer.add_scalar("Train/Loss", loss.item(), batch_index + epoch * batches + 1)
-            progress.display(batch_index)
+            progress.display(batch_index + 1)
 
         # Preload the next batch of data
         batch_data = train_prefetcher.next()
@@ -315,7 +331,7 @@ def validate(model: nn.Module,
 
             # Record training log information
             if batch_index % (batches // 5) == 0:
-                progress.display(batch_index)
+                progress.display(batch_index + 1)
 
             # Preload the next batch of data
             batch_data = data_prefetcher.next()
@@ -336,7 +352,6 @@ def validate(model: nn.Module,
     return psnres.avg, ssimes.avg
 
 
-# Copy form "https://github.com/pytorch/examples/blob/master/imagenet/main.py"
 class Summary(Enum):
     NONE = 0
     AVERAGE = 1
@@ -345,8 +360,6 @@ class Summary(Enum):
 
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
     def __init__(self, name, fmt=":f", summary_type=Summary.AVERAGE):
         self.name = name
         self.fmt = fmt
