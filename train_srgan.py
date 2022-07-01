@@ -54,14 +54,35 @@ def main():
     d_scheduler, g_scheduler = define_scheduler(d_optimizer, g_optimizer)
     print("Define all optimizer scheduler functions successfully.")
 
-    if config.resume:
-        print("Loading SRResNet model weights")
+    print("Check whether to load pretrained discriminator model weights...")
+    if config.pretrained_d_model_path:
         # Load checkpoint model
-        checkpoint = torch.load(config.resume, map_location=lambda storage, loc: storage)
-        generator.load_state_dict(checkpoint["state_dict"])
-        print("Loaded SRResNet model weights.")
+        checkpoint = torch.load(config.pretrained_d_model_path, map_location=lambda storage, loc: storage)
+        # Load model state dict. Extract the fitted model weights
+        model_state_dict = discriminator.state_dict()
+        state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
+        # Overwrite the model weights to the current model
+        model_state_dict.update(state_dict)
+        discriminator.load_state_dict(model_state_dict)
+        print(f"Loaded `{config.pretrained_d_model_path}` pretrained discriminator model weights successfully.")
+    else:
+        print("Pretrained discriminator model weights not found.")
 
-    print("Check whether the pretrained discriminator model is restored...")
+    print("Check whether to load pretrained generator model weights...")
+    if config.pretrained_g_model_path:
+        # Load checkpoint model
+        checkpoint = torch.load(config.pretrained_g_model_path, map_location=lambda storage, loc: storage)
+        # Load model state dict. Extract the fitted model weights
+        model_state_dict = generator.state_dict()
+        state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
+        # Overwrite the model weights to the current model
+        model_state_dict.update(state_dict)
+        generator.load_state_dict(model_state_dict)
+        print(f"Loaded `{config.pretrained_g_model_path}` pretrained generator model weights successfully.")
+    else:
+        print("Pretrained generator model weights not found.")
+
+    print("Check whether to resume training discriminator...")
     if config.resume_d:
         # Load checkpoint model
         checkpoint = torch.load(config.resume_d, map_location=lambda storage, loc: storage)
@@ -79,9 +100,12 @@ def main():
         d_optimizer.load_state_dict(checkpoint["optimizer"])
         # Load the scheduler model
         d_scheduler.load_state_dict(checkpoint["scheduler"])
-        print("Loaded pretrained discriminator model weights.")
+        print(f"Loaded `{config.resume_d}` resume discriminator model weights successfully. "
+              f"Resume training from epoch {start_epoch + 1}.")
+    else:
+        print("Resume training discriminator model not found. Start training from scratch.")
 
-    print("Check whether the pretrained generator model is restored...")
+    print("Check whether to resume training generator...")
     if config.resume_g:
         # Load checkpoint model
         checkpoint = torch.load(config.resume_g, map_location=lambda storage, loc: storage)
@@ -99,7 +123,10 @@ def main():
         g_optimizer.load_state_dict(checkpoint["optimizer"])
         # Load the scheduler model
         g_scheduler.load_state_dict(checkpoint["scheduler"])
-        print("Loaded pretrained generator model weights.")
+        print(f"Loaded `{config.resume_g}` resume generator model weights successfully. "
+              f"Resume training from epoch {start_epoch + 1}.")
+    else:
+        print("Resume training generator model not found. Start training from scratch.")
 
     # Create a folder of super-resolution experiment results
     samples_dir = os.path.join("samples", config.exp_name)
@@ -388,7 +415,7 @@ def train(discriminator: nn.Module,
             writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
             writer.add_scalar("Train/D(HR)_Probability", d_hr_probability.item(), iters)
             writer.add_scalar("Train/D(SR)_Probability", d_sr_probability.item(), iters)
-            progress.display(batch_index)
+            progress.display(batch_index + 1)
 
         # Preload the next batch of data
         batch_data = train_prefetcher.next()
@@ -458,7 +485,7 @@ def validate(model: nn.Module,
 
             # Record training log information
             if batch_index % (batches // 5) == 0:
-                progress.display(batch_index)
+                progress.display(batch_index + 1)
 
             # Preload the next batch of data
             batch_data = data_prefetcher.next()
@@ -479,7 +506,6 @@ def validate(model: nn.Module,
     return psnres.avg, ssimes.avg
 
 
-# Copy form "https://github.com/pytorch/examples/blob/master/imagenet/main.py"
 class Summary(Enum):
     NONE = 0
     AVERAGE = 1
@@ -488,8 +514,6 @@ class Summary(Enum):
 
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
     def __init__(self, name, fmt=":f", summary_type=Summary.AVERAGE):
         self.name = name
         self.fmt = fmt
