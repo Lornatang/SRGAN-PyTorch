@@ -56,7 +56,8 @@ def main():
         checkpoint = torch.load(config.pretrained_model_path, map_location=lambda storage, loc: storage)
         # Load model state dict. Extract the fitted model weights
         model_state_dict = model.state_dict()
-        state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
+        state_dict = {k: v for k, v in checkpoint["state_dict"].items() if
+                      k in model_state_dict.keys() and v.size() == model_state_dict[k].size()}
         # Overwrite the model weights to the current model
         model_state_dict.update(state_dict)
         model.load_state_dict(model_state_dict)
@@ -74,7 +75,8 @@ def main():
         best_ssim = checkpoint["best_ssim"]
         # Load checkpoint state dict. Extract the fitted model weights
         model_state_dict = model.state_dict()
-        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if k in model_state_dict.keys()}
+        new_state_dict = {k: v for k, v in checkpoint["state_dict"].items() if
+                      k in model_state_dict.keys() and v.size() == model_state_dict[k].size()}
         # Overwrite the pretrained model weights to the current model
         model_state_dict.update(new_state_dict)
         model.load_state_dict(model_state_dict)
