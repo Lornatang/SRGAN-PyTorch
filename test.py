@@ -35,7 +35,7 @@ def main() -> None:
     print(f"Load SRGAN model weights `{os.path.abspath(config.model_path)}` successfully.")
 
     # Create a folder of super-resolution experiment results
-    if not os.path.exists(config.sr_dir):
+    if os.path.exists(config.sr_dir):
         shutil.rmtree(config.sr_dir)
     os.makedirs(config.sr_dir)
 
