@@ -43,7 +43,6 @@ python run.py
 - ImageNet
     - SRGAN
         - train
-        - valid
         - original
 
 # Test dataset
