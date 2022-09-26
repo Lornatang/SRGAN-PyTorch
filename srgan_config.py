@@ -64,6 +64,7 @@ if mode == "train":
     epochs = 18
 
     # Loss function weight
+    pixel_weight = 1.0
     content_weight = 1.0
     adversarial_weight = 0.001
 

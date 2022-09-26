@@ -48,7 +48,7 @@ Modify the `srgan_config.py` file.
 - line 38: `upscale_factor` change to `4`.
 - line 40: `mode` change to `test`.
 - line 42: `exp_name` change to `test_SRGAN_x4`.
-- line 95: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar`.
+- line 96: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar`.
 
 ```bash
 python3 test.py
