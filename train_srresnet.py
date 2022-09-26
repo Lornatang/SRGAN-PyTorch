@@ -60,7 +60,7 @@ def main():
         print("Pretrained model weights not found.")
 
     print("Check whether the pretrained model is restored...")
-    if srresnet_config.resume_g:
+    if srresnet_config.resume_g_model_weights_path:
         srresnet_model, _, start_epoch, best_psnr, best_ssim, optimizer, _ = load_state_dict(
             srresnet_model,
             srresnet_config.pretrained_g_model_weights_path,

@@ -17,9 +17,9 @@ import cv2
 import torch
 from natsort import natsorted
 
-import srresnet_config
 import imgproc
 import model
+import srgan_config
 from image_quality_assessment import PSNR, SSIM
 from utils import make_directory
 
@@ -30,50 +30,50 @@ model_names = sorted(
 
 def main() -> None:
     # Initialize the super-resolution bsrgan_model
-    g_model = model.__dict__[srresnet_config.g_arch_name](in_channels=srresnet_config.in_channels,
-                                                          out_channels=srresnet_config.out_channels,
-                                                          channels=srresnet_config.channels,
-                                                          num_blocks=srresnet_config.num_blocks)
-    g_model = g_model.to(device=srresnet_config.device)
-    print(f"Build `{srresnet_config.g_arch_name}` model successfully.")
+    g_model = model.__dict__[srgan_config.g_arch_name](in_channels=srgan_config.in_channels,
+                                                       out_channels=srgan_config.out_channels,
+                                                       channels=srgan_config.channels,
+                                                       num_blocks=srgan_config.num_blocks)
+    g_model = g_model.to(device=srgan_config.device)
+    print(f"Build `{srgan_config.g_arch_name}` model successfully.")
 
     # Load the super-resolution bsrgan_model weights
-    checkpoint = torch.load(srresnet_config.g_model_weights_path, map_location=lambda storage, loc: storage)
+    checkpoint = torch.load(srgan_config.g_model_weights_path, map_location=lambda storage, loc: storage)
     g_model.load_state_dict(checkpoint["state_dict"])
-    print(f"Load `{srresnet_config.g_arch_name}` model weights "
-          f"`{os.path.abspath(srresnet_config.g_model_weights_path)}` successfully.")
+    print(f"Load `{srgan_config.g_arch_name}` model weights "
+          f"`{os.path.abspath(srgan_config.g_model_weights_path)}` successfully.")
 
     # Create a folder of super-resolution experiment results
-    make_directory(srresnet_config.sr_dir)
+    make_directory(srgan_config.sr_dir)
 
     # Start the verification mode of the bsrgan_model.
     g_model.eval()
 
     # Initialize the sharpness evaluation function
-    psnr = PSNR(srresnet_config.upscale_factor, srresnet_config.only_test_y_channel)
-    ssim = SSIM(srresnet_config.upscale_factor, srresnet_config.only_test_y_channel)
+    psnr = PSNR(srgan_config.upscale_factor, srgan_config.only_test_y_channel)
+    ssim = SSIM(srgan_config.upscale_factor, srgan_config.only_test_y_channel)
 
     # Set the sharpness evaluation function calculation device to the specified model
-    psnr = psnr.to(device=srresnet_config.device, non_blocking=True)
-    ssim = ssim.to(device=srresnet_config.device, non_blocking=True)
+    psnr = psnr.to(device=srgan_config.device, non_blocking=True)
+    ssim = ssim.to(device=srgan_config.device, non_blocking=True)
 
     # Initialize IQA metrics
     psnr_metrics = 0.0
     ssim_metrics = 0.0
 
     # Get a list of test image file names.
-    file_names = natsorted(os.listdir(srresnet_config.lr_dir))
+    file_names = natsorted(os.listdir(srgan_config.lr_dir))
     # Get the number of test image files.
     total_files = len(file_names)
 
     for index in range(total_files):
-        lr_image_path = os.path.join(srresnet_config.lr_dir, file_names[index])
-        sr_image_path = os.path.join(srresnet_config.sr_dir, file_names[index])
-        gt_image_path = os.path.join(srresnet_config.gt_dir, file_names[index])
+        lr_image_path = os.path.join(srgan_config.lr_dir, file_names[index])
+        sr_image_path = os.path.join(srgan_config.sr_dir, file_names[index])
+        gt_image_path = os.path.join(srgan_config.gt_dir, file_names[index])
 
         print(f"Processing `{os.path.abspath(lr_image_path)}`...")
-        lr_tensor = imgproc.preprocess_one_image(lr_image_path, srresnet_config.device)
-        gt_tensor = imgproc.preprocess_one_image(gt_image_path, srresnet_config.device)
+        lr_tensor = imgproc.preprocess_one_image(lr_image_path, srgan_config.device)
+        gt_tensor = imgproc.preprocess_one_image(gt_image_path, srgan_config.device)
 
         # Only reconstruct the Y channel image data.
         with torch.no_grad():

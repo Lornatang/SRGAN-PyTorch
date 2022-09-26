@@ -71,7 +71,7 @@ def main():
         print("Pretrained g model weights not found.")
 
     print("Check whether the pretrained d model is restored...")
-    if srgan_config.resume_d:
+    if srgan_config.resume_d_model_weights_path:
         d_model, _, start_epoch, best_psnr, best_ssim, optimizer, scheduler = load_state_dict(
             d_model,
             srgan_config.pretrained_d_model_weights_path,
@@ -83,7 +83,7 @@ def main():
         print("Resume training d model not found. Start training from scratch.")
 
     print("Check whether the pretrained g model is restored...")
-    if srgan_config.resume_g:
+    if srgan_config.resume_g_model_weights_path:
         g_model, _, start_epoch, best_psnr, best_ssim, optimizer, scheduler = load_state_dict(
             g_model,
             srgan_config.pretrained_g_model_weights_path,

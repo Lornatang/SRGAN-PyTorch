@@ -57,8 +57,8 @@ if mode == "train":
     pretrained_g_model_weights_path = "./results/SRResNet_x4/g_best.pth.tar"
 
     # Incremental training and migration training
-    resume_d = f""
-    resume_g = f""
+    resume_d_model_weights_path = f""
+    resume_g_model_weights_path = f""
 
     # Total num epochs (200,000 iters)
     epochs = 18

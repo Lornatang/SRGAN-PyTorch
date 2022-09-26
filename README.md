@@ -38,13 +38,17 @@ Please refer to `README.md` in the `data` directory for the method of making a d
 
 ## How Test and Train
 
-Both training and testing only need to modify the `config.py` file. 
+Both training and testing only need to modify the `srresnet_config.py` file and `srgan_config.py` file. 
 
 ### Test
 
-- line 31: `upscale_factor` change to `4`.
-- line 33: `mode` change to `test`.
-- line 112: `model_path` change to `results/pretrained_models/SRGAN_x4-ImageNet-93066133`.
+Modify the `srgan_config.py` file.
+
+- line 32: `g_arch_name` change to `srresnet_x4`.
+- line 38: `upscale_factor` change to `4`.
+- line 40: `mode` change to `test`.
+- line 42: `exp_name` change to `test_SRGAN_x4`.
+- line 95: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-93066133.pth.tar`.
 
 ```bash
 python3 test.py
@@ -52,10 +56,12 @@ python3 test.py
 
 ### Train SRResNet model
 
-- line 31: `upscale_factor` change to `4`.
-- line 33: `mode` change to `train_srresnet`.
-- line 35: `exp_name` change to `SRResNet_baseline`.
-- line 49: `pretrained_model_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-93066133`.
+Modify the `srresnet_config.py` file.
+
+- line 31: `g_arch_name` change to `srresnet_x4`.
+- line 37: `upscale_factor` change to `4`.
+- line 39: `mode` change to `train`.
+- line 41: `exp_name` change to `SRResNet_x4`.
 
 ```bash
 python3 train_srresnet.py
@@ -63,10 +69,13 @@ python3 train_srresnet.py
 
 ### Resume train SRResNet model
 
-- line 31: `upscale_factor` change to `4`.
-- line 33: `mode` change to `train_srresnet`.
-- line 35: `exp_name` change to `SRResNet_baseline`.
-- line 52: `resume` change to `samples/SRResNet_baseline/g_epoch_xxx.pth.tar`.
+Modify the `srresnet_config.py` file.
+
+- line 31: `g_arch_name` change to `srresnet_x4`.
+- line 37: `upscale_factor` change to `4`.
+- line 39: `mode` change to `train`.
+- line 41: `exp_name` change to `SRResNet_x4`.
+- line 58: `resume_g_model_weights_path` change to `./samples/SRResNet_x4/g_epoch_xxx.pth.tar`.
 
 ```bash
 python3 train_srresnet.py
@@ -74,10 +83,11 @@ python3 train_srresnet.py
 
 ### Train SRGAN model
 
-- line 31: `upscale_factor` change to `4`.
-- line 33: `mode` change to `train_srgan`.
-- line 35: `exp_name` change to `SRGAN_baseline`.
-- line 77: `pretrained_g_model_path` change to `./results/SRResNet_baseline/g_best.pth.tar`.
+- line 32: `g_arch_name` change to `srresnet_x4`.
+- line 38: `upscale_factor` change to `4`.
+- line 40: `mode` change to `train`.
+- line 42: `exp_name` change to `SRResNet_x4`.
+- line 57: `pretrained_g_model_weights_path` change to `./results/SRResNet_x4/g_best.pth.tar`.
 
 ```bash
 python3 train_srgan.py
@@ -85,11 +95,12 @@ python3 train_srgan.py
 
 ### Resume train SRGAN model
 
-- line 31: `upscale_factor` change to `4`.
-- line 33: `mode` change to `train_srgan`.
-- line 35: `exp_name` change to `SRGAN_baseline`.
-- line 80: `resume_d` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
-- line 81: `resume_g` change to `samples/SRGAN_baseline/g_epoch_xxx.pth.tar`.
+- line 32: `g_arch_name` change to `srresnet_x4`.
+- line 38: `upscale_factor` change to `4`.
+- line 40: `mode` change to `train`.
+- line 42: `exp_name` change to `SRResNet_x4`.
+- line 60: `resume_d_model_weights_path` change to `./samples/SRGAN_x4/d_epoch_xxx.pth.tar`.
+- line 61: `resume_g_model_weights_path` change to `./samples/SRGAN_x4/g_epoch_xxx.pth.tar`.
 
 ```bash
 python3 train_srgan.py
@@ -117,9 +128,9 @@ In the following table, the psnr value in `()` indicates the result of the proje
 |  SSIM  |   4   | 0.7620(**0.7379**) | 0.6688(**0.6354**) |
 
 ```bash
-# Download `SRGAN_x4-ImageNet-c71a4860.pth.tar` weights to `./results/pretrained_models`
+# Download `SRGAN_x4-ImageNet-93066133.pth.tar` weights to `./results/pretrained_models`
 # More detail see `README.md<Download weights>`
-python ./inference.py --inputs_path ./figure/comic_lr.png --output_path ./figure/comic_sr.png --weights_path ./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar
+python3 ./inference.py
 ```
 
 Input: 
@@ -131,8 +142,8 @@ Output:
 <span align="center"><img width="240" height="360" src="figure/comic_sr.png"/></span>
 
 ```text
-Build SRGAN model successfully.
-Load SRGAN model weights `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar` successfully.
+Build `srresnet_x4` model successfully.
+Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet-93066133.pth.tar` successfully.
 SR image save to `./figure/comic_sr.png`
 ```
 

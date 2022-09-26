@@ -55,7 +55,7 @@ if mode == "train":
     pretrained_g_model_weights_path = ""
 
     # Incremental training and migration training
-    resume_g = f""
+    resume_g_model_weights_path = f""
 
     # Total num epochs (1,000,000 iters)
     epochs = 90
