@@ -54,7 +54,7 @@ if mode == "train":
 
     # The address to load the pretrained model
     pretrained_d_model_weights_path = ""
-    pretrained_g_model_weights_path = "./results/SRResNet_x4/g_best.pth.tar"
+    pretrained_g_model_weights_path = "./results/SRResNet_x4/g_last.pth.tar"
 
     # Incremental training and migration training
     resume_d_model_weights_path = f""
@@ -92,4 +92,4 @@ if mode == "test":
     sr_dir = f"./results/test/{exp_name}"
     gt_dir = f"./data/Set5/GTmod12"
 
-    g_model_weights_path = "./results/pretrained_models/SRGAN_x4-ImageNet-93066133.pth.tar"
+    g_model_weights_path = "./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar"

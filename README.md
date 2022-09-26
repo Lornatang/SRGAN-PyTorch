@@ -48,7 +48,7 @@ Modify the `srgan_config.py` file.
 - line 38: `upscale_factor` change to `4`.
 - line 40: `mode` change to `test`.
 - line 42: `exp_name` change to `test_SRGAN_x4`.
-- line 95: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-93066133.pth.tar`.
+- line 95: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar`.
 
 ```bash
 python3 test.py
@@ -128,7 +128,7 @@ In the following table, the psnr value in `()` indicates the result of the proje
 |  SSIM  |   4   | 0.7620(**0.7379**) | 0.6688(**0.6354**) |
 
 ```bash
-# Download `SRGAN_x4-ImageNet-93066133.pth.tar` weights to `./results/pretrained_models`
+# Download `SRGAN_x4-ImageNet-c71a4860.pth.tar` weights to `./results/pretrained_models`
 # More detail see `README.md<Download weights>`
 python3 ./inference.py
 ```
@@ -143,7 +143,7 @@ Output:
 
 ```text
 Build `srresnet_x4` model successfully.
-Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet-93066133.pth.tar` successfully.
+Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar` successfully.
 SR image save to `./figure/comic_sr.png`
 ```
 
