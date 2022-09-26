@@ -44,7 +44,7 @@ Both training and testing only need to modify the `config.py` file.
 
 - line 31: `upscale_factor` change to `4`.
 - line 33: `mode` change to `test`.
-- line 112: `model_path` change to `results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar`.
+- line 112: `model_path` change to `results/pretrained_models/SRGAN_x4-ImageNet-93066133`.
 
 ```bash
 python3 test.py
@@ -55,7 +55,7 @@ python3 test.py
 - line 31: `upscale_factor` change to `4`.
 - line 33: `mode` change to `train_srresnet`.
 - line 35: `exp_name` change to `SRResNet_baseline`.
-- line 49: `pretrained_model_path` change to `./results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar`.
+- line 49: `pretrained_model_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-93066133`.
 
 ```bash
 python3 train_srresnet.py

@@ -11,7 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import math
+from typing import Any
+
 import torch
+from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
 from torchvision import models
@@ -19,13 +23,12 @@ from torchvision import transforms
 from torchvision.models.feature_extraction import create_feature_extractor
 
 __all__ = [
-    "ResidualConvBlock",
-    "Discriminator", "Generator",
-    "ContentLoss"
+    "Discriminator", "SRResNet", "ContentLoss",
+    "discriminator", "srresnet_x2", "srresnet_x4", "srresnet_x8", "content_loss",
 ]
 
 
-class ResidualConvBlock(nn.Module):
+class _ResidualConvBlock(nn.Module):
     """Implements residual conv function.
 
     Args:
@@ -33,7 +36,7 @@ class ResidualConvBlock(nn.Module):
     """
 
     def __init__(self, channels: int) -> None:
-        super(ResidualConvBlock, self).__init__()
+        super(_ResidualConvBlock, self).__init__()
         self.rcb = nn.Sequential(
             nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
             nn.BatchNorm2d(channels),
@@ -42,24 +45,26 @@ class ResidualConvBlock(nn.Module):
             nn.BatchNorm2d(channels),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         identity = x
+
         out = self.rcb(x)
+
         out = torch.add(out, identity)
 
         return out
 
 
-class UpsampleBlock(nn.Module):
-    def __init__(self, channels: int) -> None:
-        super(UpsampleBlock, self).__init__()
+class _UpsampleBlock(nn.Module):
+    def __init__(self, channels: int, upscale_factor: int) -> None:
+        super(_UpsampleBlock, self).__init__()
         self.upsample_block = nn.Sequential(
-            nn.Conv2d(channels, channels * 4, (3, 3), (1, 1), (1, 1)),
+            nn.Conv2d(channels, channels * upscale_factor * upscale_factor, (3, 3), (1, 1), (1, 1)),
             nn.PixelShuffle(2),
             nn.PReLU(),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         out = self.upsample_block(x)
 
         return out
@@ -105,7 +110,7 @@ class Discriminator(nn.Module):
             nn.Linear(1024, 1),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         out = self.features(x)
         out = torch.flatten(out, 1)
         out = self.classifier(out)
@@ -113,44 +118,54 @@ class Discriminator(nn.Module):
         return out
 
 
-class Generator(nn.Module):
-    def __init__(self) -> None:
-        super(Generator, self).__init__()
+class SRResNet(nn.Module):
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            channels: int,
+            num_blocks: int,
+            upscale_factor: int
+    ) -> None:
+        super(SRResNet, self).__init__()
         # First conv layer.
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(3, 64, (9, 9), (1, 1), (4, 4)),
+            nn.Conv2d(in_channels, channels, (9, 9), (1, 1), (4, 4)),
             nn.PReLU(),
         )
 
         # Features trunk blocks.
         trunk = []
-        for _ in range(16):
-            trunk.append(ResidualConvBlock(64))
+        for _ in range(num_blocks):
+            trunk.append(_ResidualConvBlock(channels))
         self.trunk = nn.Sequential(*trunk)
 
         # Second conv layer.
         self.conv_block2 = nn.Sequential(
-            nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1), bias=False),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(channels),
         )
 
         # Upscale block
         upsampling = []
-        for _ in range(2):
-            upsampling.append(UpsampleBlock(64))
+        if upscale_factor == 2 or upscale_factor == 4 or upscale_factor == 8:
+            for _ in range(int(math.log(upscale_factor, 2))):
+                upsampling.append(_UpsampleBlock(channels, 2))
+        elif upscale_factor == 3:
+            upsampling.append(_UpsampleBlock(channels, 3))
         self.upsampling = nn.Sequential(*upsampling)
 
         # Output layer.
-        self.conv_block3 = nn.Conv2d(64, 3, (9, 9), (1, 1), (4, 4))
+        self.conv_block3 = nn.Conv2d(channels, out_channels, (9, 9), (1, 1), (4, 4))
 
         # Initialize neural network weights
         self._initialize_weights()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
 
     # Support torch.script function
-    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
+    def _forward_impl(self, x: Tensor) -> Tensor:
         out1 = self.conv_block1(x)
         out = self.trunk(out1)
         out2 = self.conv_block2(out)
@@ -183,35 +198,73 @@ class ContentLoss(nn.Module):
 
      """
 
-    def __init__(self, feature_model_extractor_node: str,
-                 feature_model_normalize_mean: list,
-                 feature_model_normalize_std: list) -> None:
+    def __init__(
+            self,
+            feature_model_extractor_node: str,
+            feature_model_normalize_mean: list,
+            feature_model_normalize_std: list
+    ) -> None:
         super(ContentLoss, self).__init__()
         # Get the name of the specified feature extraction node
         self.feature_model_extractor_node = feature_model_extractor_node
         # Load the VGG19 model trained on the ImageNet dataset.
-        model = models.vgg19(True)
+        model = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1)
         # Extract the thirty-sixth layer output in the VGG19 model as the content loss.
         self.feature_extractor = create_feature_extractor(model, [feature_model_extractor_node])
         # set to validation mode
         self.feature_extractor.eval()
 
-        # The preprocessing method of the input data. This is the VGG model preprocessing method of the ImageNet dataset.
+        # The preprocessing method of the input data. 
+        # This is the VGG model preprocessing method of the ImageNet dataset.
         self.normalize = transforms.Normalize(feature_model_normalize_mean, feature_model_normalize_std)
 
         # Freeze model parameters.
         for model_parameters in self.feature_extractor.parameters():
             model_parameters.requires_grad = False
 
-    def forward(self, sr_tensor: torch.Tensor, hr_tensor: torch.Tensor) -> torch.Tensor:
+    def forward(self, sr_tensor: Tensor, gt_tensor: Tensor) -> Tensor:
         # Standardized operations
         sr_tensor = self.normalize(sr_tensor)
-        hr_tensor = self.normalize(hr_tensor)
+        gt_tensor = self.normalize(gt_tensor)
 
         sr_feature = self.feature_extractor(sr_tensor)[self.feature_model_extractor_node]
-        hr_feature = self.feature_extractor(hr_tensor)[self.feature_model_extractor_node]
+        gt_feature = self.feature_extractor(gt_tensor)[self.feature_model_extractor_node]
 
         # Find the feature map difference between the two images
-        content_loss = F.mse_loss(sr_feature, hr_feature)
+        loss = F.mse_loss(sr_feature, gt_feature)
 
-        return content_loss
+        return loss
+
+
+def discriminator() -> Discriminator:
+    model = Discriminator()
+
+    return model
+
+
+def srresnet_x2(**kwargs: Any) -> SRResNet:
+    model = SRResNet(upscale_factor=2, **kwargs)
+
+    return model
+
+
+def srresnet_x4(**kwargs: Any) -> SRResNet:
+    model = SRResNet(upscale_factor=4, **kwargs)
+
+    return model
+
+
+def srresnet_x8(**kwargs: Any) -> SRResNet:
+    model = SRResNet(upscale_factor=8, **kwargs)
+
+    return model
+
+
+def content_loss(feature_model_extractor_node,
+                 feature_model_normalize_mean,
+                 feature_model_normalize_std) -> ContentLoss:
+    content_loss = ContentLoss(feature_model_extractor_node,
+                               feature_model_normalize_mean,
+                               feature_model_normalize_std)
+
+    return content_loss

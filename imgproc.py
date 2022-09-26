@@ -18,44 +18,44 @@ from typing import Any
 import cv2
 import numpy as np
 import torch
-from torchvision.transforms import functional as F
+from numpy import ndarray
+from torch import Tensor
 
 __all__ = [
     "image_to_tensor", "tensor_to_image",
-    "image_resize",
-    "expand_y",
-    "rgb2ycbcr", "bgr2ycbcr", "ycbcr2bgr", "ycbcr2rgb",
-    "rgb2ycbcr_torch", "bgr2ycbcr_torch",
+    "image_resize", "preprocess_one_image",
+    "expand_y", "rgb_to_ycbcr", "bgr_to_ycbcr", "ycbcr_to_bgr", "ycbcr_to_rgb",
+    "rgb_to_ycbcr_torch", "bgr_to_ycbcr_torch",
     "center_crop", "random_crop", "random_rotate", "random_vertically_flip", "random_horizontally_flip",
 ]
 
 
-def _cubic(x: float) -> float:
-    """Python implements `cubic()` in Matlab
+# Code reference `https://github.com/xinntao/BasicSR/blob/master/basicsr/utils/matlab_functions.py`
+def _cubic(x: Any) -> Any:
+    """Implementation of `cubic` function in Matlab under Python language.
 
     Args:
-        x (float): pixel value
+        x: Element vector.
 
     Returns:
-        cubic (float): bicubic core
+        Bicubic interpolation
 
     """
-    abs_x = torch.abs(x)
-    abs_x2 = abs_x ** 2
-    abs_x3 = abs_x ** 3
-    cubic1 = (1.5 * abs_x3 - 2.5 * abs_x2 + 1) * ((abs_x <= 1).type_as(abs_x))
-    cubic2 = (-0.5 * abs_x3 + 2.5 * abs_x2 - 4 * abs_x + 2) * (((abs_x > 1) * (abs_x <= 2)).type_as(abs_x))
-    cubic = cubic1 + cubic2
-
-    return cubic
+    absx = torch.abs(x)
+    absx2 = absx ** 2
+    absx3 = absx ** 3
+    return (1.5 * absx3 - 2.5 * absx2 + 1) * ((absx <= 1).type_as(absx)) + (
+            -0.5 * absx3 + 2.5 * absx2 - 4 * absx + 2) * (
+               ((absx > 1) * (absx <= 2)).type_as(absx))
 
 
+# Code reference `https://github.com/xinntao/BasicSR/blob/master/basicsr/utils/matlab_functions.py`
 def _calculate_weights_indices(in_length: int,
                                out_length: int,
                                scale: float,
                                kernel_width: int,
                                antialiasing: bool) -> [np.ndarray, np.ndarray, int, int]:
-    """Implementation of `calculate_weights_indices()` in Matlab under Python language.
+    """Implementation of `calculate_weights_indices` function in Matlab under Python language.
 
     Args:
         in_length (int): Input length.
@@ -66,6 +66,7 @@ def _calculate_weights_indices(in_length: int,
             Caution: Bicubic down-sampling in PIL uses antialiasing by default.
 
     Returns:
+       weights, indices, sym_len_s, sym_len_e
 
     """
     if (scale < 1) and antialiasing:
@@ -92,8 +93,8 @@ def _calculate_weights_indices(in_length: int,
 
     # The indices of the input pixels involved in computing the k-th output
     # pixel are in row k of the indices matrix.
-    indices = left.view(out_length, 1).expand(out_length, p) + torch.linspace(0, p - 1, p).view(1, p).expand(out_length,
-                                                                                                             p)
+    indices = left.view(out_length, 1).expand(out_length, p) + torch.linspace(0, p - 1, p).view(1, p).expand(
+        out_length, p)
 
     # The weights used to compute the k-th output pixel are in row k of the
     # weights matrix.
@@ -123,11 +124,10 @@ def _calculate_weights_indices(in_length: int,
     sym_len_s = -indices.min() + 1
     sym_len_e = indices.max() - in_length
     indices = indices + sym_len_s - 1
-
     return weights, indices, int(sym_len_s), int(sym_len_e)
 
 
-def image_to_tensor(image: np.ndarray, range_norm: bool, half: bool) -> torch.Tensor:
+def image_to_tensor(image: ndarray, range_norm: bool, half: bool) -> Tensor:
     """Convert the image data type to the Tensor (NCWH) data type supported by PyTorch
 
     Args:
@@ -136,15 +136,15 @@ def image_to_tensor(image: np.ndarray, range_norm: bool, half: bool) -> torch.Te
         half (bool): Whether to convert torch.float32 similarly to torch.half type
 
     Returns:
-        tensor (torch.Tensor): Data types supported by PyTorch
+        tensor (Tensor): Data types supported by PyTorch
 
     Examples:
-        >>> example_image = cv2.imread("example_image.bmp")
-        >>> example_tensor = image_to_tensor(example_image, False, False)
+        >>> example_image = cv2.imread("lr_image.bmp")
+        >>> example_tensor = image_to_tensor(example_image, range_norm=True, half=False)
 
     """
     # Convert image data type to Tensor data type
-    tensor = F.to_tensor(image)
+    tensor = torch.from_numpy(np.ascontiguousarray(image)).permute(2, 0, 1).float()
 
     # Scale the image data from [0, 1] to [-1, 1]
     if range_norm:
@@ -157,11 +157,11 @@ def image_to_tensor(image: np.ndarray, range_norm: bool, half: bool) -> torch.Te
     return tensor
 
 
-def tensor_to_image(tensor: torch.Tensor, range_norm: bool, half: bool) -> Any:
+def tensor_to_image(tensor: Tensor, range_norm: bool, half: bool) -> Any:
     """Convert the Tensor(NCWH) data type supported by PyTorch to the np.ndarray(WHC) image data type
 
     Args:
-        tensor (torch.Tensor): Data types supported by PyTorch (NCHW), the data range is [0, 1]
+        tensor (Tensor): Data types supported by PyTorch (NCHW), the data range is [0, 1]
         range_norm (bool): Scale [-1, 1] data to between [0, 1]
         half (bool): Whether to convert torch.float32 similarly to torch.half type.
 
@@ -169,15 +169,12 @@ def tensor_to_image(tensor: torch.Tensor, range_norm: bool, half: bool) -> Any:
         image (np.ndarray): Data types supported by PIL or OpenCV
 
     Examples:
-        >>> example_tensor = torch.randn([1,3, 256, 256], dtype=torch.float)
-        >>> example_image = tensor_to_image(example_tensor, False, False)
+        >>> example_image = cv2.imread("lr_image.bmp")
+        >>> example_tensor = image_to_tensor(example_image, range_norm=False, half=False)
 
     """
-    # Scale the image data from [-1, 1] to [0, 1]
     if range_norm:
         tensor = tensor.add(1.0).div(2.0)
-
-    # Convert torch.float32 image data type to torch.half image data type
     if half:
         tensor = tensor.half()
 
@@ -186,10 +183,24 @@ def tensor_to_image(tensor: torch.Tensor, range_norm: bool, half: bool) -> Any:
     return image
 
 
-def image_resize(image: np.ndarray or torch.Tensor,
-                 scale_factor: float,
-                 antialiasing: bool = True) -> np.ndarray or torch.Tensor:
-    """Implementation of `imresize()` function in Matlab under Python language.
+def preprocess_one_image(image_path: str, device: torch.device) -> Tensor:
+    image = cv2.imread(image_path).astype(np.float32) / 255.0
+
+    # BGR to RGB
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Convert image data to pytorch format data
+    tensor = image_to_tensor(image, False, False).unsqueeze_(0)
+
+    # Transfer tensor channel image format data to CUDA device
+    tensor = tensor.to(device=device, memory_format=torch.channels_last, non_blocking=True)
+
+    return tensor
+
+
+# Code reference `https://github.com/xinntao/BasicSR/blob/master/basicsr/utils/matlab_functions.py`
+def image_resize(image: Any, scale_factor: float, antialiasing: bool = True) -> Any:
+    """Implementation of `imresize` function in Matlab under Python language.
 
     Args:
         image: The input image.
@@ -198,7 +209,7 @@ def image_resize(image: np.ndarray or torch.Tensor,
             Caution: Bicubic down-sampling in `PIL` uses antialiasing by default. Default: ``True``.
 
     Returns:
-        out_2 (np.ndarray or torch.Tensor): Output image with shape (c, h, w), [0, 1] range, w/o round.
+        out_2 (np.ndarray): Output image with shape (c, h, w), [0, 1] range, w/o round
 
     """
     squeeze_flag = False
@@ -278,20 +289,21 @@ def image_resize(image: np.ndarray or torch.Tensor,
 
 
 def expand_y(image: np.ndarray) -> np.ndarray:
-    """Convert BGR channel to YCbCr format, and expand Y channel data in YCbCr, from HW to HWC
+    """Convert BGR channel to YCbCr format,
+    and expand Y channel data in YCbCr, from HW to HWC
 
     Args:
         image (np.ndarray): Y channel image data
 
     Returns:
-        y_image (np.ndarray): Y-channel image data in HWC
+        y_image (np.ndarray): Y-channel image data in HWC form
 
     """
     # Normalize image data to [0, 1]
     image = image.astype(np.float32) / 255.
 
     # Convert BGR to YCbCr, and extract only Y channel
-    y_image = bgr2ycbcr(image, True)
+    y_image = bgr_to_ycbcr(image, only_use_y_channel=True)
 
     # Expand Y channel
     y_image = y_image[..., None]
@@ -302,13 +314,11 @@ def expand_y(image: np.ndarray) -> np.ndarray:
     return y_image
 
 
-def rgb2ycbcr(image: np.ndarray, only_use_y_channel: bool) -> np.ndarray:
-    """Implementation of `rgb2ycbcr()` in Matlab under Python language
-
-    Formula reference: `https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
+def rgb_to_ycbcr(image: np.ndarray, only_use_y_channel: bool) -> np.ndarray:
+    """Implementation of rgb2ycbcr function in Matlab under Python language
 
     Args:
-        image (np.ndarray): Image input in RGB format
+        image (np.ndarray): Image input in RGB format.
         only_use_y_channel (bool): Extract Y channel separately
 
     Returns:
@@ -327,10 +337,8 @@ def rgb2ycbcr(image: np.ndarray, only_use_y_channel: bool) -> np.ndarray:
     return image
 
 
-def bgr2ycbcr(image: np.ndarray, only_use_y_channel: bool) -> np.ndarray:
-    """Implementation of `bgr2ycbcr()` in Matlab under Python language
-
-    Formula reference: `https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
+def bgr_to_ycbcr(image: np.ndarray, only_use_y_channel: bool) -> np.ndarray:
+    """Implementation of bgr2ycbcr function in Matlab under Python language.
 
     Args:
         image (np.ndarray): Image input in BGR format
@@ -352,13 +360,11 @@ def bgr2ycbcr(image: np.ndarray, only_use_y_channel: bool) -> np.ndarray:
     return image
 
 
-def ycbcr2rgb(image: np.ndarray) -> np.ndarray:
-    """Implementation of `ycbcr2rgb()` in Matlab under Python language.
-
-    Formula reference: `https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
+def ycbcr_to_rgb(image: np.ndarray) -> np.ndarray:
+    """Implementation of ycbcr2rgb function in Matlab under Python language.
 
     Args:
-        image (np.ndarray): Image input in YCbCr format
+        image (np.ndarray): Image input in YCbCr format.
 
     Returns:
         image (np.ndarray): RGB image array data
@@ -377,10 +383,8 @@ def ycbcr2rgb(image: np.ndarray) -> np.ndarray:
     return image
 
 
-def ycbcr2bgr(image: np.ndarray) -> np.ndarray:
-    """Implementation of `ycbcr2bgr()` in Matlab under Python language.
-
-    Formula reference: `https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
+def ycbcr_to_bgr(image: np.ndarray) -> np.ndarray:
+    """Implementation of ycbcr2bgr function in Matlab under Python language.
 
     Args:
         image (np.ndarray): Image input in YCbCr format.
@@ -402,27 +406,27 @@ def ycbcr2bgr(image: np.ndarray) -> np.ndarray:
     return image
 
 
-def rgb2ycbcr_torch(tensor: torch.Tensor, only_use_y_channel: bool) -> torch.Tensor:
-    """Implementation of `rgb2ycbcr()` in Matlab under PyTorch
+def rgb_to_ycbcr_torch(tensor: Tensor, only_use_y_channel: bool) -> Tensor:
+    """Implementation of rgb2ycbcr function in Matlab under PyTorch
 
-    Formula reference: `https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
+    References from：`https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
 
     Args:
-        tensor (torch.Tensor): Image data in PyTorch format
+        tensor (Tensor): Image data in PyTorch format
         only_use_y_channel (bool): Extract only Y channel
 
     Returns:
-        tensor (torch.Tensor): YCbCr image data in PyTorch format
+        tensor (Tensor): YCbCr image data in PyTorch format
 
     """
     if only_use_y_channel:
-        weight = torch.Tensor([[65.481], [128.553], [24.966]]).to(tensor)
+        weight = Tensor([[65.481], [128.553], [24.966]]).to(tensor)
         tensor = torch.matmul(tensor.permute(0, 2, 3, 1), weight).permute(0, 3, 1, 2) + 16.0
     else:
-        weight = torch.Tensor([[65.481, -37.797, 112.0],
-                               [128.553, -74.203, -93.786],
-                               [24.966, 112.0, -18.214]]).to(tensor)
-        bias = torch.Tensor([16, 128, 128]).view(1, 3, 1, 1).to(tensor)
+        weight = Tensor([[65.481, -37.797, 112.0],
+                         [128.553, -74.203, -93.786],
+                         [24.966, 112.0, -18.214]]).to(tensor)
+        bias = Tensor([16, 128, 128]).view(1, 3, 1, 1).to(tensor)
         tensor = torch.matmul(tensor.permute(0, 2, 3, 1), weight).permute(0, 3, 1, 2) + bias
 
     tensor /= 255.
@@ -430,27 +434,27 @@ def rgb2ycbcr_torch(tensor: torch.Tensor, only_use_y_channel: bool) -> torch.Ten
     return tensor
 
 
-def bgr2ycbcr_torch(tensor: torch.Tensor, only_use_y_channel: bool) -> torch.Tensor:
-    """Implementation of `bgr2ycbcr()` in Matlab under PyTorch
+def bgr_to_ycbcr_torch(tensor: Tensor, only_use_y_channel: bool) -> Tensor:
+    """Implementation of bgr2ycbcr function in Matlab under PyTorch
 
-    Formula reference: `https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
+    References from：`https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion`
 
     Args:
-        tensor (torch.Tensor): Image data in PyTorch format
+        tensor (Tensor): Image data in PyTorch format
         only_use_y_channel (bool): Extract only Y channel
 
     Returns:
-        tensor (torch.Tensor): YCbCr image data in PyTorch format
+        tensor (Tensor): YCbCr image data in PyTorch format
 
     """
     if only_use_y_channel:
-        weight = torch.Tensor([[24.966], [128.553], [65.481]]).to(tensor)
+        weight = Tensor([[24.966], [128.553], [65.481]]).to(tensor)
         tensor = torch.matmul(tensor.permute(0, 2, 3, 1), weight).permute(0, 3, 1, 2) + 16.0
     else:
-        weight = torch.Tensor([[24.966, 112.0, -18.214],
-                               [128.553, -74.203, -93.786],
-                               [65.481, -37.797, 112.0]]).to(tensor)
-        bias = torch.Tensor([16, 128, 128]).view(1, 3, 1, 1).to(tensor)
+        weight = Tensor([[24.966, 112.0, -18.214],
+                         [128.553, -74.203, -93.786],
+                         [65.481, -37.797, 112.0]]).to(tensor)
+        bias = Tensor([16, 128, 128]).view(1, 3, 1, 1).to(tensor)
         tensor = torch.matmul(tensor.permute(0, 2, 3, 1), weight).permute(0, 3, 1, 2) + bias
 
     tensor /= 255.
@@ -466,7 +470,7 @@ def center_crop(image: np.ndarray, image_size: int) -> np.ndarray:
         image_size (int): The size of the captured image area.
 
     Returns:
-        np.ndarray: Small patch image
+        patch_image (np.ndarray): Small patch image
 
     """
     image_height, image_width = image.shape[:2]
@@ -506,14 +510,14 @@ def random_crop(image: np.ndarray, image_size: int) -> np.ndarray:
 
 def random_rotate(image,
                   angles: list,
-                  center: tuple = None,
+                  center: tuple[int, int] = None,
                   scale_factor: float = 1.0) -> np.ndarray:
     """Rotate an image by a random angle
 
     Args:
         image (np.ndarray): Image read with OpenCV
         angles (list): Rotation angle range
-        center (optional, tuple): High resolution image selection center point. Default: ``None``
+        center (optional, tuple[int, int]): High resolution image selection center point. Default: ``None``
         scale_factor (optional, float): scaling factor. Default: 1.0
 
     Returns:

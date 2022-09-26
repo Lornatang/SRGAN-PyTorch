@@ -27,86 +27,69 @@ device = torch.device("cuda", 0)
 cudnn.benchmark = True
 # When evaluating the performance of the SR model, whether to verify only the Y channel image data
 only_test_y_channel = True
-# Image magnification factor
+# Model architecture name
+d_arch_name = "discriminator"
+g_arch_name = "srresnet_x4"
+# Model arch config
+in_channels = 3
+out_channels = 3
+channels = 64
+num_blocks = 16
 upscale_factor = 4
 # Current configuration parameter method
-mode = "train_srresnet"
+mode = "train"
 # Experiment name, easy to save weights and log files
-exp_name = "SRResNet_baseline"
+exp_name = "SRGAN_x4"
 
-if mode == "train_srresnet":
+if mode == "train":
     # Dataset address
-    train_image_dir = "./data/ImageNet/SRGAN/train"
-    valid_image_dir = "./data/ImageNet/SRGAN/valid"
-    test_lr_image_dir = f"./data/Set5/LRbicx{upscale_factor}"
-    test_hr_image_dir = f"./data/Set5/GTmod12"
+    train_gt_images_dir = f"./data/ImageNet/SRGAN/train"
 
-    image_size = 96
+    test_gt_images_dir = f"./data/Set5/GTmod12"
+    test_lr_images_dir = f"./data/Set5/LRbicx{upscale_factor}"
+
+    gt_image_size = 96
     batch_size = 16
     num_workers = 4
 
     # The address to load the pretrained model
-    pretrained_model_path = "./results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar"
+    pretrained_d_model_weights_path = ""
+    pretrained_g_model_weights_path = "./results/SRResNet_x4/g_best.pth.tar"
 
     # Incremental training and migration training
-    resume = ""
+    resume_d = f""
+    resume_g = f""
 
-    # Total num epochs
-    epochs = 44
+    # Total num epochs (200,000 iters)
+    epochs = 18
 
-    # Optimizer parameter
-    model_lr = 1e-4
-    model_betas = (0.9, 0.999)
-
-    # How many iterations to print the training result
-    print_frequency = 200
-
-if mode == "train_srgan":
-    # Dataset address
-    train_image_dir = "./data/ImageNet/SRGAN/train"
-    valid_image_dir = "./data/ImageNet/SRGAN/valid"
-    test_lr_image_dir = f"./data/Set5/LRbicx{upscale_factor}"
-    test_hr_image_dir = f"./data/Set5/GTmod12"
-
-    image_size = 96
-    batch_size = 16
-    num_workers = 4
-
-    # The address to load the pretrained model
-    pretrained_d_model_path = ""
-    pretrained_g_model_path = "./results/SRResNet_baseline/g_best.pth.tar"
-
-    # Incremental training and migration training
-    resume_d = ""
-    resume_g = ""
-
-    # Total num epochs
-    epochs = 9
+    # Loss function weight
+    content_weight = 1.0
+    adversarial_weight = 0.001
 
     # Feature extraction layer parameter configuration
     feature_model_extractor_node = "features.35"
     feature_model_normalize_mean = [0.485, 0.456, 0.406]
     feature_model_normalize_std = [0.229, 0.224, 0.225]
 
-    # Loss function weight
-    content_weight = 1.0
-    adversarial_weight = 0.001
-
     # Optimizer parameter
     model_lr = 1e-4
     model_betas = (0.9, 0.999)
+    model_eps = 1e-8
+    model_weight_decay = 0.0
 
-    # Dynamically adjust the learning rate policy
+    # Dynamically adjust the learning rate policy [100,000 | 200,000]
     lr_scheduler_step_size = epochs // 2
     lr_scheduler_gamma = 0.1
 
     # How many iterations to print the training result
-    print_frequency = 200
+    train_print_frequency = 100
+    valid_print_frequency = 1
 
 if mode == "test":
     # Test data address
     lr_dir = f"./data/Set5/LRbicx{upscale_factor}"
     sr_dir = f"./results/test/{exp_name}"
-    hr_dir = f"./data/Set5/GTmod12"
+    gt_dir = f"./data/Set5/GTmod12"
 
-    model_path = "./results/pretrained_models/SRResNet_x4-ImageNet-2096ee7f.pth.tar"
+    g_model_weights_path = "./results/pretrained_models/SRGAN_x4-ImageNet-93066133.pth.tar"
