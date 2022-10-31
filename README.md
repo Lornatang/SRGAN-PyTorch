@@ -45,10 +45,10 @@ Both training and testing only need to modify the `srresnet_config.py` file and 
 Modify the `srgan_config.py` file.
 
 - line 32: `g_arch_name` change to `srresnet_x4`.
-- line 38: `upscale_factor` change to `4`.
-- line 40: `mode` change to `test`.
-- line 42: `exp_name` change to `test_SRGAN_x4`.
-- line 96: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar`.
+- line 39: `upscale_factor` change to `4`.
+- line 41: `mode` change to `test`.
+- line 43: `exp_name` change to `SRGAN_x4-DIV2K`.
+- line 96: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar`.
 
 ```bash
 python3 test.py
@@ -58,10 +58,10 @@ python3 test.py
 
 Modify the `srresnet_config.py` file.
 
-- line 31: `g_arch_name` change to `srresnet_x4`.
-- line 37: `upscale_factor` change to `4`.
-- line 39: `mode` change to `train`.
-- line 41: `exp_name` change to `SRResNet_x4`.
+- line 32: `g_arch_name` change to `srresnet_x4`.
+- line 39: `upscale_factor` change to `4`.
+- line 41: `mode` change to `train`.
+- line 43: `exp_name` change to `SRResNet_x4-DIV2K`.
 
 ```bash
 python3 train_srresnet.py
@@ -71,11 +71,12 @@ python3 train_srresnet.py
 
 Modify the `srresnet_config.py` file.
 
-- line 31: `g_arch_name` change to `srresnet_x4`.
-- line 37: `upscale_factor` change to `4`.
-- line 39: `mode` change to `train`.
-- line 41: `exp_name` change to `SRResNet_x4`.
-- line 58: `resume_g_model_weights_path` change to `./samples/SRResNet_x4/g_epoch_xxx.pth.tar`.
+- line 32: `g_arch_name` change to `srresnet_x4`.
+- line 39: `upscale_factor` change to `4`.
+- line 41: `mode` change to `train`.
+- line 43: `exp_name` change to `SRResNet_x4-DIV2K`.
+- line 59: `resume_g_model_weights_path` change to `./samples/SRGAN_x4-DIV2K/g_epoch_xxx.pth.tar`.
+
 
 ```bash
 python3 train_srresnet.py
@@ -83,11 +84,12 @@ python3 train_srresnet.py
 
 ### Train SRGAN model
 
+- line 31: `d_arch_name` change to `discriminator`.
 - line 32: `g_arch_name` change to `srresnet_x4`.
-- line 38: `upscale_factor` change to `4`.
-- line 40: `mode` change to `train`.
-- line 42: `exp_name` change to `SRResNet_x4`.
-- line 57: `pretrained_g_model_weights_path` change to `./results/SRResNet_x4/g_best.pth.tar`.
+- line 39: `upscale_factor` change to `4`.
+- line 41: `mode` change to `train`.
+- line 43: `exp_name` change to `SRGAN_x4-DIV2K`.
+- line 58: `pretrained_g_model_weights_path` change to `./results/SRResNet_x4-DIV2K/g_last.pth.tar`.
 
 ```bash
 python3 train_srgan.py
@@ -95,12 +97,14 @@ python3 train_srgan.py
 
 ### Resume train SRGAN model
 
+- line 31: `d_arch_name` change to `discriminator`.
 - line 32: `g_arch_name` change to `srresnet_x4`.
-- line 38: `upscale_factor` change to `4`.
-- line 40: `mode` change to `train`.
-- line 42: `exp_name` change to `SRResNet_x4`.
-- line 60: `resume_d_model_weights_path` change to `./samples/SRGAN_x4/d_epoch_xxx.pth.tar`.
-- line 61: `resume_g_model_weights_path` change to `./samples/SRGAN_x4/g_epoch_xxx.pth.tar`.
+- line 39: `upscale_factor` change to `4`.
+- line 41: `mode` change to `train`.
+- line 43: `exp_name` change to `SRGAN_x4-DIV2K`.
+- line 61: `resume_d_model_weights_path` change to `./samples/SRGAN_x4-DIV2K/d_epoch_xxx.pth.tar`.
+- line 62: `resume_g_model_weights_path` change to `./samples/SRGAN_x4-DIV2K/g_epoch_xxx.pth.tar`.
+
 
 ```bash
 python3 train_srgan.py
@@ -114,21 +118,21 @@ In the following table, the psnr value in `()` indicates the result of the proje
 
 | Set5 | Scale |      SRResNet      |       SRGAN        |
 |:----:|:-----:|:------------------:|:------------------:|
-| PSNR |   4   |  32.05(**32.16**)  |  29.40(**29.08**)  |
-| SSIM |   4   | 0.9019(**0.8961**) | 0.8472(**0.8305**) |
+| PSNR |   4   |  32.05(**32.14**)  |  29.40(**30.64**)  |
+| SSIM |   4   | 0.9019(**0.8954**) | 0.8472(**0.8642**) |
 
 | Set14 | Scale |      SRResNet      |       SRGAN        |
 |:-----:|:-----:|:------------------:|:------------------:|
-| PSNR  |   4   |  28.49(**28.62**)  |  26.02(**25.89**)  |
-| SSIM  |   4   | 0.8184(**0.7831**) | 0.7397(**0.6932**) |
+| PSNR  |   4   |  28.49(**28.57**)  |  26.02(**27.12**)  |
+| SSIM  |   4   | 0.8184(**0.7815**) | 0.7397(**0.7321**) |
 
 | BSD100 | Scale |      SRResNet      |       SRGAN        |
 |:------:|:-----:|:------------------:|:------------------:|
-|  PSNR  |   4   |  27.58(**27.59**)  |  25.16(**24.91**)  |
-|  SSIM  |   4   | 0.7620(**0.7379**) | 0.6688(**0.6354**) |
+|  PSNR  |   4   |  27.58(**27.56**)  |  25.16(**26.22**)  |
+|  SSIM  |   4   | 0.7620(**0.7367**) | 0.6688(**0.6867**) |
 
 ```bash
-# Download `SRGAN_x4-ImageNet-c71a4860.pth.tar` weights to `./results/pretrained_models`
+# Download `SRGAN_x4-ImageNet-8c4a7569.pth.tar` weights to `./results/pretrained_models`
 # More detail see `README.md<Download weights>`
 python3 ./inference.py
 ```
@@ -143,7 +147,7 @@ Output:
 
 ```text
 Build `srresnet_x4` model successfully.
-Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar` successfully.
+Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar` successfully.
 SR image save to `./figure/comic_sr.png`
 ```
 
