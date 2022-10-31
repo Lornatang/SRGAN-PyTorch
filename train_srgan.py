@@ -1,4 +1,4 @@
-# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -17,7 +17,6 @@ import time
 import torch
 from torch import nn
 from torch import optim
-from torch.cuda import amp
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -74,7 +73,7 @@ def main():
     if srgan_config.resume_d_model_weights_path:
         d_model, _, start_epoch, best_psnr, best_ssim, optimizer, scheduler = load_state_dict(
             d_model,
-            srgan_config.pretrained_d_model_weights_path,
+            srgan_config.resume_d_model_weights_path,
             optimizer=d_optimizer,
             scheduler=d_scheduler,
             load_mode="resume")
@@ -86,7 +85,7 @@ def main():
     if srgan_config.resume_g_model_weights_path:
         g_model, _, start_epoch, best_psnr, best_ssim, optimizer, scheduler = load_state_dict(
             g_model,
-            srgan_config.pretrained_g_model_weights_path,
+            srgan_config.resume_g_model_weights_path,
             optimizer=g_optimizer,
             scheduler=g_scheduler,
             load_mode="resume")
@@ -102,9 +101,6 @@ def main():
 
     # Create training process log file
     writer = SummaryWriter(os.path.join("samples", "logs", srgan_config.exp_name))
-
-    # Initialize the gradient scaler
-    scaler = amp.GradScaler()
 
     # Create an IQA evaluation model
     psnr_model = PSNR(srgan_config.upscale_factor, srgan_config.only_test_y_channel)
@@ -124,7 +120,6 @@ def main():
               d_optimizer,
               g_optimizer,
               epoch,
-              scaler,
               writer)
         psnr, ssim = validate(g_model,
                               test_prefetcher,
@@ -208,7 +203,7 @@ def build_model() -> [nn.Module, nn.Module, nn.Module]:
     g_model = model.__dict__[srgan_config.g_arch_name](in_channels=srgan_config.in_channels,
                                                        out_channels=srgan_config.out_channels,
                                                        channels=srgan_config.channels,
-                                                       num_blocks=srgan_config.num_blocks)
+                                                       num_rcb=srgan_config.num_rcb)
     d_model = d_model.to(device=srgan_config.device)
     g_model = g_model.to(device=srgan_config.device)
 
@@ -217,9 +212,9 @@ def build_model() -> [nn.Module, nn.Module, nn.Module]:
 
 def define_loss() -> [nn.MSELoss, model.content_loss, nn.BCEWithLogitsLoss]:
     pixel_criterion = nn.MSELoss()
-    content_criterion = model.content_loss(srgan_config.feature_model_extractor_node,
-                                           srgan_config.feature_model_normalize_mean,
-                                           srgan_config.feature_model_normalize_std)
+    content_criterion = model.content_loss(feature_model_extractor_node=srgan_config.feature_model_extractor_node,
+                                           feature_model_normalize_mean=srgan_config.feature_model_normalize_mean,
+                                           feature_model_normalize_std=srgan_config.feature_model_normalize_std)
     adversarial_criterion = nn.BCEWithLogitsLoss()
 
     # Transfer to CUDA
@@ -268,7 +263,6 @@ def train(
         d_optimizer: optim.Adam,
         g_optimizer: optim.Adam,
         epoch: int,
-        scaler: amp.GradScaler,
         writer: SummaryWriter
 ) -> None:
     # Calculate how many batches of data are in each Epoch
@@ -323,29 +317,26 @@ def train(
         d_model.zero_grad(set_to_none=True)
 
         # Calculate the classification score of the discriminator model for real samples
-        with amp.autocast():
-            gt_output = d_model(gt)
-            d_loss_gt = adversarial_criterion(gt_output, real_label)
+        gt_output = d_model(gt)
+        d_loss_gt = adversarial_criterion(gt_output, real_label)
         # Call the gradient scaling function in the mixed precision API to
         # back-propagate the gradient information of the fake samples
-        scaler.scale(d_loss_gt).backward(retain_graph=True)
+        d_loss_gt.backward(retain_graph=True)
 
         # Calculate the classification score of the discriminator model for fake samples
-        with amp.autocast():
-            # Use the generator model to generate fake samples
-            sr = g_model(lr)
-            sr_output = d_model(sr.detach().clone())
-            d_loss_sr = adversarial_criterion(sr_output, fake_label)
+        # Use the generator model to generate fake samples
+        sr = g_model(lr)
+        sr_output = d_model(sr.detach().clone())
+        d_loss_sr = adversarial_criterion(sr_output, fake_label)
         # Call the gradient scaling function in the mixed precision API to
         # back-propagate the gradient information of the fake samples
-        scaler.scale(d_loss_sr).backward()
+        d_loss_sr.backward()
 
         # Calculate the total discriminator loss value
         d_loss = d_loss_gt + d_loss_sr
 
         # Improve the discriminator model's ability to classify real and fake samples
-        scaler.step(d_optimizer)
-        scaler.update()
+        d_optimizer.step()
         # Finish training the discriminator model
 
         # Start training the generator model
@@ -357,19 +348,17 @@ def train(
         g_model.zero_grad(set_to_none=True)
 
         # Calculate the perceptual loss of the generator, mainly including pixel loss, feature loss and adversarial loss
-        with amp.autocast():
-            pixel_loss = srgan_config.pixel_weight * pixel_criterion(sr, gt)
-            content_loss = srgan_config.content_weight * content_criterion(sr, gt)
-            adversarial_loss = srgan_config.adversarial_weight * adversarial_criterion(d_model(sr), real_label)
-            # Calculate the generator total loss value
-            g_loss = pixel_loss + content_loss + adversarial_loss
+        pixel_loss = srgan_config.pixel_weight * pixel_criterion(sr, gt)
+        content_loss = srgan_config.content_weight * content_criterion(sr, gt)
+        adversarial_loss = srgan_config.adversarial_weight * adversarial_criterion(d_model(sr), real_label)
+        # Calculate the generator total loss value
+        g_loss = pixel_loss + content_loss + adversarial_loss
         # Call the gradient scaling function in the mixed precision API to
         # back-propagate the gradient information of the fake samples
-        scaler.scale(g_loss).backward()
+        g_loss.backward()
 
         # Encourage the generator to generate higher quality fake samples, making it easier to fool the discriminator
-        scaler.step(g_optimizer)
-        scaler.update()
+        g_optimizer.step()
         # Finish training the generator model
 
         # Calculate the score of the discriminator on real samples and fake samples,
@@ -443,8 +432,7 @@ def validate(
             lr = batch_data["lr"].to(device=srgan_config.device, non_blocking=True)
 
             # Use the generator model to generate a fake sample
-            with amp.autocast():
-                sr = g_model(lr)
+            sr = g_model(lr)
 
             # Statistical loss value for terminal data output
             psnr = psnr_model(sr, gt)

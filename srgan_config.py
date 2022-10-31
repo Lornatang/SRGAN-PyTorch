@@ -34,12 +34,13 @@ g_arch_name = "srresnet_x4"
 in_channels = 3
 out_channels = 3
 channels = 64
-num_blocks = 16
+num_rcb = 16
+# Test upscale factor
 upscale_factor = 4
 # Current configuration parameter method
 mode = "train"
 # Experiment name, easy to save weights and log files
-exp_name = "SRGAN_x4"
+exp_name = "SRGAN_x4-DIV2K"
 
 if mode == "train":
     # Dataset address
@@ -53,8 +54,8 @@ if mode == "train":
     num_workers = 4
 
     # The address to load the pretrained model
-    pretrained_d_model_weights_path = ""
-    pretrained_g_model_weights_path = "./results/SRResNet_x4/g_last.pth.tar"
+    pretrained_d_model_weights_path = f""
+    pretrained_g_model_weights_path = f"./results/SRResNet_x4-DIV2K/g_last.pth.tar"
 
     # Incremental training and migration training
     resume_d_model_weights_path = f""
@@ -93,4 +94,4 @@ if mode == "test":
     sr_dir = f"./results/test/{exp_name}"
     gt_dir = f"./data/Set5/GTmod12"
 
-    g_model_weights_path = "./results/pretrained_models/SRGAN_x4-ImageNet-c71a4860.pth.tar"
+    g_model_weights_path = f"./results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar"

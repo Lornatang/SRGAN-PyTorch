@@ -38,34 +38,34 @@ def choice_device(device_type: str) -> torch.device:
 
 def build_model(model_arch_name: str, device: torch.device) -> nn.Module:
     # Initialize the super-resolution model
-    g_model = model.__dict__[model_arch_name](in_channels=3,
-                                              out_channels=3,
-                                              channels=64,
-                                              num_blocks=16)
-    g_model = g_model.to(device=device)
+    sr_model = model.__dict__[model_arch_name](in_channels=3,
+                                               out_channels=3,
+                                               channels=64,
+                                               num_rcb=16)
+    sr_model = sr_model.to(device=device)
 
-    return g_model
+    return sr_model
 
 
 def main(args):
     device = choice_device(args.device_type)
 
     # Initialize the model
-    g_model = build_model(args.model_arch_name, device)
+    sr_model = build_model(args.model_arch_name, device)
     print(f"Build `{args.model_arch_name}` model successfully.")
 
     # Load model weights
-    g_model = load_state_dict(g_model, args.model_weights_path)
+    sr_model = load_state_dict(sr_model, args.model_weights_path)
     print(f"Load `{args.model_arch_name}` model weights `{os.path.abspath(args.model_weights_path)}` successfully.")
 
     # Start the verification mode of the model.
-    g_model.eval()
+    sr_model.eval()
 
     lr_tensor = imgproc.preprocess_one_image(args.inputs_path, device)
 
     # Use the model to generate super-resolved images
     with torch.no_grad():
-        sr_tensor = g_model(lr_tensor)
+        sr_tensor = sr_model(lr_tensor)
 
     # Save image
     sr_image = imgproc.tensor_to_image(sr_tensor, False, False)
@@ -90,7 +90,7 @@ if __name__ == "__main__":
                         help="Super-resolution image path.")
     parser.add_argument("--model_weights_path",
                         type=str,
-                        default="./results/pretrained_models/SRGAN_x4-ImageNet-93066133.pth.tar",
+                        default="./results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar",
                         help="Model weights file path.")
     parser.add_argument("--device_type",
                         type=str,

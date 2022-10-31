@@ -17,57 +17,84 @@ from typing import Any
 import torch
 from torch import Tensor
 from torch import nn
-from torch.nn import functional as F
+from torch.nn import functional as F_torch
 from torchvision import models
 from torchvision import transforms
 from torchvision.models.feature_extraction import create_feature_extractor
 
 __all__ = [
-    "Discriminator", "SRResNet", "ContentLoss",
-    "discriminator", "srresnet_x2", "srresnet_x4", "srresnet_x8", "content_loss",
+    "SRResNet", "Discriminator",
+    "srresnet_x4", "discriminator", "content_loss",
 ]
 
 
-class _ResidualConvBlock(nn.Module):
-    """Implements residual conv function.
-
-    Args:
-        channels (int): Number of channels in the input image.
-    """
-
-    def __init__(self, channels: int) -> None:
-        super(_ResidualConvBlock, self).__init__()
-        self.rcb = nn.Sequential(
-            nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
-            nn.BatchNorm2d(channels),
+class SRResNet(nn.Module):
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            channels: int,
+            num_rcb: int,
+            upscale_factor: int
+    ) -> None:
+        super(SRResNet, self).__init__()
+        # Low frequency information extraction layer
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels, channels, (9, 9), (1, 1), (4, 4)),
             nn.PReLU(),
+        )
+
+        # High frequency information extraction block
+        trunk = []
+        for _ in range(num_rcb):
+            trunk.append(_ResidualConvBlock(channels))
+        self.trunk = nn.Sequential(*trunk)
+
+        # High-frequency information linear fusion layer
+        self.conv2 = nn.Sequential(
             nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
             nn.BatchNorm2d(channels),
         )
 
+        # zoom block
+        upsampling = []
+        if upscale_factor == 2 or upscale_factor == 4 or upscale_factor == 8:
+            for _ in range(int(math.log(upscale_factor, 2))):
+                upsampling.append(_UpsampleBlock(channels, 2))
+        elif upscale_factor == 3:
+            upsampling.append(_UpsampleBlock(channels, 3))
+        self.upsampling = nn.Sequential(*upsampling)
+
+        # reconstruction block
+        self.conv3 = nn.Conv2d(channels, out_channels, (9, 9), (1, 1), (4, 4))
+
+        # Initialize neural network weights
+        self._initialize_weights()
+
     def forward(self, x: Tensor) -> Tensor:
-        identity = x
+        return self._forward_impl(x)
 
-        out = self.rcb(x)
+    # Support torch.script function
+    def _forward_impl(self, x: Tensor) -> Tensor:
+        out1 = self.conv1(x)
+        out = self.trunk(out1)
+        out2 = self.conv2(out)
+        out = torch.add(out1, out2)
+        out = self.upsampling(out)
+        out = self.conv3(out)
 
-        out = torch.add(out, identity)
+        out = torch.clamp_(out, 0.0, 1.0)
 
         return out
 
-
-class _UpsampleBlock(nn.Module):
-    def __init__(self, channels: int, upscale_factor: int) -> None:
-        super(_UpsampleBlock, self).__init__()
-        self.upsample_block = nn.Sequential(
-            nn.Conv2d(channels, channels * upscale_factor * upscale_factor, (3, 3), (1, 1), (1, 1)),
-            nn.PixelShuffle(2),
-            nn.PReLU(),
-        )
-
-    def forward(self, x: Tensor) -> Tensor:
-        out = self.upsample_block(x)
-
-        return out
+    def _initialize_weights(self) -> None:
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.kaiming_normal_(module.weight)
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
 
 
 class Discriminator(nn.Module):
@@ -111,6 +138,9 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
+        # Input image size must equal 96
+        assert x.shape[2] == 96 and x.shape[3] == 96, "Image shape must equal 96x96"
+
         out = self.features(x)
         out = torch.flatten(out, 1)
         out = self.classifier(out)
@@ -118,76 +148,43 @@ class Discriminator(nn.Module):
         return out
 
 
-class SRResNet(nn.Module):
-    def __init__(
-            self,
-            in_channels: int,
-            out_channels: int,
-            channels: int,
-            num_blocks: int,
-            upscale_factor: int
-    ) -> None:
-        super(SRResNet, self).__init__()
-        # First conv layer.
-        self.conv_block1 = nn.Sequential(
-            nn.Conv2d(in_channels, channels, (9, 9), (1, 1), (4, 4)),
+class _ResidualConvBlock(nn.Module):
+    def __init__(self, channels: int) -> None:
+        super(_ResidualConvBlock, self).__init__()
+        self.rcb = nn.Sequential(
+            nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(channels),
             nn.PReLU(),
-        )
-
-        # Features trunk blocks.
-        trunk = []
-        for _ in range(num_blocks):
-            trunk.append(_ResidualConvBlock(channels))
-        self.trunk = nn.Sequential(*trunk)
-
-        # Second conv layer.
-        self.conv_block2 = nn.Sequential(
             nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
             nn.BatchNorm2d(channels),
         )
 
-        # Upscale block
-        upsampling = []
-        if upscale_factor == 2 or upscale_factor == 4 or upscale_factor == 8:
-            for _ in range(int(math.log(upscale_factor, 2))):
-                upsampling.append(_UpsampleBlock(channels, 2))
-        elif upscale_factor == 3:
-            upsampling.append(_UpsampleBlock(channels, 3))
-        self.upsampling = nn.Sequential(*upsampling)
-
-        # Output layer.
-        self.conv_block3 = nn.Conv2d(channels, out_channels, (9, 9), (1, 1), (4, 4))
-
-        # Initialize neural network weights
-        self._initialize_weights()
-
     def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
+        identity = x
 
-    # Support torch.script function
-    def _forward_impl(self, x: Tensor) -> Tensor:
-        out1 = self.conv_block1(x)
-        out = self.trunk(out1)
-        out2 = self.conv_block2(out)
-        out = torch.add(out1, out2)
-        out = self.upsampling(out)
-        out = self.conv_block3(out)
+        out = self.rcb(x)
 
-        out = torch.clamp_(out, 0.0, 1.0)
+        out = torch.add(out, identity)
 
         return out
 
-    def _initialize_weights(self) -> None:
-        for module in self.modules():
-            if isinstance(module, nn.Conv2d):
-                nn.init.kaiming_normal_(module.weight)
-                if module.bias is not None:
-                    nn.init.constant_(module.bias, 0)
-            elif isinstance(module, nn.BatchNorm2d):
-                nn.init.constant_(module.weight, 1)
+
+class _UpsampleBlock(nn.Module):
+    def __init__(self, channels: int, upscale_factor: int) -> None:
+        super(_UpsampleBlock, self).__init__()
+        self.upsample_block = nn.Sequential(
+            nn.Conv2d(channels, channels * upscale_factor * upscale_factor, (3, 3), (1, 1), (1, 1)),
+            nn.PixelShuffle(2),
+            nn.PReLU(),
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.upsample_block(x)
+
+        return out
 
 
-class ContentLoss(nn.Module):
+class _ContentLoss(nn.Module):
     """Constructs a content loss function based on the VGG19 network.
     Using high-level feature mapping layers from the latter layers will focus more on the texture content of the image.
 
@@ -204,7 +201,7 @@ class ContentLoss(nn.Module):
             feature_model_normalize_mean: list,
             feature_model_normalize_std: list
     ) -> None:
-        super(ContentLoss, self).__init__()
+        super(_ContentLoss, self).__init__()
         # Get the name of the specified feature extraction node
         self.feature_model_extractor_node = feature_model_extractor_node
         # Load the VGG19 model trained on the ImageNet dataset.
@@ -231,21 +228,9 @@ class ContentLoss(nn.Module):
         gt_feature = self.feature_extractor(gt_tensor)[self.feature_model_extractor_node]
 
         # Find the feature map difference between the two images
-        loss = F.mse_loss(sr_feature, gt_feature)
+        loss = F_torch.mse_loss(sr_feature, gt_feature)
 
         return loss
-
-
-def discriminator() -> Discriminator:
-    model = Discriminator()
-
-    return model
-
-
-def srresnet_x2(**kwargs: Any) -> SRResNet:
-    model = SRResNet(upscale_factor=2, **kwargs)
-
-    return model
 
 
 def srresnet_x4(**kwargs: Any) -> SRResNet:
@@ -254,17 +239,13 @@ def srresnet_x4(**kwargs: Any) -> SRResNet:
     return model
 
 
-def srresnet_x8(**kwargs: Any) -> SRResNet:
-    model = SRResNet(upscale_factor=8, **kwargs)
+def discriminator() -> Discriminator:
+    model = Discriminator()
 
     return model
 
 
-def content_loss(feature_model_extractor_node,
-                 feature_model_normalize_mean,
-                 feature_model_normalize_std) -> ContentLoss:
-    content_loss = ContentLoss(feature_model_extractor_node,
-                               feature_model_normalize_mean,
-                               feature_model_normalize_std)
+def content_loss(**kwargs: Any) -> _ContentLoss:
+    content_loss = _ContentLoss(**kwargs)
 
     return content_loss

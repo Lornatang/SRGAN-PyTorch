@@ -53,17 +53,17 @@ def main():
     print("Define all optimizer functions successfully.")
 
     print("Check whether to load pretrained model weights...")
-    if srresnet_config.pretrained_g_model_weights_path:
-        srresnet_model = load_state_dict(srresnet_model, srresnet_config.pretrained_g_model_weights_path)
-        print(f"Loaded `{srresnet_config.pretrained_g_model_weights_path}` pretrained model weights successfully.")
+    if srresnet_config.pretrained_model_weights_path:
+        srresnet_model = load_state_dict(srresnet_model, srresnet_config.pretrained_model_weights_path)
+        print(f"Loaded `{srresnet_config.pretrained_model_weights_path}` pretrained model weights successfully.")
     else:
         print("Pretrained model weights not found.")
 
     print("Check whether the pretrained model is restored...")
-    if srresnet_config.resume_g_model_weights_path:
+    if srresnet_config.resume_model_weights_path:
         srresnet_model, _, start_epoch, best_psnr, best_ssim, optimizer, _ = load_state_dict(
             srresnet_model,
-            srresnet_config.pretrained_g_model_weights_path,
+            srresnet_config.resume_model_weights_path,
             optimizer=optimizer,
             load_mode="resume")
         print("Loaded pretrained model weights.")
