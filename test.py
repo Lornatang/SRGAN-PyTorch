@@ -33,7 +33,7 @@ def main() -> None:
     g_model = model.__dict__[srgan_config.g_arch_name](in_channels=srgan_config.in_channels,
                                                        out_channels=srgan_config.out_channels,
                                                        channels=srgan_config.channels,
-                                                       num_blocks=srgan_config.num_blocks)
+                                                       num_rcb=srgan_config.num_rcb)
     g_model = g_model.to(device=srgan_config.device)
     print(f"Build `{srgan_config.g_arch_name}` model successfully.")
 
