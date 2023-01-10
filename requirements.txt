@@ -1,7 +1,7 @@
 opencv-python>=4.6.0.66
-numpy>=1.23.4
+numpy>=1.23.5
 tqdm>=4.63.1
-torch>=1.13.0+cu117
+torch>=1.13.0
 natsort>=8.1.0
 typing>=3.7.4.3
 torchvision>=0.14.0
