@@ -510,7 +510,7 @@ def random_crop(image: np.ndarray, image_size: int) -> np.ndarray:
 
 def random_rotate(image,
                   angles: list,
-                  center: tuple[int, int] = None,
+                  center: tuple,
                   scale_factor: float = 1.0) -> np.ndarray:
     """Rotate an image by a random angle
 
