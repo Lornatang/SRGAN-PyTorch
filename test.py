@@ -61,8 +61,13 @@ def main() -> None:
     psnr_metrics = 0.0
     ssim_metrics = 0.0
 
+    def listdir_nohidden(path):
+        for f in os.listdir(path):
+            if not f.startswith('.'):
+                yield f
+
     # Get a list of test image file names.
-    file_names = natsorted(os.listdir(srgan_config.lr_dir))
+    file_names = natsorted(listdir_nohidden(srgan_config.lr_dir))
     # Get the number of test image files.
     total_files = len(file_names)
 
