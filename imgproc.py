@@ -510,14 +510,14 @@ def random_crop(image: np.ndarray, image_size: int) -> np.ndarray:
 
 def random_rotate(image,
                   angles: list,
-                  center: tuple,
+                  center: Any,
                   scale_factor: float = 1.0) -> np.ndarray:
     """Rotate an image by a random angle
 
     Args:
         image (np.ndarray): Image read with OpenCV
         angles (list): Rotation angle range
-        center (optional, tuple[int, int]): High resolution image selection center point. Default: ``None``
+        center (optional, Any): High resolution image selection center point
         scale_factor (optional, float): scaling factor. Default: 1.0
 
     Returns:
