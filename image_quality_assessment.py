@@ -202,7 +202,7 @@ def _estimate_aggd_parameters(vector: np.ndarray) -> [np.ndarray, float, float]:
     return aggd_parameters, left_beta, right_beta
 
 
-def _get_mscn_feature(image: np.ndarray) -> list[float | Any]:
+def _get_mscn_feature(image: np.ndarray) -> Any:
     """Python implements the NIQE (Natural Image Quality Evaluator) function,
     This function is used to calculate the MSCN feature map
 
@@ -213,7 +213,7 @@ def _get_mscn_feature(image: np.ndarray) -> list[float | Any]:
         image (np.ndarray): Grayscale image of MSCN feature to be calculated, BGR format, data range is [0, 255]
 
     Returns:
-        mscn_feature (np.ndarray): MSCN feature map of the image
+        mscn_feature (Any): MSCN feature map of the image
 
     """
     mscn_feature = []
