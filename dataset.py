@@ -54,7 +54,7 @@ class TrainValidImageDataset(Dataset):
         self.upscale_factor = upscale_factor
         self.mode = mode
 
-    def __getitem__(self, batch_index: int) -> [dict[str, Tensor], dict[str, Tensor]]:
+    def __getitem__(self, batch_index: int) -> [Tensor, Tensor]:
         # Read a batch of image data
         gt_image = cv2.imread(self.image_file_names[batch_index]).astype(np.float32) / 255.
 
