@@ -27,10 +27,6 @@ from dataset import CUDAPrefetcher, TrainValidImageDataset, TestImageDataset
 from image_quality_assessment import PSNR, SSIM
 from utils import load_state_dict, make_directory, save_checkpoint, AverageMeter, ProgressMeter
 
-model_names = sorted(
-    name for name in model.__dict__ if
-    name.islower() and not name.startswith("__") and callable(model.__dict__[name]))
-
 
 def main():
     # Initialize the number of training epochs
@@ -161,7 +157,7 @@ def build_model() -> nn.Module:
     srresnet_model = model.__dict__[srresnet_config.g_arch_name](in_channels=srresnet_config.in_channels,
                                                                  out_channels=srresnet_config.out_channels,
                                                                  channels=srresnet_config.channels,
-                                                                 num_blocks=srresnet_config.num_blocks)
+                                                                 num_rcb=srresnet_config.num_rcb)
     srresnet_model = srresnet_model.to(device=srresnet_config.device)
 
     return srresnet_model
