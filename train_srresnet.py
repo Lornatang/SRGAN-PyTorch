@@ -161,7 +161,7 @@ def build_model() -> nn.Module:
     srresnet_model = model.__dict__[srresnet_config.g_arch_name](in_channels=srresnet_config.in_channels,
                                                                  out_channels=srresnet_config.out_channels,
                                                                  channels=srresnet_config.channels,
-                                                                 num_blocks=srresnet_config.num_blocks)
+                                                                 num_rcb=srresnet_config.num_rcb)
     srresnet_model = srresnet_model.to(device=srresnet_config.device)
 
     return srresnet_model
