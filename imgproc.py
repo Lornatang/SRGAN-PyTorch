@@ -46,7 +46,7 @@ def _cubic(x: Any) -> Any:
     absx3 = absx ** 3
     return (1.5 * absx3 - 2.5 * absx2 + 1) * ((absx <= 1).type_as(absx)) + (
             -0.5 * absx3 + 2.5 * absx2 - 4 * absx + 2) * (
-               ((absx > 1) * (absx <= 2)).type_as(absx))
+        ((absx > 1) * (absx <= 2)).type_as(absx))
 
 
 # Code reference `https://github.com/xinntao/BasicSR/blob/master/basicsr/utils/matlab_functions.py`
@@ -183,17 +183,33 @@ def tensor_to_image(tensor: Tensor, range_norm: bool, half: bool) -> Any:
     return image
 
 
-def preprocess_one_image(image_path: str, device: torch.device) -> Tensor:
+def preprocess_one_image(
+        image_path: str,
+        range_norm: bool,
+        half: bool,
+        device: torch.device,
+) -> Tensor:
+    """Preprocess the image data
+
+    Args:
+        image_path (str): The path of the image
+        range_norm (bool): Scale [0, 1] data to between [-1, 1]
+        half (bool): Whether to convert torch.float32 similarly to torch.half type
+        device (torch.device): The device where the model is located
+
+    Returns:
+
+    """
     image = cv2.imread(image_path).astype(np.float32) / 255.0
 
     # BGR to RGB
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     # Convert image data to pytorch format data
-    tensor = image_to_tensor(image, False, False).unsqueeze_(0)
+    tensor = image_to_tensor(image, range_norm, half).unsqueeze_(0)
 
     # Transfer tensor channel image format data to CUDA device
-    tensor = tensor.to(device=device, memory_format=torch.channels_last, non_blocking=True)
+    tensor = tensor.to(device, non_blocking=True)
 
     return tensor
 
