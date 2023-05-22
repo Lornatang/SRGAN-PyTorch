@@ -1,4 +1,4 @@
-# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2023 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -11,109 +11,145 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import argparse
 import os
+import random
 import time
+from typing import Any
 
+import numpy as np
 import torch
-from torch import nn
-from torch import optim
+import yaml
+from torch import nn, optim
+from torch.backends import cudnn
 from torch.cuda import amp
+from torch.optim.swa_utils import AveragedModel
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import model
-import srresnet_config
-from dataset import CUDAPrefetcher, TrainValidImageDataset, TestImageDataset
-from image_quality_assessment import PSNR, SSIM
-from utils import load_state_dict, make_directory, save_checkpoint, AverageMeter, ProgressMeter
+from dataset import CUDAPrefetcher, BaseImageDataset, PairedImageDataset
+from imgproc import random_crop_torch, random_rotate_torch, random_vertically_flip_torch, random_horizontally_flip_torch
+from test import test
+from utils import build_iqa_model, load_resume_state_dict, load_pretrained_state_dict, make_directory, save_checkpoint, \
+    Summary, AverageMeter, ProgressMeter
 
 
 def main():
-    # Initialize the number of training epochs
+    # Read parameters from configuration file
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_path",
+                        type=str,
+                        default="./configs/train/SRRESNET_X4.yaml",
+                        required=True,
+                        help="Path to train config file.")
+    args = parser.parse_args()
+
+    with open(args.config_path, "r") as f:
+        config = yaml.full_load(f)
+
+    # Fixed random number seed
+    random.seed(config["SEED"])
+    np.random.seed(config["SEED"])
+    torch.manual_seed(config["SEED"])
+    torch.cuda.manual_seed_all(config["SEED"])
+
+    # Because the size of the input image is fixed, the fixed CUDNN convolution method can greatly increase the running speed
+    cudnn.benchmark = True
+
+    # Initialize the mixed precision method
+    scaler = amp.GradScaler()
+
+    # Default to start training from scratch
     start_epoch = 0
 
-    # Initialize training to generate network evaluation indicators
+    # Initialize the image clarity evaluation index
     best_psnr = 0.0
     best_ssim = 0.0
 
-    train_prefetcher, test_prefetcher = load_dataset()
-    print("Load all datasets successfully.")
+    # Define the running device number
+    device = torch.device("cuda", config["DEVICE_ID"])
 
-    srresnet_model = build_model()
-    print(f"Build `{srresnet_config.g_arch_name}` model successfully.")
+    # Define the basic functions needed to start training
+    train_prefetcher, paired_test_prefetcher = load_dataset(config, device)
+    g_model, ema_g_model = build_model(config, device)
+    pixel_criterion = define_loss(config, device)
+    optimizer = define_optimizer(g_model, config)
 
-    criterion = define_loss()
-    print("Define all loss functions successfully.")
-
-    optimizer = define_optimizer(srresnet_model)
-    print("Define all optimizer functions successfully.")
-
-    print("Check whether to load pretrained model weights...")
-    if srresnet_config.pretrained_model_weights_path:
-        srresnet_model = load_state_dict(srresnet_model, srresnet_config.pretrained_model_weights_path)
-        print(f"Loaded `{srresnet_config.pretrained_model_weights_path}` pretrained model weights successfully.")
+    # Load the pretrained model
+    if config["TRAIN"]["CHECKPOINT"]["PRETRAINED_G_MODEL"]:
+        g_model = load_pretrained_state_dict(g_model,
+                                             config["MODEL"]["G"]["COMPILED"],
+                                             config["TRAIN"]["CHECKPOINT"]["PRETRAINED_G_MODEL"])
+        print(f"Loaded `{config['TRAIN']['CHECKPOINT']['PRETRAINED_G_MODEL']}` pretrained model weights successfully.")
     else:
         print("Pretrained model weights not found.")
 
-    print("Check whether the pretrained model is restored...")
-    if srresnet_config.resume_model_weights_path:
-        srresnet_model, _, start_epoch, best_psnr, best_ssim, optimizer, _ = load_state_dict(
-            srresnet_model,
-            srresnet_config.resume_model_weights_path,
-            optimizer=optimizer,
-            load_mode="resume")
-        print("Loaded pretrained model weights.")
+    # Load the last training interruption model node
+    if config["TRAIN"]["CHECKPOINT"]["RESUMED_G_MODEL"]:
+        g_model, ema_g_model, start_epoch, best_psnr, best_ssim, optimizer = load_resume_state_dict(
+            g_model,
+            ema_g_model,
+            optimizer,
+            config["MODEL"]["G"]["COMPILED"],
+            config["TRAIN"]["CHECKPOINT"]["RESUMED_G_MODEL"],
+        )
+        print(f"Loaded `{config['TRAIN']['CHECKPOINT']['RESUMED_G_MODEL']}` resume model weights successfully.")
     else:
         print("Resume training model not found. Start training from scratch.")
 
-    # Create a experiment results
-    samples_dir = os.path.join("samples", srresnet_config.exp_name)
-    results_dir = os.path.join("results", srresnet_config.exp_name)
+    # Initialize the image clarity evaluation method
+    psnr_model, ssim_model = build_iqa_model(
+        config["SCALE"],
+        config["TEST"]["ONLY_TEST_Y_CHANNEL"],
+        device,
+    )
+
+    # Create the folder where the model weights are saved
+    samples_dir = os.path.join("samples", config["EXP_NAME"])
+    results_dir = os.path.join("results", config["EXP_NAME"])
     make_directory(samples_dir)
     make_directory(results_dir)
 
-    # Create training process log file
-    writer = SummaryWriter(os.path.join("samples", "logs", srresnet_config.exp_name))
+    # create model training log
+    writer = SummaryWriter(os.path.join("samples", "logs", config["EXP_NAME"]))
 
-    # Initialize the gradient scaler
-    scaler = amp.GradScaler()
-
-    # Create an IQA evaluation model
-    psnr_model = PSNR(srresnet_config.upscale_factor, srresnet_config.only_test_y_channel)
-    ssim_model = SSIM(srresnet_config.upscale_factor, srresnet_config.only_test_y_channel)
-
-    # Transfer the IQA model to the specified device
-    psnr_model = psnr_model.to(device=srresnet_config.device)
-    ssim_model = ssim_model.to(device=srresnet_config.device)
-
-    for epoch in range(start_epoch, srresnet_config.epochs):
-        train(srresnet_model,
+    for epoch in range(start_epoch, config["TRAIN"]["HYP"]["EPOCHS"]):
+        train(g_model,
+              ema_g_model,
               train_prefetcher,
-              criterion,
+              pixel_criterion,
               optimizer,
               epoch,
               scaler,
-              writer)
-        psnr, ssim = validate(srresnet_model,
-                              test_prefetcher,
-                              epoch,
-                              writer,
-                              psnr_model,
-                              ssim_model,
-                              "Test")
+              writer,
+              device,
+              config)
+
+        psnr, ssim = test(g_model,
+                          paired_test_prefetcher,
+                          psnr_model,
+                          ssim_model,
+                          device,
+                          config)
         print("\n")
 
-        # Automatically save the model with the highest index
+        # Write the evaluation indicators of each round of Epoch to the log
+        writer.add_scalar(f"Test/PSNR", psnr, epoch + 1)
+        writer.add_scalar(f"Test/SSIM", ssim, epoch + 1)
+
+        # Automatically save model weights
         is_best = psnr > best_psnr and ssim > best_ssim
-        is_last = (epoch + 1) == srresnet_config.epochs
+        is_last = (epoch + 1) == config["TRAIN"]["HYP"]["EPOCHS"]
         best_psnr = max(psnr, best_psnr)
         best_ssim = max(ssim, best_ssim)
         save_checkpoint({"epoch": epoch + 1,
-                         "best_psnr": best_psnr,
-                         "best_ssim": best_ssim,
-                         "state_dict": srresnet_model.state_dict(),
+                         "psnr": psnr,
+                         "ssim": ssim,
+                         "state_dict": g_model.state_dict(),
+                         "ema_state_dict": ema_g_model.state_dict() if ema_g_model is not None else None,
                          "optimizer": optimizer.state_dict()},
-                        f"g_epoch_{epoch + 1}.pth.tar",
+                        f"epoch_{epoch + 1}.pth.tar",
                         samples_dir,
                         results_dir,
                         "g_best.pth.tar",
@@ -122,205 +158,187 @@ def main():
                         is_last)
 
 
-def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher]:
-    # Load train, test and valid datasets
-    train_datasets = TrainValidImageDataset(srresnet_config.train_gt_images_dir,
-                                            srresnet_config.gt_image_size,
-                                            srresnet_config.upscale_factor,
-                                            "Train")
-    test_datasets = TestImageDataset(srresnet_config.test_gt_images_dir, srresnet_config.test_lr_images_dir)
+def load_dataset(
+        config: Any,
+        device: torch.device,
+) -> [CUDAPrefetcher, CUDAPrefetcher]:
+    # Load the train dataset
+    degenerated_train_datasets = BaseImageDataset(
+        config["TRAIN"]["DATASET"]["TRAIN_GT_IMAGES_DIR"],
+        None,
+        config["SCALE"],
+    )
 
-    # Generator all dataloader
-    train_dataloader = DataLoader(train_datasets,
-                                  batch_size=srresnet_config.batch_size,
-                                  shuffle=True,
-                                  num_workers=srresnet_config.num_workers,
-                                  pin_memory=True,
-                                  drop_last=True,
-                                  persistent_workers=True)
-    test_dataloader = DataLoader(test_datasets,
-                                 batch_size=1,
-                                 shuffle=False,
-                                 num_workers=1,
-                                 pin_memory=True,
-                                 drop_last=False,
-                                 persistent_workers=True)
+    # Load the registration test dataset
+    paired_test_datasets = PairedImageDataset(config["TEST"]["DATASET"]["PAIRED_TEST_GT_IMAGES_DIR"],
+                                              config["TEST"]["DATASET"]["PAIRED_TEST_LR_IMAGES_DIR"])
 
-    # Place all data on the preprocessing data loader
-    train_prefetcher = CUDAPrefetcher(train_dataloader, srresnet_config.device)
-    test_prefetcher = CUDAPrefetcher(test_dataloader, srresnet_config.device)
+    # generate dataset iterator
+    degenerated_train_dataloader = DataLoader(degenerated_train_datasets,
+                                              batch_size=config["TRAIN"]["HYP"]["IMGS_PER_BATCH"],
+                                              shuffle=config["TRAIN"]["HYP"]["SHUFFLE"],
+                                              num_workers=config["TRAIN"]["HYP"]["NUM_WORKERS"],
+                                              pin_memory=config["TRAIN"]["HYP"]["PIN_MEMORY"],
+                                              drop_last=True,
+                                              persistent_workers=config["TRAIN"]["HYP"]["PERSISTENT_WORKERS"])
+    paired_test_dataloader = DataLoader(paired_test_datasets,
+                                        batch_size=config["TEST"]["HYP"]["IMGS_PER_BATCH"],
+                                        shuffle=config["TEST"]["HYP"]["SHUFFLE"],
+                                        num_workers=config["TEST"]["HYP"]["NUM_WORKERS"],
+                                        pin_memory=config["TEST"]["HYP"]["PIN_MEMORY"],
+                                        drop_last=False,
+                                        persistent_workers=config["TEST"]["HYP"]["PERSISTENT_WORKERS"])
 
-    return train_prefetcher, test_prefetcher
+    # Replace the data set iterator with CUDA to speed up
+    train_prefetcher = CUDAPrefetcher(degenerated_train_dataloader, device)
+    paired_test_prefetcher = CUDAPrefetcher(paired_test_dataloader, device)
 
-
-def build_model() -> nn.Module:
-    srresnet_model = model.__dict__[srresnet_config.g_arch_name](in_channels=srresnet_config.in_channels,
-                                                                 out_channels=srresnet_config.out_channels,
-                                                                 channels=srresnet_config.channels,
-                                                                 num_rcb=srresnet_config.num_rcb)
-    srresnet_model = srresnet_model.to(device=srresnet_config.device)
-
-    return srresnet_model
+    return train_prefetcher, paired_test_prefetcher
 
 
-def define_loss() -> nn.MSELoss:
-    criterion = nn.MSELoss()
-    criterion = criterion.to(device=srresnet_config.device)
+def build_model(
+        config: Any,
+        device: torch.device,
+) -> [nn.Module, nn.Module or Any]:
+    g_model = model.__dict__[config["MODEL"]["G"]["NAME"]](in_channels=config["MODEL"]["G"]["IN_CHANNELS"],
+                                                           out_channels=config["MODEL"]["G"]["OUT_CHANNELS"],
+                                                           channels=config["MODEL"]["G"]["CHANNELS"],
+                                                           num_rcb=config["MODEL"]["G"]["NUM_RCB"])
+    g_model = g_model.to(device)
 
-    return criterion
+    if config["MODEL"]["EMA"]["ENABLE"]:
+        # Generate an exponential average model based on a generator to stabilize model training
+        ema_decay = config["MODEL"]["EMA"]["DECAY"]
+        ema_avg_fn = lambda averaged_model_parameter, model_parameter, num_averaged: \
+            (1 - ema_decay) * averaged_model_parameter + ema_decay * model_parameter
+        ema_g_model = AveragedModel(g_model, device=device, avg_fn=ema_avg_fn)
+    else:
+        ema_g_model = None
+
+    # compile model
+    if config["MODEL"]["G"]["COMPILED"]:
+        g_model = torch.compile(g_model)
+    if config["MODEL"]["EMA"]["COMPILED"] and ema_g_model is not None:
+        ema_g_model = torch.compile(ema_g_model)
+
+    return g_model, ema_g_model
 
 
-def define_optimizer(srresnet_model) -> optim.Adam:
-    optimizer = optim.Adam(srresnet_model.parameters(),
-                           srresnet_config.model_lr,
-                           srresnet_config.model_betas,
-                           srresnet_config.model_eps,
-                           srresnet_config.model_weight_decay)
+def define_loss(config: Any, device: torch.device) -> nn.L1Loss:
+    if config["TRAIN"]["LOSSES"]["PIXEL_LOSS"]["NAME"] == "L1Loss":
+        pixel_criterion = nn.L1Loss()
+    else:
+        raise NotImplementedError(f"Loss {config['TRAIN']['LOSSES']['PIXEL_LOSS']['NAME']} is not implemented.")
+    pixel_criterion = pixel_criterion.to(device)
+
+    return pixel_criterion
+
+
+def define_optimizer(g_model: nn.Module, config: Any) -> optim.Adam:
+    if config["TRAIN"]["OPTIM"]["NAME"] == "Adam":
+        optimizer = optim.Adam(g_model.parameters(),
+                               config["TRAIN"]["OPTIM"]["LR"],
+                               config["TRAIN"]["OPTIM"]["BETAS"],
+                               config["TRAIN"]["OPTIM"]["EPS"],
+                               config["TRAIN"]["OPTIM"]["WEIGHT_DECAY"])
+    else:
+        raise NotImplementedError(f"Optimizer {config['TRAIN']['OPTIM']['NAME']} is not implemented.")
 
     return optimizer
 
 
 def train(
-        srresnet_model: nn.Module,
+        g_model: nn.Module,
+        ema_g_model: nn.Module,
         train_prefetcher: CUDAPrefetcher,
-        criterion: nn.MSELoss,
+        pixel_criterion: nn.L1Loss,
         optimizer: optim.Adam,
         epoch: int,
         scaler: amp.GradScaler,
-        writer: SummaryWriter
+        writer: SummaryWriter,
+        device: torch.device,
+        config: Any,
 ) -> None:
     # Calculate how many batches of data are in each Epoch
     batches = len(train_prefetcher)
     # Print information of progress bar during training
-    batch_time = AverageMeter("Time", ":6.3f")
-    data_time = AverageMeter("Data", ":6.3f")
-    losses = AverageMeter("Loss", ":6.6f")
-    progress = ProgressMeter(batches, [batch_time, data_time, losses], prefix=f"Epoch: [{epoch + 1}]")
+    batch_time = AverageMeter("Time", ":6.3f", Summary.NONE)
+    data_time = AverageMeter("Data", ":6.3f", Summary.NONE)
+    losses = AverageMeter("Loss", ":6.6f", Summary.NONE)
+    progress = ProgressMeter(batches,
+                             [batch_time, data_time, losses],
+                             prefix=f"Epoch: [{epoch + 1}]")
 
     # Put the generative network model in training mode
-    srresnet_model.train()
+    g_model.train()
 
-    # Initialize the number of data batches to print logs on the terminal
+    # Define loss function weights
+    loss_weight = torch.Tensor(config["TRAIN"]["LOSSES"]["PIXEL_LOSS"]["WEIGHT"]).to(device)
+
+    # Initialize data batches
     batch_index = 0
-
-    # Initialize the data loader and load the first batch of data
+    # Set the dataset iterator pointer to 0
     train_prefetcher.reset()
+    # Record the start time of training a batch
+    end = time.time()
+    # load the first batch of data
     batch_data = train_prefetcher.next()
 
-    # Get the initialization training time
-    end = time.time()
-
     while batch_data is not None:
-        # Calculate the time it takes to load a batch of data
+        # Load batches of data
+        gt = batch_data["gt"].to(device, non_blocking=True)
+        lr = batch_data["lr"].to(device, non_blocking=True)
+
+        # image data augmentation
+        gt, lr = random_crop_torch(gt,
+                                   lr,
+                                   config["TRAIN"]["DATASET"]["GT_IMAGE_SIZE"],
+                                   config["SCALE"])
+        gt, lr = random_rotate_torch(gt, lr, config["SCALE"], [0, 90, 180, 270])
+        gt, lr = random_vertically_flip_torch(gt, lr)
+        gt, lr = random_horizontally_flip_torch(gt, lr)
+
+        # Record the time to load a batch of data
         data_time.update(time.time() - end)
 
-        # Transfer in-memory data to CUDA devices to speed up training
-        gt = batch_data["gt"].to(device=srresnet_config.device, non_blocking=True)
-        lr = batch_data["lr"].to(device=srresnet_config.device, non_blocking=True)
-
-        # Initialize generator gradients
-        srresnet_model.zero_grad(set_to_none=True)
+        # Initialize the generator model gradient
+        g_model.zero_grad(set_to_none=True)
 
         # Mixed precision training
         with amp.autocast():
-            sr = srresnet_model(lr)
-            loss = torch.mul(srresnet_config.loss_weights, criterion(sr, gt))
+            sr = g_model(lr)
+            pixel_loss = pixel_criterion(sr, gt)
+            pixel_loss = torch.sum(torch.mul(loss_weight, pixel_loss))
 
         # Backpropagation
-        scaler.scale(loss).backward()
-        # update generator weights
+        scaler.scale(pixel_loss).backward()
+        # update model weights
         scaler.step(optimizer)
         scaler.update()
 
-        # Statistical loss value for terminal data output
-        losses.update(loss.item(), lr.size(0))
+        if config["MODEL"]["EMA"]["ENABLE"]:
+            # update exponentially averaged model weights
+            ema_g_model.update_parameters(g_model)
 
-        # Calculate the time it takes to fully train a batch of data
+        # record the loss value
+        losses.update(pixel_loss.item(), lr.size(0))
+
+        # Record the total time of training a batch
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # Write the data during training to the training log file
-        if batch_index % srresnet_config.train_print_frequency == 0:
-            # Record loss during training and output to file
-            writer.add_scalar("Train/Loss", loss.item(), batch_index + epoch * batches + 1)
-            progress.display(batch_index + 1)
+        # Output training log information once
+        if batch_index % config["TRAIN"]["PRINT_FREQ"] == 0:
+            # write training log
+            iters = batch_index + epoch * batches
+            writer.add_scalar("Train/Loss", pixel_loss.item(), iters)
+            progress.display(batch_index)
 
         # Preload the next batch of data
         batch_data = train_prefetcher.next()
 
-        # Add 1 to the number of data batches to ensure that the terminal prints data normally
+        # Add 1 to the number of data batches
         batch_index += 1
-
-
-def validate(
-        srresnet_model: nn.Module,
-        data_prefetcher: CUDAPrefetcher,
-        epoch: int,
-        writer: SummaryWriter,
-        psnr_model: nn.Module,
-        ssim_model: nn.Module,
-        mode: str
-) -> [float, float]:
-    # Calculate how many batches of data are in each Epoch
-    batch_time = AverageMeter("Time", ":6.3f")
-    psnres = AverageMeter("PSNR", ":4.2f")
-    ssimes = AverageMeter("SSIM", ":4.4f")
-    progress = ProgressMeter(len(data_prefetcher), [batch_time, psnres, ssimes], prefix=f"{mode}: ")
-
-    # Put the adversarial network model in validation mode
-    srresnet_model.eval()
-
-    # Initialize the number of data batches to print logs on the terminal
-    batch_index = 0
-
-    # Initialize the data loader and load the first batch of data
-    data_prefetcher.reset()
-    batch_data = data_prefetcher.next()
-
-    # Get the initialization test time
-    end = time.time()
-
-    with torch.no_grad():
-        while batch_data is not None:
-            # Transfer the in-memory data to the CUDA device to speed up the test
-            gt = batch_data["gt"].to(device=srresnet_config.device, non_blocking=True)
-            lr = batch_data["lr"].to(device=srresnet_config.device, non_blocking=True)
-
-            # Use the generator model to generate a fake sample
-            with amp.autocast():
-                sr = srresnet_model(lr)
-
-            # Statistical loss value for terminal data output
-            psnr = psnr_model(sr, gt)
-            ssim = ssim_model(sr, gt)
-            psnres.update(psnr.item(), lr.size(0))
-            ssimes.update(ssim.item(), lr.size(0))
-
-            # Calculate the time it takes to fully test a batch of data
-            batch_time.update(time.time() - end)
-            end = time.time()
-
-            # Record training log information
-            if batch_index % srresnet_config.valid_print_frequency == 0:
-                progress.display(batch_index + 1)
-
-            # Preload the next batch of data
-            batch_data = data_prefetcher.next()
-
-            # After training a batch of data, add 1 to the number of data batches to ensure that the
-            # terminal print data normally
-            batch_index += 1
-
-    # print metrics
-    progress.display_summary()
-
-    if mode == "Valid" or mode == "Test":
-        writer.add_scalar(f"{mode}/PSNR", psnres.avg, epoch + 1)
-        writer.add_scalar(f"{mode}/SSIM", ssimes.avg, epoch + 1)
-    else:
-        raise ValueError("Unsupported mode, please use `Valid` or `Test`.")
-
-    return psnres.avg, ssimes.avg
 
 
 if __name__ == "__main__":

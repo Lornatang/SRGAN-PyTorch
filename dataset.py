@@ -18,89 +18,111 @@ import threading
 import cv2
 import numpy as np
 import torch
+from natsort import natsorted
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 
-import imgproc
+from imgproc import image_to_tensor, image_resize
 
 __all__ = [
-    "TrainValidImageDataset", "TestImageDataset",
+    "BaseImageDataset", "PairedImageDataset",
     "PrefetchGenerator", "PrefetchDataLoader", "CPUPrefetcher", "CUDAPrefetcher",
 ]
 
 
-class TrainValidImageDataset(Dataset):
-    """Define training/valid dataset loading methods.
-
-    Args:
-        gt_image_dir (str): Train/Valid dataset address.
-        gt_image_size (int): Ground-truth resolution image size.
-        upscale_factor (int): Image up scale factor.
-        mode (str): Data set loading method, the training data set is for data enhancement, and the
-            verification dataset is not for data enhancement.
-    """
+class BaseImageDataset(Dataset):
+    """Define training dataset loading methods."""
 
     def __init__(
             self,
-            gt_image_dir: str,
-            gt_image_size: int,
-            upscale_factor: int,
-            mode: str,
+            gt_images_dir: str,
+            lr_images_dir: str = None,
+            upscale_factor: int = 4,
     ) -> None:
-        super(TrainValidImageDataset, self).__init__()
-        self.image_file_names = [os.path.join(gt_image_dir, image_file_name) for image_file_name in
-                                 os.listdir(gt_image_dir)]
-        self.gt_image_size = gt_image_size
-        self.upscale_factor = upscale_factor
-        self.mode = mode
+        """
 
-    def __getitem__(self, batch_index: int) -> [Tensor, Tensor]:
-        # Read a batch of image data
-        gt_image = cv2.imread(self.image_file_names[batch_index]).astype(np.float32) / 255.
+        Args:
+            gt_images_dir (str): Ground-truth image address.
+            lr_images_dir (str, optional): Low resolution image address. Default: ``None``
+            upscale_factor (int, optional): Image up scale factor. Default: 4
+        """
 
-        # Image processing operations
-        if self.mode == "Train":
-            gt_crop_image = imgproc.random_crop(gt_image, self.gt_image_size)
-        elif self.mode == "Valid":
-            gt_crop_image = imgproc.center_crop(gt_image, self.gt_image_size)
+        super(BaseImageDataset, self).__init__()
+        # check if the ground truth images folder is empty
+        if os.listdir(gt_images_dir) == 0:
+            raise RuntimeError("GT image folder is empty.")
+        # check if the image magnification meets the model requirements
+        if upscale_factor not in [2, 3, 4, 8]:
+            raise RuntimeError("Upscale factor must be 2, 3, 4, or 8.")
+
+        # Read a batch of low-resolution images
+        if lr_images_dir is None:
+            image_file_names = natsorted(os.listdir(gt_images_dir))
+            self.lr_image_file_names = None
+            self.gt_image_file_names = [os.path.join(gt_images_dir, image_file_name) for image_file_name in image_file_names]
         else:
-            raise ValueError("Unsupported data processing model, please use `Train` or `Valid`.")
+            if os.listdir(lr_images_dir) == 0:
+                raise RuntimeError("LR image folder is empty.")
+            image_file_names = natsorted(os.listdir(lr_images_dir))
+            self.lr_image_file_names = [os.path.join(lr_images_dir, image_file_name) for image_file_name in image_file_names]
+            self.gt_image_file_names = [os.path.join(gt_images_dir, image_file_name) for image_file_name in image_file_names]
 
-        lr_crop_image = imgproc.image_resize(gt_crop_image, 1 / self.upscale_factor)
+        self.upscale_factor = upscale_factor
 
-        # BGR convert RGB
-        gt_crop_image = cv2.cvtColor(gt_crop_image, cv2.COLOR_BGR2RGB)
-        lr_crop_image = cv2.cvtColor(lr_crop_image, cv2.COLOR_BGR2RGB)
+    def __getitem__(
+            self,
+            batch_index: int
+    ) -> [Tensor, Tensor]:
+        # Read a batch of ground truth images
+        gt_image = cv2.imread(self.gt_image_file_names[batch_index])
+        gt_image = cv2.cvtColor(gt_image, cv2.COLOR_BGR2RGB)
+        gt_tensor = image_to_tensor(gt_image, False, False)
 
-        # Convert image data into Tensor stream format (PyTorch).
-        # Note: The range of input and output is between [0, 1]
-        gt_crop_tensor = imgproc.image_to_tensor(gt_crop_image, False, False)
-        lr_crop_tensor = imgproc.image_to_tensor(lr_crop_image, False, False)
+        # Read a batch of low-resolution images
+        if self.lr_image_file_names is not None:
+            lr_image = cv2.imread(self.lr_image_file_names[batch_index])
+            lr_image = cv2.cvtColor(lr_image, cv2.COLOR_BGR2RGB)
+            lr_tensor = image_to_tensor(lr_image, False, False)
+        else:
+            lr_tensor = image_resize(gt_tensor, 1 / self.upscale_factor)
 
-        return {"gt": gt_crop_tensor, "lr": lr_crop_tensor}
+        return {"gt": gt_tensor,
+                "lr": lr_tensor}
 
     def __len__(self) -> int:
-        return len(self.image_file_names)
+        return len(self.gt_image_file_names)
 
 
-class TestImageDataset(Dataset):
-    """Define Test dataset loading methods.
+class PairedImageDataset(Dataset):
+    """Define Test dataset loading methods."""
 
-    Args:
-        test_gt_images_dir (str): ground truth image in test image
-        test_lr_images_dir (str): low-resolution image in test image
-    """
+    def __init__(
+            self,
+            paired_gt_images_dir: str,
+            paired_lr_images_dir: str,
+    ) -> None:
+        """
 
-    def __init__(self, test_gt_images_dir: str, test_lr_images_dir: str) -> None:
-        super(TestImageDataset, self).__init__()
-        # Get all image file names in folder
-        self.gt_image_file_names = [os.path.join(test_gt_images_dir, x) for x in os.listdir(test_gt_images_dir)]
-        self.lr_image_file_names = [os.path.join(test_lr_images_dir, x) for x in os.listdir(test_lr_images_dir)]
+        Args:
+            paired_gt_images_dir: The address of the ground-truth image after registration
+            paired_lr_images_dir: The address of the low-resolution image after registration
+        """
 
-    def __getitem__(self, batch_index: int) -> [torch.Tensor, torch.Tensor]:
+        super(PairedImageDataset, self).__init__()
+        if not os.path.exists(paired_lr_images_dir):
+            raise FileNotFoundError(f"Registered low-resolution image address does not exist: {paired_lr_images_dir}")
+        if not os.path.exists(paired_gt_images_dir):
+            raise FileNotFoundError(f"Registered high-resolution image address does not exist: {paired_gt_images_dir}")
+
+        # Get a list of all image filenames
+        image_files = natsorted(os.listdir(paired_lr_images_dir))
+        self.paired_gt_image_file_names = [os.path.join(paired_gt_images_dir, x) for x in image_files]
+        self.paired_lr_image_file_names = [os.path.join(paired_lr_images_dir, x) for x in image_files]
+
+    def __getitem__(self, batch_index: int) -> [Tensor, Tensor, str]:
         # Read a batch of image data
-        gt_image = cv2.imread(self.gt_image_file_names[batch_index]).astype(np.float32) / 255.
-        lr_image = cv2.imread(self.lr_image_file_names[batch_index]).astype(np.float32) / 255.
+        gt_image = cv2.imread(self.paired_gt_image_file_names[batch_index]).astype(np.float32) / 255.
+        lr_image = cv2.imread(self.paired_lr_image_file_names[batch_index]).astype(np.float32) / 255.
 
         # BGR convert RGB
         gt_image = cv2.cvtColor(gt_image, cv2.COLOR_BGR2RGB)
@@ -108,13 +130,15 @@ class TestImageDataset(Dataset):
 
         # Convert image data into Tensor stream format (PyTorch).
         # Note: The range of input and output is between [0, 1]
-        gt_tensor = imgproc.image_to_tensor(gt_image, False, False)
-        lr_tensor = imgproc.image_to_tensor(lr_image, False, False)
+        gt_tensor = image_to_tensor(gt_image, False, False)
+        lr_tensor = image_to_tensor(lr_image, False, False)
 
-        return {"gt": gt_tensor, "lr": lr_tensor}
+        return {"gt": gt_tensor,
+                "lr": lr_tensor,
+                "image_name": self.paired_lr_image_file_names[batch_index]}
 
     def __len__(self) -> int:
-        return len(self.gt_image_file_names)
+        return len(self.paired_lr_image_file_names)
 
 
 class PrefetchGenerator(threading.Thread):

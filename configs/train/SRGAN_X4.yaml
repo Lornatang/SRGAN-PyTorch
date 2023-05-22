@@ -1,0 +1,104 @@
+# experiment name
+EXP_NAME: SRGAN_x4-ImageNet
+# random number seed
+SEED: 0
+# super resolution magnification factor
+SCALE: 4
+# run device model
+DEVICE_ID: 0
+
+# Model define
+MODEL:
+  EMA:
+    ENABLE: True
+    DECAY: 0.999
+    COMPILED: True
+  G:
+    NAME: srresnet_x4
+    IN_CHANNELS: 3
+    OUT_CHANNELS: 3
+    CHANNELS: 64
+    NUM_RCB: 16
+    COMPILED: True
+  D:
+    NAME: discriminator_for_vgg
+    IN_CHANNELS: 3
+    OUT_CHANNELS: 1
+    CHANNELS: 64
+    COMPILED: False
+
+TRAIN:
+  DATASET:
+    TRAIN_GT_IMAGES_DIR: ./data/ImageNet/train/GT
+
+    GT_IMAGE_SIZE: 96
+
+  # Model file address, used for pre-training and recovery training
+  CHECKPOINT:
+    PRETRAINED_G_MODEL: "./results/SRResNet_x4-ImageNet/g_last.pth.tar"
+    PRETRAINED_D_MODEL: ""
+    RESUMED_G_MODEL: ""
+    RESUMED_D_MODEL: ""
+
+  # training hyperparameters
+  HYP:
+    IMGS_PER_BATCH: 16
+    SHUFFLE: True
+    NUM_WORKERS: 4
+    PIN_MEMORY: True
+    PERSISTENT_WORKERS: True
+
+    EPOCHS: 18
+
+  OPTIM:
+    NAME: Adam
+    LR: 0.0001
+    BETAS: [ 0.9, 0.999 ]
+    EPS: 0.0001
+    WEIGHT_DECAY: 0.0
+
+  LR_SCHEDULER:
+    NAME: MultiStepLR
+    MILESTONES: [ 9 ]
+    GAMMA: 0.5
+
+  # Loss function
+  LOSSES:
+    PIXEL_LOSS:
+      NAME: L1Loss
+      WEIGHT: [ 1.0 ]
+    CONTENT_LOSS:
+      NAME: ContentLoss
+      NET_CFG_NAME: "vgg19"
+      BATCH_NORM: False
+      NUM_CLASSES: 1000
+      MODEL_WEIGHTS_PATH: ""
+      FEATURE_NODES: [ "features.35" ]
+      FEATURE_NORMALIZE_MEAN: [ 0.485, 0.456, 0.406 ]
+      FEATURE_NORMALIZE_STD: [ 0.229, 0.224, 0.225 ]
+      WEIGHT: [ 1.0 ]
+    ADVERSARIAL_LOSS:
+      NAME: vanilla
+      WEIGHT: [ 0.001 ]
+
+  PRINT_FREQ: 100
+
+TEST:
+  DATASET:
+    PAIRED_TEST_GT_IMAGES_DIR: "./data/Set5/GTmod12"
+    PAIRED_TEST_LR_IMAGES_DIR: "./data/Set5/LRbicx4"
+
+  # Test hyperparameters
+  HYP:
+    IMGS_PER_BATCH: 1
+    SHUFFLE: False
+    NUM_WORKERS: 1
+    PIN_MEMORY: True
+    PERSISTENT_WORKERS: True
+
+  # Only test Y channel
+  ONLY_TEST_Y_CHANNEL: True
+
+  SAVE_IMAGE: False
+  SAVE_DIR_PATH: None
+  PRINT_FREQ: 1

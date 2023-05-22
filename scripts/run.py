@@ -14,4 +14,4 @@
 import os
 
 # Prepare dataset
-os.system("python3 ./prepare_dataset.py --images_dir ../data/ImageNet/original --output_dir ../data/ImageNet/SRGAN/train --image_size 128 --step 64 --num_workers 16")
+os.system("python3 ./prepare_dataset.py --images_dir ../data/ImageNet/original/ImageNet --output_dir ../data/ImageNet/train/GT --image_size 128 --step 64 --num_workers 20")

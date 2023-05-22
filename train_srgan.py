@@ -1,4 +1,4 @@
-# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2023 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -11,460 +11,488 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import argparse
 import os
+import random
 import time
+from typing import Any
 
+import numpy as np
 import torch
-from torch import nn
-from torch import optim
+import yaml
+from torch import nn, optim
+from torch.backends import cudnn
+from torch.cuda import amp
 from torch.optim import lr_scheduler
+from torch.optim.swa_utils import AveragedModel
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import model
-import srgan_config
-from dataset import CUDAPrefetcher, TrainValidImageDataset, TestImageDataset
-from image_quality_assessment import PSNR, SSIM
-from utils import load_state_dict, make_directory, save_checkpoint, AverageMeter, ProgressMeter
-
-model_names = sorted(
-    name for name in model.__dict__ if
-    name.islower() and not name.startswith("__") and callable(model.__dict__[name]))
+from dataset import CUDAPrefetcher, BaseImageDataset, PairedImageDataset
+from imgproc import random_crop_torch, random_rotate_torch, random_vertically_flip_torch, random_horizontally_flip_torch
+from test import test
+from utils import build_iqa_model, load_resume_state_dict, load_pretrained_state_dict, make_directory, save_checkpoint, \
+    Summary, AverageMeter, ProgressMeter
 
 
 def main():
-    # Initialize the number of training epochs
+    # Read parameters from configuration file
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_path",
+                        type=str,
+                        default="./configs/train/SWINIRGAN_DEFAULT_SR_X4.yaml",
+                        required=True,
+                        help="Path to train config file.")
+    args = parser.parse_args()
+
+    with open(args.config_path, "r") as f:
+        config = yaml.full_load(f)
+
+    # Fixed random number seed
+    random.seed(config["SEED"])
+    np.random.seed(config["SEED"])
+    torch.manual_seed(config["SEED"])
+    torch.cuda.manual_seed_all(config["SEED"])
+
+    # Because the size of the input image is fixed, the fixed CUDNN convolution method can greatly increase the running speed
+    cudnn.benchmark = True
+
+    # Initialize the mixed precision method
+    scaler = amp.GradScaler()
+
+    # Default to start training from scratch
     start_epoch = 0
 
-    # Initialize training to generate network evaluation indicators
+    # Initialize the image clarity evaluation index
     best_psnr = 0.0
     best_ssim = 0.0
 
-    train_prefetcher, test_prefetcher = load_dataset()
-    print("Load all datasets successfully.")
+    # Define the running device number
+    device = torch.device("cuda", config["DEVICE_ID"])
 
-    d_model, g_model = build_model()
-    print(f"Build `{srgan_config.g_arch_name}` model successfully.")
+    # Define the basic functions needed to start training
+    train_prefetcher, paired_test_prefetcher = load_dataset(config, device)
+    g_model, ema_g_model, d_model = build_model(config, device)
+    pixel_criterion, content_criterion, adversarial_criterion = define_loss(config, device)
+    g_optimizer, d_optimizer = define_optimizer(g_model, d_model, config)
 
-    pixel_criterion, content_criterion, adversarial_criterion = define_loss()
-    print("Define all loss functions successfully.")
-
-    d_optimizer, g_optimizer = define_optimizer(d_model, g_model)
-    print("Define all optimizer functions successfully.")
-
-    d_scheduler, g_scheduler = define_scheduler(d_optimizer, g_optimizer)
-    print("Define all optimizer scheduler functions successfully.")
-
-    print("Check whether to load pretrained d model weights...")
-    if srgan_config.pretrained_d_model_weights_path:
-        d_model = load_state_dict(d_model, srgan_config.pretrained_d_model_weights_path)
-        print(f"Loaded `{srgan_config.pretrained_d_model_weights_path}` pretrained model weights successfully.")
-    else:
-        print("Pretrained d model weights not found.")
-
-    print("Check whether to load pretrained g model weights...")
-    if srgan_config.pretrained_g_model_weights_path:
-        g_model = load_state_dict(g_model, srgan_config.pretrained_g_model_weights_path)
-        print(f"Loaded `{srgan_config.pretrained_g_model_weights_path}` pretrained model weights successfully.")
+    # Load the pretrained model
+    if config["TRAIN"]["CHECKPOINT"]["PRETRAINED_G_MODEL"]:
+        g_model = load_pretrained_state_dict(g_model,
+                                             config["MODEL"]["G"]["COMPILED"],
+                                             config["TRAIN"]["CHECKPOINT"]["PRETRAINED_G_MODEL"])
+        print(f"Loaded `{config['TRAIN']['CHECKPOINT']['PRETRAINED_G_MODEL']}` pretrained model weights successfully.")
     else:
         print("Pretrained g model weights not found.")
+    if config["TRAIN"]["CHECKPOINT"]["PRETRAINED_D_MODEL"]:
+        d_model = load_pretrained_state_dict(d_model,
+                                             config["MODEL"]["D"]["COMPILED"],
+                                             config["TRAIN"]["CHECKPOINT"]["PRETRAINED_D_MODEL"])
+        print(f"Loaded `{config['TRAIN']['CHECKPOINT']['PRETRAINED_D_MODEL']}` pretrained model weights successfully.")
+    else:
+        print("Pretrained dd model weights not found.")
 
-    print("Check whether the pretrained d model is restored...")
-    if srgan_config.resume_d_model_weights_path:
-        d_model, _, start_epoch, best_psnr, best_ssim, optimizer, scheduler = load_state_dict(
+    # Load the last training interruption model node
+    if config["TRAIN"]["CHECKPOINT"]["RESUMED_G_MODEL"]:
+        g_model, ema_g_model, start_epoch, best_psnr, best_ssim, optimizer = load_resume_state_dict(
+            g_model,
+            ema_g_model,
+            g_optimizer,
+            config["MODEL"]["G"]["COMPILED"],
+            config["TRAIN"]["CHECKPOINT"]["RESUMED_G_MODEL"],
+        )
+        print(f"Loaded `{config['TRAIN']['CHECKPOINT']['RESUMED_G_MODEL']}` resume model weights successfully.")
+    else:
+        print("Resume training g model not found. Start training from scratch.")
+    if config["TRAIN"]["CHECKPOINT"]["RESUMED_D_MODEL"]:
+        d_model, _, start_epoch, best_psnr, best_ssim, optimizer = load_resume_state_dict(
             d_model,
-            srgan_config.resume_d_model_weights_path,
-            optimizer=d_optimizer,
-            scheduler=d_scheduler,
-            load_mode="resume")
-        print("Loaded pretrained model weights.")
+            None,
+            d_optimizer,
+            config["MODEL"]["D"]["COMPILED"],
+            config["TRAIN"]["CHECKPOINT"]["RESUMED_D_MODEL"],
+        )
+        print(f"Loaded `{config['TRAIN']['CHECKPOINT']['RESUMED_D_MODEL']}` resume model weights successfully.")
     else:
         print("Resume training d model not found. Start training from scratch.")
 
-    print("Check whether the pretrained g model is restored...")
-    if srgan_config.resume_g_model_weights_path:
-        g_model, _, start_epoch, best_psnr, best_ssim, optimizer, scheduler = load_state_dict(
-            g_model,
-            srgan_config.resume_g_model_weights_path,
-            optimizer=g_optimizer,
-            scheduler=g_scheduler,
-            load_mode="resume")
-        print("Loaded pretrained model weights.")
-    else:
-        print("Resume training g model not found. Start training from scratch.")
+    # Initialize the image clarity evaluation method
+    psnr_model, ssim_model = build_iqa_model(
+        config["SCALE"],
+        config["TEST"]["ONLY_TEST_Y_CHANNEL"],
+        device,
+    )
 
-    # Create a experiment results
-    samples_dir = os.path.join("samples", srgan_config.exp_name)
-    results_dir = os.path.join("results", srgan_config.exp_name)
+    # Create the folder where the model weights are saved
+    samples_dir = os.path.join("samples", config["EXP_NAME"])
+    results_dir = os.path.join("results", config["EXP_NAME"])
     make_directory(samples_dir)
     make_directory(results_dir)
 
-    # Create training process log file
-    writer = SummaryWriter(os.path.join("samples", "logs", srgan_config.exp_name))
+    # create model training log
+    writer = SummaryWriter(os.path.join("samples", "logs", config["EXP_NAME"]))
 
-    # Create an IQA evaluation model
-    psnr_model = PSNR(srgan_config.upscale_factor, srgan_config.only_test_y_channel)
-    ssim_model = SSIM(srgan_config.upscale_factor, srgan_config.only_test_y_channel)
-
-    # Transfer the IQA model to the specified device
-    psnr_model = psnr_model.to(device=srgan_config.device)
-    ssim_model = ssim_model.to(device=srgan_config.device)
-
-    for epoch in range(start_epoch, srgan_config.epochs):
-        train(d_model,
-              g_model,
+    for epoch in range(start_epoch, config["TRAIN"]["HYP"]["EPOCHS"]):
+        train(g_model,
+              ema_g_model,
+              d_model,
               train_prefetcher,
               pixel_criterion,
               content_criterion,
               adversarial_criterion,
-              d_optimizer,
+              g_optimizer,
               g_optimizer,
               epoch,
-              writer)
-        psnr, ssim = validate(g_model,
-                              test_prefetcher,
-                              epoch,
-                              writer,
-                              psnr_model,
-                              ssim_model,
-                              "Test")
+              scaler,
+              writer,
+              device,
+              config)
+        psnr, ssim = test(g_model,
+                          paired_test_prefetcher,
+                          psnr_model,
+                          ssim_model,
+                          device,
+                          config)
         print("\n")
 
-        # Update LR
-        d_scheduler.step()
-        g_scheduler.step()
+        # Write the evaluation indicators of each round of Epoch to the log
+        writer.add_scalar(f"Test/PSNR", psnr, epoch + 1)
+        writer.add_scalar(f"Test/SSIM", ssim, epoch + 1)
 
-        # Automatically save the model with the highest index
+        # Automatically save model weights
         is_best = psnr > best_psnr and ssim > best_ssim
-        is_last = (epoch + 1) == srgan_config.epochs
+        is_last = (epoch + 1) == config["TRAIN"]["HYP"]["EPOCHS"]
         best_psnr = max(psnr, best_psnr)
         best_ssim = max(ssim, best_ssim)
         save_checkpoint({"epoch": epoch + 1,
-                         "best_psnr": best_psnr,
-                         "best_ssim": best_ssim,
-                         "state_dict": d_model.state_dict(),
-                         "optimizer": d_optimizer.state_dict(),
-                         "scheduler": d_scheduler.state_dict()},
-                        f"d_epoch_{epoch + 1}.pth.tar",
-                        samples_dir,
-                        results_dir,
-                        "d_best.pth.tar",
-                        "d_last.pth.tar",
-                        is_best,
-                        is_last)
-        save_checkpoint({"epoch": epoch + 1,
-                         "best_psnr": best_psnr,
-                         "best_ssim": best_ssim,
+                         "psnr": psnr,
+                         "ssim": ssim,
                          "state_dict": g_model.state_dict(),
-                         "optimizer": g_optimizer.state_dict(),
-                         "scheduler": g_scheduler.state_dict()},
-                        f"g_epoch_{epoch + 1}.pth.tar",
+                         "ema_state_dict": ema_g_model.state_dict() if ema_g_model is not None else None,
+                         "optimizer": g_optimizer.state_dict()},
+                        f"epoch_{epoch + 1}.pth.tar",
                         samples_dir,
                         results_dir,
                         "g_best.pth.tar",
                         "g_last.pth.tar",
                         is_best,
                         is_last)
+        save_checkpoint({"epoch": epoch + 1,
+                         "psnr": psnr,
+                         "ssim": ssim,
+                         "state_dict": d_model.state_dict(),
+                         "optimizer": d_optimizer.state_dict()},
+                        f"epoch_{epoch + 1}.pth.tar",
+                        samples_dir,
+                        results_dir,
+                        "d_best.pth.tar",
+                        "d_last.pth.tar",
+                        is_best,
+                        is_last)
 
 
-def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher]:
-    # Load train, test and valid datasets
-    train_datasets = TrainValidImageDataset(srgan_config.train_gt_images_dir,
-                                            srgan_config.gt_image_size,
-                                            srgan_config.upscale_factor,
-                                            "Train")
-    test_datasets = TestImageDataset(srgan_config.test_gt_images_dir, srgan_config.test_lr_images_dir)
+def load_dataset(
+        config: Any,
+        device: torch.device,
+) -> [CUDAPrefetcher, CUDAPrefetcher]:
+    # Load the train dataset
+    degenerated_train_datasets = BaseImageDataset(
+        config["TRAIN"]["DATASET"]["TRAIN_GT_IMAGES_DIR"],
+        None,
+        config["SCALE"],
+    )
 
-    # Generator all dataloader
-    train_dataloader = DataLoader(train_datasets,
-                                  batch_size=srgan_config.batch_size,
-                                  shuffle=True,
-                                  num_workers=srgan_config.num_workers,
-                                  pin_memory=True,
-                                  drop_last=True,
-                                  persistent_workers=True)
-    test_dataloader = DataLoader(test_datasets,
-                                 batch_size=1,
-                                 shuffle=False,
-                                 num_workers=1,
-                                 pin_memory=True,
-                                 drop_last=False,
-                                 persistent_workers=True)
+    # Load the registration test dataset
+    paired_test_datasets = PairedImageDataset(config["TEST"]["DATASET"]["PAIRED_TEST_GT_IMAGES_DIR"],
+                                              config["TEST"]["DATASET"]["PAIRED_TEST_LR_IMAGES_DIR"])
 
-    # Place all data on the preprocessing data loader
-    train_prefetcher = CUDAPrefetcher(train_dataloader, srgan_config.device)
-    test_prefetcher = CUDAPrefetcher(test_dataloader, srgan_config.device)
+    # generate dataset iterator
+    degenerated_train_dataloader = DataLoader(degenerated_train_datasets,
+                                              batch_size=config["TRAIN"]["HYP"]["IMGS_PER_BATCH"],
+                                              shuffle=config["TRAIN"]["HYP"]["SHUFFLE"],
+                                              num_workers=config["TRAIN"]["HYP"]["NUM_WORKERS"],
+                                              pin_memory=config["TRAIN"]["HYP"]["PIN_MEMORY"],
+                                              drop_last=True,
+                                              persistent_workers=config["TRAIN"]["HYP"]["PERSISTENT_WORKERS"])
+    paired_test_dataloader = DataLoader(paired_test_datasets,
+                                        batch_size=config["TEST"]["HYP"]["IMGS_PER_BATCH"],
+                                        shuffle=config["TEST"]["HYP"]["SHUFFLE"],
+                                        num_workers=config["TEST"]["HYP"]["NUM_WORKERS"],
+                                        pin_memory=config["TEST"]["HYP"]["PIN_MEMORY"],
+                                        drop_last=False,
+                                        persistent_workers=config["TEST"]["HYP"]["PERSISTENT_WORKERS"])
 
-    return train_prefetcher, test_prefetcher
+    # Replace the data set iterator with CUDA to speed up
+    train_prefetcher = CUDAPrefetcher(degenerated_train_dataloader, device)
+    paired_test_prefetcher = CUDAPrefetcher(paired_test_dataloader, device)
 
-
-def build_model() -> [nn.Module, nn.Module, nn.Module]:
-    d_model = model.__dict__[srgan_config.d_arch_name]()
-    g_model = model.__dict__[srgan_config.g_arch_name](in_channels=srgan_config.in_channels,
-                                                       out_channels=srgan_config.out_channels,
-                                                       channels=srgan_config.channels,
-                                                       num_rcb=srgan_config.num_rcb)
-    d_model = d_model.to(device=srgan_config.device)
-    g_model = g_model.to(device=srgan_config.device)
-
-    return d_model, g_model
+    return train_prefetcher, paired_test_prefetcher
 
 
-def define_loss() -> [nn.MSELoss, model.content_loss, nn.BCEWithLogitsLoss]:
-    pixel_criterion = nn.MSELoss()
-    content_criterion = model.content_loss(feature_model_extractor_node=srgan_config.feature_model_extractor_node,
-                                           feature_model_normalize_mean=srgan_config.feature_model_normalize_mean,
-                                           feature_model_normalize_std=srgan_config.feature_model_normalize_std)
-    adversarial_criterion = nn.BCEWithLogitsLoss()
+def build_model(
+        config: Any,
+        device: torch.device,
+) -> [nn.Module, nn.Module or Any, nn.Module]:
+    g_model = model.__dict__[config["MODEL"]["G"]["NAME"]](in_channels=config["MODEL"]["G"]["IN_CHANNELS"],
+                                                           out_channels=config["MODEL"]["G"]["OUT_CHANNELS"],
+                                                           channels=config["MODEL"]["G"]["CHANNELS"],
+                                                           num_rcb=config["MODEL"]["G"]["NUM_RCB"])
+    d_model = model.__dict__[config["MODEL"]["D"]["NAME"]](in_channels=config["MODEL"]["D"]["IN_CHANNELS"],
+                                                           out_channels=config["MODEL"]["D"]["OUT_CHANNELS"],
+                                                           channels=config["MODEL"]["D"]["CHANNELS"])
 
-    # Transfer to CUDA
-    pixel_criterion = pixel_criterion.to(device=srgan_config.device)
-    content_criterion = content_criterion.to(device=srgan_config.device)
-    adversarial_criterion = adversarial_criterion.to(device=srgan_config.device)
+    g_model = g_model.to(device)
+    d_model = d_model.to(device)
+
+    if config["MODEL"]["EMA"]["ENABLE"]:
+        # Generate an exponential average model based on a generator to stabilize model training
+        ema_decay = config["MODEL"]["EMA"]["DECAY"]
+        ema_avg_fn = lambda averaged_model_parameter, model_parameter, num_averaged: \
+            (1 - ema_decay) * averaged_model_parameter + ema_decay * model_parameter
+        ema_g_model = AveragedModel(g_model, device=device, avg_fn=ema_avg_fn)
+    else:
+        ema_g_model = None
+
+    # compile model
+    if config["MODEL"]["G"]["COMPILED"]:
+        g_model = torch.compile(g_model)
+    if config["MODEL"]["D"]["COMPILED"]:
+        d_model = torch.compile(d_model)
+    if config["MODEL"]["EMA"]["COMPILED"] and ema_g_model is not None:
+        ema_g_model = torch.compile(ema_g_model)
+
+    return g_model, ema_g_model, d_model
+
+
+def define_loss(config: Any, device: torch.device) -> [nn.L1Loss, model.ContentLoss, nn.BCEWithLogitsLoss]:
+    if config["TRAIN"]["LOSSES"]["PIXEL_LOSS"]["NAME"] == "L1Loss":
+        pixel_criterion = nn.L1Loss()
+    else:
+        raise NotImplementedError(f"Loss {config['TRAIN']['LOSSES']['PIXEL_LOSS']['NAME']} is not implemented.")
+
+    if config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["NAME"] == "ContentLoss":
+        content_criterion = model.ContentLoss(
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["NET_CFG_NAME"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["BATCH_NORM"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["NUM_CLASSES"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["MODEL_WEIGHTS_PATH"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["FEATURE_NODES"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["FEATURE_NORMALIZE_MEAN"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["FEATURE_NORMALIZE_STD"],
+        )
+    else:
+        raise NotImplementedError(f"Loss {config['TRAIN']['LOSSES']['CONTENT_LOSS']['NAME']} is not implemented.")
+
+    if config["TRAIN"]["LOSSES"]["ADVERSARIAL_LOSS"]["NAME"] == "vanilla":
+        adversarial_criterion = nn.BCEWithLogitsLoss()
+    else:
+        raise NotImplementedError(f"Loss {config['TRAIN']['LOSSES']['ADVERSARIAL_LOSS']['NAME']} is not implemented.")
+
+    pixel_criterion = pixel_criterion.to(device)
+    content_criterion = content_criterion.to(device)
+    adversarial_criterion = adversarial_criterion.to(device)
 
     return pixel_criterion, content_criterion, adversarial_criterion
 
 
-def define_optimizer(d_model, g_model) -> [optim.Adam, optim.Adam]:
-    d_optimizer = optim.Adam(d_model.parameters(),
-                             srgan_config.model_lr,
-                             srgan_config.model_betas,
-                             srgan_config.model_eps,
-                             srgan_config.model_weight_decay)
-    g_optimizer = optim.Adam(g_model.parameters(),
-                             srgan_config.model_lr,
-                             srgan_config.model_betas,
-                             srgan_config.model_eps,
-                             srgan_config.model_weight_decay)
+def define_optimizer(g_model: nn.Module, d_model: nn.Module, config: Any) -> [optim.Adam, optim.Adam]:
+    if config["TRAIN"]["OPTIM"]["NAME"] == "Adam":
+        g_optimizer = optim.Adam(g_model.parameters(),
+                                 config["TRAIN"]["OPTIM"]["LR"],
+                                 config["TRAIN"]["OPTIM"]["BETAS"],
+                                 config["TRAIN"]["OPTIM"]["EPS"],
+                                 config["TRAIN"]["OPTIM"]["WEIGHT_DECAY"])
+        d_optimizer = optim.Adam(d_model.parameters(),
+                                 config["TRAIN"]["OPTIM"]["LR"],
+                                 config["TRAIN"]["OPTIM"]["BETAS"],
+                                 config["TRAIN"]["OPTIM"]["EPS"],
+                                 config["TRAIN"]["OPTIM"]["WEIGHT_DECAY"])
 
-    return d_optimizer, g_optimizer
+    else:
+        raise NotImplementedError(f"Optimizer {config['TRAIN']['OPTIM']['NAME']} is not implemented.")
+
+    return g_optimizer, d_optimizer
 
 
-def define_scheduler(
-        d_optimizer: optim.Adam,
-        g_optimizer: optim.Adam
-) -> [lr_scheduler.StepLR, lr_scheduler.StepLR]:
-    d_scheduler = lr_scheduler.StepLR(d_optimizer,
-                                      srgan_config.lr_scheduler_step_size,
-                                      srgan_config.lr_scheduler_gamma)
-    g_scheduler = lr_scheduler.StepLR(g_optimizer,
-                                      srgan_config.lr_scheduler_step_size,
-                                      srgan_config.lr_scheduler_gamma)
-    return d_scheduler, g_scheduler
+def define_scheduler(g_optimizer: optim.Adam, d_optimizer: optim.Adam, config: Any) -> [lr_scheduler.MultiStepLR, lr_scheduler.MultiStepLR]:
+    if config["TRAIN"]["LR_SCHEDULER"]["NAME"] == "MultiStepLR":
+        g_scheduler = lr_scheduler.MultiStepLR(g_optimizer,
+                                               config["TRAIN"]["LR_SCHEDULER"]["MILESTONES"],
+                                               config["TRAIN"]["LR_SCHEDULER"]["GAMMA"])
+        d_scheduler = lr_scheduler.MultiStepLR(d_optimizer,
+                                               config["TRAIN"]["LR_SCHEDULER"]["MILESTONES"],
+                                               config["TRAIN"]["LR_SCHEDULER"]["GAMMA"])
+
+    else:
+        raise NotImplementedError(f"LR Scheduler {config['TRAIN']['LR_SCHEDULER']['NAME']} is not implemented.")
+
+    return g_scheduler, d_scheduler
 
 
 def train(
-        d_model: nn.Module,
         g_model: nn.Module,
+        ema_g_model: nn.Module,
+        d_model: nn.Module,
         train_prefetcher: CUDAPrefetcher,
-        pixel_criterion: nn.MSELoss,
-        content_criterion: model.content_loss,
+        pixel_criterion: nn.L1Loss,
+        content_criterion: model.ContentLoss,
         adversarial_criterion: nn.BCEWithLogitsLoss,
-        d_optimizer: optim.Adam,
         g_optimizer: optim.Adam,
+        d_optimizer: optim.Adam,
         epoch: int,
-        writer: SummaryWriter
+        scaler: amp.GradScaler,
+        writer: SummaryWriter,
+        device: torch.device,
+        config: Any,
 ) -> None:
-    # Calculate how many batches of data are in each Epoch
+    # Calculate how many batches of data there are under a dataset iterator
     batches = len(train_prefetcher)
-    # Print information of progress bar during training
-    batch_time = AverageMeter("Time", ":6.3f")
-    data_time = AverageMeter("Data", ":6.3f")
-    pixel_losses = AverageMeter("Pixel loss", ":6.6f")
-    content_losses = AverageMeter("Content loss", ":6.6f")
-    adversarial_losses = AverageMeter("Adversarial loss", ":6.6f")
-    d_gt_probabilities = AverageMeter("D(GT)", ":6.3f")
-    d_sr_probabilities = AverageMeter("D(SR)", ":6.3f")
+
+    # The information printed by the progress bar
+    batch_time = AverageMeter("Time", ":6.3f", Summary.NONE)
+    data_time = AverageMeter("Data", ":6.3f", Summary.NONE)
+    g_losses = AverageMeter("G Loss", ":6.6f", Summary.NONE)
+    d_losses = AverageMeter("D Loss", ":6.6f", Summary.NONE)
     progress = ProgressMeter(batches,
-                             [batch_time, data_time,
-                              pixel_losses, content_losses, adversarial_losses,
-                              d_gt_probabilities, d_sr_probabilities],
+                             [batch_time, data_time, g_losses, d_losses],
                              prefix=f"Epoch: [{epoch + 1}]")
 
-    # Put the adversarial network model in training mode
-    d_model.train()
+    # Set the model to training mode
     g_model.train()
+    d_model.train()
 
-    # Initialize the number of data batches to print logs on the terminal
+    # Define loss function weights
+    pixel_weight = torch.Tensor(config["TRAIN"]["LOSSES"]["PIXEL_LOSS"]["WEIGHT"]).to(device)
+    feature_weight = torch.Tensor(config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["WEIGHT"]).to(device)
+    adversarial_weight = torch.Tensor(config["TRAIN"]["LOSSES"]["ADVERSARIAL_LOSS"]["WEIGHT"]).to(device)
+
+    # Initialize data batches
     batch_index = 0
-
-    # Initialize the data loader and load the first batch of data
+    # Set the dataset iterator pointer to 0
     train_prefetcher.reset()
+    # Record the start time of training a batch
+    end = time.time()
+    # load the first batch of data
     batch_data = train_prefetcher.next()
 
-    # Get the initialization training time
-    end = time.time()
+    # Used for discriminator binary classification output, the input sample comes from the data set (real sample) is marked as 1, and the input sample comes from the generator (generated sample) is marked as 0
+    batch_size = batch_data["gt"].shape[0]
+    if config["MODEL"]["D"]["NAME"] == "discriminator_for_vgg":
+        real_label = torch.full([batch_size, 1], 1.0, dtype=torch.float, device=device)
+        fake_label = torch.full([batch_size, 1], 0.0, dtype=torch.float, device=device)
+    elif config["MODEL"]["D"]["NAME"] == "discriminator_for_unet":
+        image_height = config["TRAIN"]["DATASET"]["GT_IMAGE_SIZE"]
+        image_width = config["TRAIN"]["DATASET"]["GT_IMAGE_SIZE"]
+        real_label = torch.full([batch_size, 1, image_height, image_width], 1.0, dtype=torch.float, device=device)
+        fake_label = torch.full([batch_size, 1, image_height, image_width], 0.0, dtype=torch.float, device=device)
+    else:
+        raise ValueError(f"The `{config['MODEL']['D']['NAME']}` is not supported.")
 
     while batch_data is not None:
-        # Calculate the time it takes to load a batch of data
+        # Load batches of data
+        gt = batch_data["gt"].to(device, non_blocking=True)
+        lr = batch_data["lr"].to(device, non_blocking=True)
+
+        # image data augmentation
+        gt, lr = random_crop_torch(gt,
+                                   lr,
+                                   config["TRAIN"]["DATASET"]["GT_IMAGE_SIZE"],
+                                   config["SCALE"])
+        gt, lr = random_rotate_torch(gt, lr, config["SCALE"], [0, 90, 180, 270])
+        gt, lr = random_vertically_flip_torch(gt, lr)
+        gt, lr = random_horizontally_flip_torch(gt, lr)
+
+        # Record the time to load a batch of data
         data_time.update(time.time() - end)
 
-        # Transfer in-memory data to CUDA devices to speed up training
-        gt = batch_data["gt"].to(device=srgan_config.device, non_blocking=True)
-        lr = batch_data["lr"].to(device=srgan_config.device, non_blocking=True)
+        # start training the generator model
+        # Disable discriminator backpropagation during generator training
+        for d_parameters in d_model.parameters():
+            d_parameters.requires_grad = False
 
-        # Set the real sample label to 1, and the false sample label to 0
-        batch_size, _, height, width = gt.shape
-        real_label = torch.full([batch_size, 1], 1.0, dtype=gt.dtype, device=srgan_config.device)
-        fake_label = torch.full([batch_size, 1], 0.0, dtype=gt.dtype, device=srgan_config.device)
+        # Initialize the generator model gradient
+        g_model.zero_grad(set_to_none=True)
 
-        # Start training the discriminator model
+        # Calculate the perceptual loss of the generator, mainly including pixel loss, feature loss and confrontation loss
+        with amp.autocast():
+            sr = g_model(lr)
+            pixel_loss = pixel_criterion(sr, gt)
+            feature_loss = content_criterion(sr, gt)
+            adversarial_loss = adversarial_criterion(d_model(sr), real_label)
+            pixel_loss = torch.sum(torch.mul(pixel_weight, pixel_loss))
+            feature_loss = torch.sum(torch.mul(feature_weight, feature_loss))
+            adversarial_loss = torch.sum(torch.mul(adversarial_weight, adversarial_loss))
+            # Compute generator total loss
+            g_loss = pixel_loss + feature_loss + adversarial_loss
+        # Backpropagation generator loss on generated samples
+        scaler.scale(g_loss).backward()
+        # update generator model weights
+        scaler.step(g_optimizer)
+        scaler.update()
+        # end training generator model
+
+        # start training the discriminator model
         # During discriminator model training, enable discriminator model backpropagation
         for d_parameters in d_model.parameters():
             d_parameters.requires_grad = True
 
-        # Initialize the discriminator model gradients
+        # Initialize the discriminator model gradient
         d_model.zero_grad(set_to_none=True)
 
-        # Calculate the classification score of the discriminator model for real samples
-        gt_output = d_model(gt)
-        d_loss_gt = adversarial_criterion(gt_output, real_label)
-        # Call the gradient scaling function in the mixed precision API to
-        # back-propagate the gradient information of the fake samples
-        d_loss_gt.backward(retain_graph=True)
+        # Calculate the classification score of the discriminator model on real samples
+        with amp.autocast():
+            gt_output = d_model(gt)
+            d_loss_gt = adversarial_criterion(gt_output, real_label)
 
-        # Calculate the classification score of the discriminator model for fake samples
-        # Use the generator model to generate fake samples
-        sr = g_model(lr)
-        sr_output = d_model(sr.detach().clone())
-        d_loss_sr = adversarial_criterion(sr_output, fake_label)
-        # Call the gradient scaling function in the mixed precision API to
-        # back-propagate the gradient information of the fake samples
-        d_loss_sr.backward()
+        # backpropagate discriminator's loss on real samples
+        scaler.scale(d_loss_gt).backward()
 
-        # Calculate the total discriminator loss value
+        # Calculate the classification score of the generated samples by the discriminator model
+        with amp.autocast():
+            sr_output = d_model(sr.detach().clone())
+            d_loss_sr = adversarial_criterion(sr_output, fake_label)
+        # backpropagate discriminator loss on generated samples
+        scaler.scale(d_loss_sr).backward()
+
+        # Compute the discriminator total loss value
         d_loss = d_loss_gt + d_loss_sr
+        # Update discriminator model weights
+        scaler.step(d_optimizer)
+        scaler.update()
+        # end training discriminator model
 
-        # Improve the discriminator model's ability to classify real and fake samples
-        d_optimizer.step()
-        # Finish training the discriminator model
+        # update exponentially averaged model weights
+        ema_g_model.update_parameters(g_model)
 
-        # Start training the generator model
-        # During generator training, turn off discriminator backpropagation
-        for d_parameters in d_model.parameters():
-            d_parameters.requires_grad = False
+        # record the loss value
+        d_losses.update(d_loss.item(), batch_size)
+        g_losses.update(g_loss.item(), batch_size)
 
-        # Initialize generator model gradients
-        g_model.zero_grad(set_to_none=True)
-
-        # Calculate the perceptual loss of the generator, mainly including pixel loss, feature loss and adversarial loss
-        pixel_loss = srgan_config.pixel_weight * pixel_criterion(sr, gt)
-        content_loss = srgan_config.content_weight * content_criterion(sr, gt)
-        adversarial_loss = srgan_config.adversarial_weight * adversarial_criterion(d_model(sr), real_label)
-        # Calculate the generator total loss value
-        g_loss = pixel_loss + content_loss + adversarial_loss
-        # Call the gradient scaling function in the mixed precision API to
-        # back-propagate the gradient information of the fake samples
-        g_loss.backward()
-
-        # Encourage the generator to generate higher quality fake samples, making it easier to fool the discriminator
-        g_optimizer.step()
-        # Finish training the generator model
-
-        # Calculate the score of the discriminator on real samples and fake samples,
-        # the score of real samples is close to 1, and the score of fake samples is close to 0
-        d_gt_probability = torch.sigmoid_(torch.mean(gt_output.detach()))
-        d_sr_probability = torch.sigmoid_(torch.mean(sr_output.detach()))
-
-        # Statistical accuracy and loss value for terminal data output
-        pixel_losses.update(pixel_loss.item(), lr.size(0))
-        content_losses.update(content_loss.item(), lr.size(0))
-        adversarial_losses.update(adversarial_loss.item(), lr.size(0))
-        d_gt_probabilities.update(d_gt_probability.item(), lr.size(0))
-        d_sr_probabilities.update(d_sr_probability.item(), lr.size(0))
-
-        # Calculate the time it takes to fully train a batch of data
+        # Record the total time of training a batch
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # Write the data during training to the training log file
-        if batch_index % srgan_config.train_print_frequency == 0:
-            iters = batch_index + epoch * batches + 1
+        # Output training log information once
+        if batch_index % config["TRAIN"]["PRINT_FREQ"] == 0:
+            # write training log
+            iters = batch_index + epoch * batches
             writer.add_scalar("Train/D_Loss", d_loss.item(), iters)
+            writer.add_scalar("Train/D(GT)_Loss", d_loss_gt.item(), iters)
+            writer.add_scalar("Train/D(SR)_Loss", d_loss_sr.item(), iters)
             writer.add_scalar("Train/G_Loss", g_loss.item(), iters)
             writer.add_scalar("Train/Pixel_Loss", pixel_loss.item(), iters)
-            writer.add_scalar("Train/Content_Loss", content_loss.item(), iters)
+            writer.add_scalar("Train/Feature_Loss", feature_loss.item(), iters)
             writer.add_scalar("Train/Adversarial_Loss", adversarial_loss.item(), iters)
-            writer.add_scalar("Train/D(GT)_Probability", d_gt_probability.item(), iters)
-            writer.add_scalar("Train/D(SR)_Probability", d_sr_probability.item(), iters)
-            progress.display(batch_index + 1)
+            writer.add_scalar("Train/D(GT)_Probability", torch.sigmoid_(torch.mean(gt_output.detach())).item(), iters)
+            writer.add_scalar("Train/D(SR)_Probability", torch.sigmoid_(torch.mean(sr_output.detach())).item(), iters)
+            progress.display(batch_index)
 
         # Preload the next batch of data
         batch_data = train_prefetcher.next()
 
-        # After training a batch of data, add 1 to the number of data batches to ensure that the
-        # terminal print data normally
+        # After training a batch of data, add 1 to the number of data batches to ensure that the terminal prints data normally
         batch_index += 1
-
-
-def validate(
-        g_model: nn.Module,
-        data_prefetcher: CUDAPrefetcher,
-        epoch: int,
-        writer: SummaryWriter,
-        psnr_model: nn.Module,
-        ssim_model: nn.Module,
-        mode: str
-) -> [float, float]:
-    # Calculate how many batches of data are in each Epoch
-    batch_time = AverageMeter("Time", ":6.3f")
-    psnres = AverageMeter("PSNR", ":4.2f")
-    ssimes = AverageMeter("SSIM", ":4.4f")
-    progress = ProgressMeter(len(data_prefetcher), [batch_time, psnres, ssimes], prefix=f"{mode}: ")
-
-    # Put the adversarial network model in validation mode
-    g_model.eval()
-
-    # Initialize the number of data batches to print logs on the terminal
-    batch_index = 0
-
-    # Initialize the data loader and load the first batch of data
-    data_prefetcher.reset()
-    batch_data = data_prefetcher.next()
-
-    # Get the initialization test time
-    end = time.time()
-
-    with torch.no_grad():
-        while batch_data is not None:
-            # Transfer the in-memory data to the CUDA device to speed up the test
-            gt = batch_data["gt"].to(device=srgan_config.device, non_blocking=True)
-            lr = batch_data["lr"].to(device=srgan_config.device, non_blocking=True)
-
-            # Use the generator model to generate a fake sample
-            sr = g_model(lr)
-
-            # Statistical loss value for terminal data output
-            psnr = psnr_model(sr, gt)
-            ssim = ssim_model(sr, gt)
-            psnres.update(psnr.item(), lr.size(0))
-            ssimes.update(ssim.item(), lr.size(0))
-
-            # Calculate the time it takes to fully test a batch of data
-            batch_time.update(time.time() - end)
-            end = time.time()
-
-            # Record training log information
-            if batch_index % srgan_config.valid_print_frequency == 0:
-                progress.display(batch_index + 1)
-
-            # Preload the next batch of data
-            batch_data = data_prefetcher.next()
-
-            # After training a batch of data, add 1 to the number of data batches to ensure that the
-            # terminal print data normally
-            batch_index += 1
-
-    # print metrics
-    progress.display_summary()
-
-    if mode == "Valid" or mode == "Test":
-        writer.add_scalar(f"{mode}/PSNR", psnres.avg, epoch + 1)
-        writer.add_scalar(f"{mode}/SSIM", ssimes.avg, epoch + 1)
-    else:
-        raise ValueError("Unsupported mode, please use `Valid` or `Test`.")
-
-    return psnres.avg, ssimes.avg
 
 
 if __name__ == "__main__":

@@ -22,33 +22,33 @@ random.seed(0)
 torch.manual_seed(0)
 np.random.seed(0)
 # Use GPU for training by default
-device = torch.device("cuda", 0)
+device = torch.device("cuda", 3)
 # Turning on when the image size does not change during training can speed up training
 cudnn.benchmark = True
 # When evaluating the performance of the SR model, whether to verify only the Y channel image data
 only_test_y_channel = True
 # Model architecture name
-g_arch_name = "srresnet_x4"
+g_arch_name = "srresnet_x8"
 # Model arch config
 in_channels = 3
 out_channels = 3
 channels = 64
 num_rcb = 16
 # Test upscale factor
-upscale_factor = 4
+upscale_factor = 8
 # Current configuration parameter method
 mode = "train"
 # Experiment name, easy to save weights and log files
-exp_name = "SRResNet_x4-ImageNet"
+exp_name = "SRResNet_x8-Nikon40X_NA0.65_V2"
 
 if mode == "train":
     # Dataset address
-    train_gt_images_dir = f"./data/ImageNet/SRGAN/train"
+    train_gt_images_dir = "/home/dl/Datasets/SuperResolution/Nikon40X_NA0.65_V2/train/GT"
 
-    test_gt_images_dir = f"./data/Set5/GTmod12"
-    test_lr_images_dir = f"./data/Set5/LRbicx{upscale_factor}"
+    test_gt_images_dir = f"/home/dl/Datasets/SuperResolution/Nikon20X_NA0.75_V1/GT"
+    test_lr_images_dir = f"/home/dl/Datasets/SuperResolution/Nikon20X_NA0.75_V1/LR"
 
-    gt_image_size = 96
+    gt_image_size = 256
     batch_size = 16
     num_workers = 4
 

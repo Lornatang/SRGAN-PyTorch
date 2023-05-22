@@ -13,9 +13,10 @@ Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc
 # Train dataset struct
 - ImageNet
     - original
-        - image001.JPEG
-        - image002.bmp
-        ...
+        - ImageNet
+            - image001.JPEG
+            - image002.JPEG
+            ...
 
 # Test dataset struct
 - Set5
@@ -33,7 +34,7 @@ Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc
 
 ```bash
 cd <SRGAN-PyTorch-main>/scripts
-python run.py
+python3 run.py
 ```
 
 ## Step4: Check that the final dataset directory schema is completely correct
@@ -41,9 +42,12 @@ python run.py
 ```text
 # Train dataset
 - ImageNet
-    - SRGAN
-        - train
-        - original
+    - train
+        - GT
+            - image001_0001.png
+            - image001_0002.png
+            ...
+    - original
 
 # Test dataset
 - Set5

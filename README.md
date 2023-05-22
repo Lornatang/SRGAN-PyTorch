@@ -132,7 +132,7 @@ In the following table, the psnr value in `()` indicates the result of the proje
 |  SSIM  |   4   | 0.7620(**0.7367**) | 0.6688(**0.6867**) |
 
 ```bash
-# Download `SRGAN_x4-ImageNet-8c4a7569.pth.tar` weights to `./results/pretrained_models`
+# Download `SRGAN_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
 # More detail see `README.md<Download weights>`
 python3 ./inference.py
 ```
@@ -147,8 +147,8 @@ Output:
 
 ```text
 Build `srresnet_x4` model successfully.
-Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar` successfully.
-SR image save to `./figure/comic_sr.png`
+Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet.pth.tar` successfully.
+SR image save to `./figure/sr_comic.png`
 ```
 
 ## Contributing

@@ -11,92 +11,172 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import argparse
 import os
+import time
+from typing import Any
 
 import cv2
 import torch
-from natsort import natsorted
+import yaml
+from torch import nn
+from torch.utils.data import DataLoader
 
-import imgproc
 import model
-import srgan_config
-from image_quality_assessment import PSNR, SSIM
-from utils import make_directory
+from dataset import CUDAPrefetcher, PairedImageDataset
+from imgproc import tensor_to_image
+from utils import build_iqa_model, load_pretrained_state_dict, make_directory, AverageMeter, ProgressMeter, Summary
 
-model_names = sorted(
-    name for name in model.__dict__ if
-    name.islower() and not name.startswith("__") and callable(model.__dict__[name]))
+
+def load_dataset(config: Any, device: torch.device) -> CUDAPrefetcher:
+    test_datasets = PairedImageDataset(config["DATASET"]["PAIRED_TEST_GT_IMAGES_DIR"],
+                                       config["DATASET"]["PAIRED_TEST_LR_IMAGES_DIR"])
+    test_dataloader = DataLoader(test_datasets,
+                                 batch_size=config["HYP"]["IMGS_PER_BATCH"],
+                                 shuffle=config["HYP"]["SHUFFLE"],
+                                 num_workers=config["HYP"]["NUM_WORKERS"],
+                                 pin_memory=config["HYP"]["PIN_MEMORY"],
+                                 drop_last=False,
+                                 persistent_workers=config["HYP"]["PERSISTENT_WORKERS"])
+    test_data_prefetcher = CUDAPrefetcher(test_dataloader, device)
+
+    return test_data_prefetcher
+
+
+def build_model(config: Any, device: torch.device) -> nn.Module | Any:
+    g_model = model.__dict__[config["MODEL"]["NAME"]](in_channels=config["MODEL"]["IN_CHANNELS"],
+                                                      out_channels=config["MODEL"]["OUT_CHANNELS"],
+                                                      channels=config["MODEL"]["CHANNELS"],
+                                                      num_rcb=config["MODEL"]["NUM_RCB"])
+    g_model = g_model.to(device)
+
+    # compile model
+    if config["MODEL"]["COMPILED"]:
+        g_model = torch.compile(g_model)
+
+    return g_model
+
+
+def test(
+        g_model: nn.Module,
+        data_prefetcher: CUDAPrefetcher,
+        psnr_model: nn.Module,
+        ssim_model: nn.Module,
+        device: torch.device,
+        config: Any,
+) -> [float, float]:
+    if config["TEST"]["SAVE_IMAGE"] and config["TEST"]["SAVE_DIR_PATH"] is None:
+        raise ValueError("Image save location cannot be empty!")
+
+    if config["TEST"]["SAVE_IMAGE"]:
+        save_dir_path = os.path.join(config["SAVE_DIR_PATH"], config["EXP_NAME"])
+        make_directory(save_dir_path)
+    else:
+        save_dir_path = None
+
+    # The information printed by the progress bar
+    batch_time = AverageMeter("Time", ":6.3f", Summary.NONE)
+    psnres = AverageMeter("PSNR", ":4.2f", Summary.AVERAGE)
+    ssimes = AverageMeter("SSIM", ":4.4f", Summary.AVERAGE)
+    progress = ProgressMeter(len(data_prefetcher),
+                             [batch_time, psnres, ssimes],
+                             prefix=f"Test: ")
+
+    # set the model as validation model
+    g_model.eval()
+
+    with torch.no_grad():
+        # Initialize data batches
+        batch_index = 0
+
+        # Set the data set iterator pointer to 0 and load the first batch of data
+        data_prefetcher.reset()
+        batch_data = data_prefetcher.next()
+
+        # Record the start time of verifying a batch
+        end = time.time()
+
+        while batch_data is not None:
+            # Load batches of data
+            gt = batch_data["gt"].to(device, non_blocking=True)
+            lr = batch_data["lr"].to(device, non_blocking=True)
+
+            # Reasoning
+            sr = g_model(lr)
+
+            # Calculate the image sharpness evaluation index
+            psnr = psnr_model(sr, gt)
+            ssim = ssim_model(sr, gt)
+
+            # record current metrics
+            psnres.update(psnr.item(), sr.size(0))
+            ssimes.update(ssim.item(), ssim.size(0))
+
+            # Record the total time to verify a batch
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            # Output a verification log information
+            if batch_index % config["TEST"]["PRINT_FREQ"] == 0:
+                progress.display(batch_index)
+
+            # Save the processed image after super-resolution
+            if config["TEST"]["SAVE_IMAGE"] and batch_data["image_name"] is None:
+                raise ValueError("The image_name is None, please check the dataset.")
+            if config["TEST"]["SAVE_IMAGE"]:
+                image_name = os.path.basename(batch_data["image_name"][0])
+                sr_image = tensor_to_image(sr, False, False)
+                sr_image = cv2.cvtColor(sr_image, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(os.path.join(save_dir_path, image_name), sr_image)
+
+            # Preload the next batch of data
+            batch_data = data_prefetcher.next()
+
+            # Add 1 to the number of data batches
+            batch_index += 1
+
+    # Print the performance index of the model at the current Epoch
+    progress.display_summary()
+
+    return psnres.avg, ssimes.avg
 
 
 def main() -> None:
-    # Initialize the super-resolution bsrgan_model
-    g_model = model.__dict__[srgan_config.g_arch_name](in_channels=srgan_config.in_channels,
-                                                       out_channels=srgan_config.out_channels,
-                                                       channels=srgan_config.channels,
-                                                       num_rcb=srgan_config.num_rcb)
-    g_model = g_model.to(device=srgan_config.device)
-    print(f"Build `{srgan_config.g_arch_name}` model successfully.")
+    # Read parameters from configuration file
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_path",
+                        type=str,
+                        default="./configs/test/SRRESNET_X4.yaml",
+                        required=True,
+                        help="Path to test config file.")
+    args = parser.parse_args()
 
-    # Load the super-resolution bsrgan_model weights
-    checkpoint = torch.load(srgan_config.g_model_weights_path, map_location=lambda storage, loc: storage)
-    g_model.load_state_dict(checkpoint["state_dict"])
-    print(f"Load `{srgan_config.g_arch_name}` model weights "
-          f"`{os.path.abspath(srgan_config.g_model_weights_path)}` successfully.")
+    with open(args.config_path, "r") as f:
+        config = yaml.full_load(f)
 
-    # Create a folder of super-resolution experiment results
-    make_directory(srgan_config.sr_dir)
+    device = torch.device("cuda", config["DEVICE_ID"])
+    test_data_prefetcher = load_dataset(config, device)
+    g_model = build_model(config, device)
+    psnr_model, ssim_model = build_iqa_model(
+        config["SCALE"],
+        config["ONLY_TEST_Y_CHANNEL"],
+        device,
+    )
 
-    # Start the verification mode of the bsrgan_model.
-    g_model.eval()
+    # Load model weights
+    g_model = load_pretrained_state_dict(g_model, config["MODEL"]["COMPILED"], config["MODEL_PATH"])
 
-    # Initialize the sharpness evaluation function
-    psnr = PSNR(srgan_config.upscale_factor, srgan_config.only_test_y_channel)
-    ssim = SSIM(srgan_config.upscale_factor, srgan_config.only_test_y_channel)
+    # Create a directory for saving test results
+    save_dir_path = os.path.join(config["SAVE_DIR_PATH"], config["EXP_NAME"])
+    if config["SAVE_IMAGE"]:
+        make_directory(save_dir_path)
 
-    # Set the sharpness evaluation function calculation device to the specified model
-    psnr = psnr.to(device=srgan_config.device, non_blocking=True)
-    ssim = ssim.to(device=srgan_config.device, non_blocking=True)
-
-    # Initialize IQA metrics
-    psnr_metrics = 0.0
-    ssim_metrics = 0.0
-
-    # Get a list of test image file names.
-    file_names = natsorted(os.listdir(srgan_config.lr_dir))
-    # Get the number of test image files.
-    total_files = len(file_names)
-
-    for index in range(total_files):
-        lr_image_path = os.path.join(srgan_config.lr_dir, file_names[index])
-        sr_image_path = os.path.join(srgan_config.sr_dir, file_names[index])
-        gt_image_path = os.path.join(srgan_config.gt_dir, file_names[index])
-
-        print(f"Processing `{os.path.abspath(lr_image_path)}`...")
-        lr_tensor = imgproc.preprocess_one_image(lr_image_path, srgan_config.device)
-        gt_tensor = imgproc.preprocess_one_image(gt_image_path, srgan_config.device)
-
-        # Only reconstruct the Y channel image data.
-        with torch.no_grad():
-            sr_tensor = g_model(lr_tensor)
-
-        # Save image
-        sr_image = imgproc.tensor_to_image(sr_tensor, False, False)
-        sr_image = cv2.cvtColor(sr_image, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(sr_image_path, sr_image)
-
-        # Cal IQA metrics
-        psnr_metrics += psnr(sr_tensor, gt_tensor).item()
-        ssim_metrics += ssim(sr_tensor, gt_tensor).item()
-
-    # Calculate the average value of the sharpness evaluation index,
-    # and all index range values are cut according to the following values
-    # PSNR range value is 0~100
-    # SSIM range value is 0~1
-    avg_psnr = 100 if psnr_metrics / total_files > 100 else psnr_metrics / total_files
-    avg_ssim = 1 if ssim_metrics / total_files > 1 else ssim_metrics / total_files
-
-    print(f"PSNR: {avg_psnr:4.2f} [dB]\n"
-          f"SSIM: {avg_ssim:4.4f} [u]")
+    test(g_model,
+         test_data_prefetcher,
+         psnr_model,
+         ssim_model,
+         device,
+         config)
 
 
 if __name__ == "__main__":
