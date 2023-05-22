@@ -224,9 +224,9 @@ def build_model(
     return g_model, ema_g_model
 
 
-def define_loss(config: Any, device: torch.device) -> nn.L1Loss:
-    if config["TRAIN"]["LOSSES"]["PIXEL_LOSS"]["NAME"] == "L1Loss":
-        pixel_criterion = nn.L1Loss()
+def define_loss(config: Any, device: torch.device) -> nn.MSELoss:
+    if config["TRAIN"]["LOSSES"]["PIXEL_LOSS"]["NAME"] == "MSELoss":
+        pixel_criterion = nn.MSELoss()
     else:
         raise NotImplementedError(f"Loss {config['TRAIN']['LOSSES']['PIXEL_LOSS']['NAME']} is not implemented.")
     pixel_criterion = pixel_criterion.to(device)

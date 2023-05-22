@@ -52,7 +52,7 @@ TRAIN:
   # Loss function
   LOSSES:
     PIXEL_LOSS:
-      NAME: L1Loss
+      NAME: MSELoss
       WEIGHT: [1.0]
 
   PRINT_FREQ: 100

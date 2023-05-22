@@ -65,7 +65,7 @@ TRAIN:
   # Loss function
   LOSSES:
     PIXEL_LOSS:
-      NAME: L1Loss
+      NAME: MSELoss
       WEIGHT: [ 1.0 ]
     CONTENT_LOSS:
       NAME: ContentLoss
