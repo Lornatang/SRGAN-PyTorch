@@ -12,11 +12,11 @@ This repository contains an op-for-op PyTorch reimplementation of [Photo-Realist
     - [Download weights](#download-weights)
     - [Download datasets](#download-datasets)
     - [How Test and Train](#how-test-and-train)
-        - [Test](#test)
-        - [Train SRResNet model](#train-srresnet-model)
-        - [Resume train SRResNet model](#resume-train-srresnet-model)
-        - [Train SRGAN model](#train-srgan-model)
-        - [Resume train SRGAN model](#resume-train-srgan-model)
+        - [Test SRGAN_x4](#test-srganx4)
+        - [Train srresnet_x4](#train-srresnetx4)
+        - [Resume train srresnet_x4](#resume-train-srresnetx4)
+        - [Train srgan_x4](#train-srganx4)
+        - [Resume train srgan_x4](#resume-train-srganx4)
     - [Result](#result)
     - [Contributing](#contributing)
     - [Credit](#credit)
@@ -38,76 +38,50 @@ Please refer to `README.md` in the `data` directory for the method of making a d
 
 ## How Test and Train
 
-Both training and testing only need to modify the `srresnet_config.py` file and `srgan_config.py` file. 
+Both training and testing only need to modify yaml file. 
 
-### Test
-
-Modify the `srgan_config.py` file.
-
-- line 32: `g_arch_name` change to `srresnet_x4`.
-- line 39: `upscale_factor` change to `4`.
-- line 41: `mode` change to `test`.
-- line 43: `exp_name` change to `SRGAN_x4-DIV2K`.
-- line 96: `g_model_weights_path` change to `./results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar`.
+### Test srgan_x4
 
 ```bash
-python3 test.py
+python3 test.py --config_path ./configs/test/SRGAN_X4.yaml
 ```
 
-### Train SRResNet model
-
-Modify the `srresnet_config.py` file.
-
-- line 32: `g_arch_name` change to `srresnet_x4`.
-- line 39: `upscale_factor` change to `4`.
-- line 41: `mode` change to `train`.
-- line 43: `exp_name` change to `SRResNet_x4-DIV2K`.
+### Train srresnet_x4
 
 ```bash
-python3 train_srresnet.py
+python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
 ```
 
-### Resume train SRResNet model
+### Resume train srresnet_x4
 
-Modify the `srresnet_config.py` file.
+Modify the `./configs/train/SRRESNET_X4.yaml` file.
 
-- line 32: `g_arch_name` change to `srresnet_x4`.
-- line 39: `upscale_factor` change to `4`.
-- line 41: `mode` change to `train`.
-- line 43: `exp_name` change to `SRResNet_x4-DIV2K`.
-- line 59: `resume_g_model_weights_path` change to `./samples/SRGAN_x4-DIV2K/g_epoch_xxx.pth.tar`.
-
+- line 33: `RESUMED_G_MODEL` change to `./samples/SRResNet_x4-ImageNet/g_epoch_xxx.pth.tar`.
 
 ```bash
-python3 train_srresnet.py
+python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
 ```
 
-### Train SRGAN model
+### Train srgan_x4
 
-- line 31: `d_arch_name` change to `discriminator`.
-- line 32: `g_arch_name` change to `srresnet_x4`.
-- line 39: `upscale_factor` change to `4`.
-- line 41: `mode` change to `train`.
-- line 43: `exp_name` change to `SRGAN_x4-DIV2K`.
-- line 58: `pretrained_g_model_weights_path` change to `./results/SRResNet_x4-DIV2K/g_last.pth.tar`.
+Modify the `./configs/train/SRGAN_X4.yaml` file.
+
+- line 38: `PRETRAINED_G_MODEL` change to `./results/SRResNet_x4-ImageNet/g_last.pth.tar`.
 
 ```bash
-python3 train_srgan.py
+python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
 ```
 
-### Resume train SRGAN model
+### Resume train srgan_x4
 
-- line 31: `d_arch_name` change to `discriminator`.
-- line 32: `g_arch_name` change to `srresnet_x4`.
-- line 39: `upscale_factor` change to `4`.
-- line 41: `mode` change to `train`.
-- line 43: `exp_name` change to `SRGAN_x4-DIV2K`.
-- line 61: `resume_d_model_weights_path` change to `./samples/SRGAN_x4-DIV2K/d_epoch_xxx.pth.tar`.
-- line 62: `resume_g_model_weights_path` change to `./samples/SRGAN_x4-DIV2K/g_epoch_xxx.pth.tar`.
+Modify the `./configs/train/SRGAN_X4.yaml` file.
 
+- line 38: `PRETRAINED_G_MODEL` change to `./results/SRResNet_x4-ImageNet/g_last.pth.tar`.
+- line 40: `RESUMED_G_MODEL` change to `./samples/SRGAN_x4-ImageNet/g_epoch_xxx.pth.tar`.
+- line 41: `RESUMED_D_MODEL` change to `./samples/SRGAN_x4-ImageNet/d_epoch_xxx.pth.tar`.
 
 ```bash
-python3 train_srgan.py
+python3 train_net.py --config_path ./configs/train/SRGAN_X4.yaml
 ```
 
 ## Result
@@ -139,15 +113,15 @@ python3 ./inference.py
 
 Input: 
 
-<span align="center"><img width="240" height="360" src="figure/comic_lr.png"/></span>
+<span align="center"><img width="240" height="360" src="figure/comic.png"/></span>
 
 Output: 
 
-<span align="center"><img width="240" height="360" src="figure/comic_sr.png"/></span>
+<span align="center"><img width="240" height="360" src="figure/sr_comic.png"/></span>
 
 ```text
 Build `srresnet_x4` model successfully.
-Load `srresnet_x4` model weights `./results/pretrained_models/SRGAN_x4-ImageNet.pth.tar` successfully.
+Load `srresnet_x4` model weights `SRGAN-PyTorch/results/pretrained_models/SRGAN_x4-ImageNet.pth.tar` successfully.
 SR image save to `./figure/sr_comic.png`
 ```
 
