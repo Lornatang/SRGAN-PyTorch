@@ -462,8 +462,9 @@ def train(
         scaler.update()
         # end training discriminator model
 
-        # update exponentially averaged model weights
-        ema_g_model.update_parameters(g_model)
+        if config["MODEL"]["EMA"]["ENABLE"]:
+            # update exponentially averaged model weights
+            ema_g_model.update_parameters(g_model)
 
         # record the loss value
         d_losses.update(d_loss.item(), batch_size)
