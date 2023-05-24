@@ -41,7 +41,6 @@ def main():
     parser.add_argument("--config_path",
                         type=str,
                         default="./configs/train/SRRESNET_X4.yaml",
-                        required=True,
                         help="Path to train config file.")
     args = parser.parse_args()
 
@@ -125,7 +124,6 @@ def main():
               writer,
               device,
               config)
-
         psnr, ssim = test(g_model,
                           paired_test_prefetcher,
                           psnr_model,
@@ -251,7 +249,7 @@ def train(
         g_model: nn.Module,
         ema_g_model: nn.Module,
         train_prefetcher: CUDAPrefetcher,
-        pixel_criterion: nn.L1Loss,
+        pixel_criterion: nn.MSELoss,
         optimizer: optim.Adam,
         epoch: int,
         scaler: amp.GradScaler,
