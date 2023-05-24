@@ -41,7 +41,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path",
                         type=str,
-                        default="./configs/train/SWINIRGAN_DEFAULT_SR_X4.yaml",
+                        default="./configs/train/SRGAN_X4.yaml",
                         help="Path to train config file.")
     args = parser.parse_args()
 
