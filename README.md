@@ -81,7 +81,7 @@ Modify the `./configs/train/SRGAN_X4.yaml` file.
 - line 41: `RESUMED_D_MODEL` change to `./samples/SRGAN_x4-ImageNet/d_epoch_xxx.pth.tar`.
 
 ```bash
-python3 train_net.py --config_path ./configs/train/SRGAN_X4.yaml
+python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
 ```
 
 ## Result
