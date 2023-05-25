@@ -15,21 +15,21 @@ import os
 import shutil
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 import torch
 import torch.backends.mps
 from torch import distributed as dist
 from torch import nn
 from torch.nn import Module
-from torch.optim import Optimizer
+from torch.optim import Optimizer, lr_scheduler
 
 from image_quality_assessment import PSNR, SSIM
 
 __all__ = [
     "build_iqa_model",
     "load_state_dict", "load_pretrained_state_dict", "load_resume_state_dict",
-    "make_directory", "make_divisible", "save_checkpoint", "AverageMeter", "ProgressMeter", "Summary",
+    "make_directory", "save_checkpoint", "AverageMeter", "ProgressMeter", "Summary",
 ]
 
 
@@ -123,19 +123,27 @@ def load_resume_state_dict(
         model: nn.Module,
         ema_model: nn.Module | None,
         optimizer: Optimizer,
+        scheduler: Any,
         compile_state: bool,
         model_weights_path: str,
-) -> tuple[Module, Module, int, float, float, Optimizer]:
+) -> tuple[Any, Module | None | Any, Any, Any, Any, Optimizer, Any] | tuple[Any, Module | None | Any, Any, Any, Any, Optimizer]:
     """Restore training model weights
 
     Args:
         model (nn.Module): model
         ema_model (nn.Module): EMA model
         optimizer (nn.optim): optimizer
-        compile_state (bool, optional): Whether the model has been compiled. Default: ``True``
+        scheduler (nn.optim.lr_scheduler): learning rate scheduler
+        compile_state (bool, optional): Whether the model has been compiled
         model_weights_path (str): model weights path
     Returns:
-
+        model (nn.Module): model after loading weights
+        ema_model (nn.Module): EMA model after loading weights
+        start_epoch (int): start epoch
+        psnr (float): PSNR
+        ssim (float): SSIM
+        optimizer (nn.optim): optimizer after loading weights
+        scheduler (nn.optim.lr_scheduler): learning rate scheduler after loading weights
     """
     # Load model weights
     checkpoint = torch.load(model_weights_path, map_location=lambda storage, loc: storage)
@@ -153,23 +161,16 @@ def load_resume_state_dict(
 
     optimizer.load_state_dict(checkpoint["optimizer"])
 
-    return model, ema_model, start_epoch, psnr, ssim, optimizer
+    if scheduler is not None:
+        scheduler.load_state_dict(checkpoint["scheduler"])
+        return model, ema_model, start_epoch, psnr, ssim, optimizer, scheduler
+    else:
+        return model, ema_model, start_epoch, psnr, ssim, optimizer
 
 
 def make_directory(dir_path: str) -> None:
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
-
-
-def make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> int:
-    if min_value is None:
-        min_value = divisor
-    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-
-    if new_v < 0.9 * v:
-        new_v += divisor
-
-    return new_v
 
 
 def save_checkpoint(

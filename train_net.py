@@ -90,6 +90,7 @@ def main():
             g_model,
             ema_g_model,
             optimizer,
+            None,
             config["MODEL"]["G"]["COMPILED"],
             config["TRAIN"]["CHECKPOINT"]["RESUMED_G_MODEL"],
         )

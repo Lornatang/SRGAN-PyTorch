@@ -95,10 +95,11 @@ def main():
 
     # Load the last training interruption model node
     if config["TRAIN"]["CHECKPOINT"]["RESUMED_G_MODEL"]:
-        g_model, ema_g_model, start_epoch, best_psnr, best_ssim, optimizer = load_resume_state_dict(
+        g_model, ema_g_model, start_epoch, best_psnr, best_ssim, g_optimizer, g_scheduler = load_resume_state_dict(
             g_model,
             ema_g_model,
             g_optimizer,
+            g_scheduler,
             config["MODEL"]["G"]["COMPILED"],
             config["TRAIN"]["CHECKPOINT"]["RESUMED_G_MODEL"],
         )
@@ -106,10 +107,11 @@ def main():
     else:
         print("Resume training g model not found. Start training from scratch.")
     if config["TRAIN"]["CHECKPOINT"]["RESUMED_D_MODEL"]:
-        d_model, _, start_epoch, best_psnr, best_ssim, optimizer = load_resume_state_dict(
+        d_model, _, start_epoch, best_psnr, best_ssim, d_optimizer, d_scheduler = load_resume_state_dict(
             d_model,
             None,
             d_optimizer,
+            d_scheduler,
             config["MODEL"]["D"]["COMPILED"],
             config["TRAIN"]["CHECKPOINT"]["RESUMED_D_MODEL"],
         )
