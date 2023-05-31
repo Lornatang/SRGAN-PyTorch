@@ -280,6 +280,10 @@ def define_loss(config: Any, device: torch.device) -> [nn.MSELoss, model.Content
 
     if config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["NAME"] == "ContentLoss":
         content_criterion = model.ContentLoss(
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["NET_CFG_NAME"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["BATCH_NORM"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["NUM_CLASSES"],
+            config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["MODEL_WEIGHTS_PATH"],
             config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["FEATURE_NODES"],
             config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["FEATURE_NORMALIZE_MEAN"],
             config["TRAIN"]["LOSSES"]["CONTENT_LOSS"]["FEATURE_NORMALIZE_STD"],
