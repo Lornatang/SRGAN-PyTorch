@@ -70,7 +70,7 @@ def main():
     device = torch.device("cuda", config["DEVICE_ID"])
 
     # Define the basic functions needed to start training
-    train_prefetcher, paired_test_prefetcher = load_dataset(config, device)
+    train_data_prefetcher, paired_test_data_prefetcher = load_dataset(config, device)
     g_model, ema_g_model = build_model(config, device)
     pixel_criterion = define_loss(config, device)
     optimizer = define_optimizer(g_model, config)
@@ -117,7 +117,7 @@ def main():
     for epoch in range(start_epoch, config["TRAIN"]["HYP"]["EPOCHS"]):
         train(g_model,
               ema_g_model,
-              train_prefetcher,
+              train_data_prefetcher,
               pixel_criterion,
               optimizer,
               epoch,
@@ -126,7 +126,7 @@ def main():
               device,
               config)
         psnr, ssim = test(g_model,
-                          paired_test_prefetcher,
+                          paired_test_data_prefetcher,
                           psnr_model,
                           ssim_model,
                           device,
@@ -189,10 +189,10 @@ def load_dataset(
                                         persistent_workers=config["TEST"]["HYP"]["PERSISTENT_WORKERS"])
 
     # Replace the data set iterator with CUDA to speed up
-    train_prefetcher = CUDAPrefetcher(degenerated_train_dataloader, device)
-    paired_test_prefetcher = CUDAPrefetcher(paired_test_dataloader, device)
+    train_data_prefetcher = CUDAPrefetcher(degenerated_train_dataloader, device)
+    paired_test_data_prefetcher = CUDAPrefetcher(paired_test_dataloader, device)
 
-    return train_prefetcher, paired_test_prefetcher
+    return train_data_prefetcher, paired_test_data_prefetcher
 
 
 def build_model(
@@ -249,7 +249,7 @@ def define_optimizer(g_model: nn.Module, config: Any) -> optim.Adam:
 def train(
         g_model: nn.Module,
         ema_g_model: nn.Module,
-        train_prefetcher: CUDAPrefetcher,
+        train_data_prefetcher: CUDAPrefetcher,
         pixel_criterion: nn.MSELoss,
         optimizer: optim.Adam,
         epoch: int,
@@ -259,7 +259,7 @@ def train(
         config: Any,
 ) -> None:
     # Calculate how many batches of data are in each Epoch
-    batches = len(train_prefetcher)
+    batches = len(train_data_prefetcher)
     # Print information of progress bar during training
     batch_time = AverageMeter("Time", ":6.3f", Summary.NONE)
     data_time = AverageMeter("Data", ":6.3f", Summary.NONE)
@@ -277,11 +277,11 @@ def train(
     # Initialize data batches
     batch_index = 0
     # Set the dataset iterator pointer to 0
-    train_prefetcher.reset()
+    train_data_prefetcher.reset()
     # Record the start time of training a batch
     end = time.time()
     # load the first batch of data
-    batch_data = train_prefetcher.next()
+    batch_data = train_data_prefetcher.next()
 
     while batch_data is not None:
         # Load batches of data
@@ -334,7 +334,7 @@ def train(
             progress.display(batch_index)
 
         # Preload the next batch of data
-        batch_data = train_prefetcher.next()
+        batch_data = train_data_prefetcher.next()
 
         # Add 1 to the number of data batches
         batch_index += 1

@@ -71,7 +71,7 @@ def main():
     device = torch.device("cuda", config["DEVICE_ID"])
 
     # Define the basic functions needed to start training
-    train_prefetcher, paired_test_prefetcher = load_dataset(config, device)
+    train_data_prefetcher, paired_test_data_prefetcher = load_dataset(config, device)
     g_model, ema_g_model, d_model = build_model(config, device)
     pixel_criterion, content_criterion, adversarial_criterion = define_loss(config, device)
     g_optimizer, d_optimizer = define_optimizer(g_model, d_model, config)
@@ -139,7 +139,7 @@ def main():
         train(g_model,
               ema_g_model,
               d_model,
-              train_prefetcher,
+              train_data_prefetcher,
               pixel_criterion,
               content_criterion,
               adversarial_criterion,
@@ -156,7 +156,7 @@ def main():
         d_scheduler.step()
 
         psnr, ssim = test(g_model,
-                          paired_test_prefetcher,
+                          paired_test_data_prefetcher,
                           psnr_model,
                           ssim_model,
                           device,
@@ -231,10 +231,10 @@ def load_dataset(
                                         persistent_workers=config["TEST"]["HYP"]["PERSISTENT_WORKERS"])
 
     # Replace the data set iterator with CUDA to speed up
-    train_prefetcher = CUDAPrefetcher(degenerated_train_dataloader, device)
-    paired_test_prefetcher = CUDAPrefetcher(paired_test_dataloader, device)
+    train_data_prefetcher = CUDAPrefetcher(degenerated_train_dataloader, device)
+    paired_test_data_prefetcher = CUDAPrefetcher(paired_test_dataloader, device)
 
-    return train_prefetcher, paired_test_prefetcher
+    return train_data_prefetcher, paired_test_data_prefetcher
 
 
 def build_model(
@@ -341,7 +341,7 @@ def train(
         g_model: nn.Module,
         ema_g_model: nn.Module,
         d_model: nn.Module,
-        train_prefetcher: CUDAPrefetcher,
+        train_data_prefetcher: CUDAPrefetcher,
         pixel_criterion: nn.L1Loss,
         content_criterion: model.ContentLoss,
         adversarial_criterion: nn.BCEWithLogitsLoss,
@@ -354,7 +354,7 @@ def train(
         config: Any,
 ) -> None:
     # Calculate how many batches of data there are under a dataset iterator
-    batches = len(train_prefetcher)
+    batches = len(train_data_prefetcher)
 
     # The information printed by the progress bar
     batch_time = AverageMeter("Time", ":6.3f", Summary.NONE)
@@ -377,11 +377,11 @@ def train(
     # Initialize data batches
     batch_index = 0
     # Set the dataset iterator pointer to 0
-    train_prefetcher.reset()
+    train_data_prefetcher.reset()
     # Record the start time of training a batch
     end = time.time()
     # load the first batch of data
-    batch_data = train_prefetcher.next()
+    batch_data = train_data_prefetcher.next()
 
     # Used for discriminator binary classification output, the input sample comes from the data set (real sample) is marked as 1, and the input sample comes from the generator (generated sample) is marked as 0
     batch_size = batch_data["gt"].shape[0]
@@ -497,7 +497,7 @@ def train(
             progress.display(batch_index)
 
         # Preload the next batch of data
-        batch_data = train_prefetcher.next()
+        batch_data = train_data_prefetcher.next()
 
         # After training a batch of data, add 1 to the number of data batches to ensure that the terminal prints data normally
         batch_index += 1

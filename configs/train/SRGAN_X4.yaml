@@ -101,4 +101,3 @@ TEST:
 
   SAVE_IMAGE: False
   SAVE_DIR_PATH: None
-  PRINT_FREQ: 1

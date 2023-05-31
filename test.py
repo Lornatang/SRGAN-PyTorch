@@ -29,29 +29,29 @@ from utils import build_iqa_model, load_pretrained_state_dict, make_directory, A
 
 
 def load_dataset(config: Any, device: torch.device) -> CUDAPrefetcher:
-    test_datasets = PairedImageDataset(config["DATASET"]["PAIRED_TEST_GT_IMAGES_DIR"],
-                                       config["DATASET"]["PAIRED_TEST_LR_IMAGES_DIR"])
+    test_datasets = PairedImageDataset(config["TEST"]["DATASET"]["PAIRED_TEST_GT_IMAGES_DIR"],
+                                       config["TEST"]["DATASET"]["PAIRED_TEST_LR_IMAGES_DIR"])
     test_dataloader = DataLoader(test_datasets,
-                                 batch_size=config["HYP"]["IMGS_PER_BATCH"],
-                                 shuffle=config["HYP"]["SHUFFLE"],
-                                 num_workers=config["HYP"]["NUM_WORKERS"],
-                                 pin_memory=config["HYP"]["PIN_MEMORY"],
+                                 batch_size=config["TEST"]["HYP"]["IMGS_PER_BATCH"],
+                                 shuffle=config["TEST"]["HYP"]["SHUFFLE"],
+                                 num_workers=config["TEST"]["HYP"]["NUM_WORKERS"],
+                                 pin_memory=config["TEST"]["HYP"]["PIN_MEMORY"],
                                  drop_last=False,
-                                 persistent_workers=config["HYP"]["PERSISTENT_WORKERS"])
-    test_data_prefetcher = CUDAPrefetcher(test_dataloader, device)
+                                 persistent_workers=config["TEST"]["HYP"]["PERSISTENT_WORKERS"])
+    test_test_data_prefetcher = CUDAPrefetcher(test_dataloader, device)
 
-    return test_data_prefetcher
+    return test_test_data_prefetcher
 
 
 def build_model(config: Any, device: torch.device) -> nn.Module | Any:
-    g_model = model.__dict__[config["MODEL"]["NAME"]](in_channels=config["MODEL"]["IN_CHANNELS"],
-                                                      out_channels=config["MODEL"]["OUT_CHANNELS"],
-                                                      channels=config["MODEL"]["CHANNELS"],
-                                                      num_rcb=config["MODEL"]["NUM_RCB"])
+    g_model = model.__dict__[config["MODEL"]["G"]["NAME"]](in_channels=config["MODEL"]["G"]["IN_CHANNELS"],
+                                                           out_channels=config["MODEL"]["G"]["OUT_CHANNELS"],
+                                                           channels=config["MODEL"]["G"]["CHANNELS"],
+                                                           num_rcb=config["MODEL"]["G"]["NUM_RCB"])
     g_model = g_model.to(device)
 
     # compile model
-    if config["MODEL"]["COMPILED"]:
+    if config["MODEL"]["G"]["COMPILED"]:
         g_model = torch.compile(g_model)
 
     return g_model
@@ -59,7 +59,7 @@ def build_model(config: Any, device: torch.device) -> nn.Module | Any:
 
 def test(
         g_model: nn.Module,
-        data_prefetcher: CUDAPrefetcher,
+        test_data_prefetcher: CUDAPrefetcher,
         psnr_model: nn.Module,
         ssim_model: nn.Module,
         device: torch.device,
@@ -74,11 +74,18 @@ def test(
     else:
         save_dir_path = None
 
+    # Calculate the number of iterations per epoch
+    batches = len(test_data_prefetcher)
+    # Interval printing
+    if batches > 100:
+        print_freq = 100
+    else:
+        print_freq = batches
     # The information printed by the progress bar
     batch_time = AverageMeter("Time", ":6.3f", Summary.NONE)
     psnres = AverageMeter("PSNR", ":4.2f", Summary.AVERAGE)
     ssimes = AverageMeter("SSIM", ":4.4f", Summary.AVERAGE)
-    progress = ProgressMeter(len(data_prefetcher),
+    progress = ProgressMeter(len(test_data_prefetcher),
                              [batch_time, psnres, ssimes],
                              prefix=f"Test: ")
 
@@ -90,8 +97,8 @@ def test(
         batch_index = 0
 
         # Set the data set iterator pointer to 0 and load the first batch of data
-        data_prefetcher.reset()
-        batch_data = data_prefetcher.next()
+        test_data_prefetcher.reset()
+        batch_data = test_data_prefetcher.next()
 
         # Record the start time of verifying a batch
         end = time.time()
@@ -117,7 +124,7 @@ def test(
             end = time.time()
 
             # Output a verification log information
-            if batch_index % config["TEST"]["PRINT_FREQ"] == 0:
+            if batch_index % print_freq == 0:
                 progress.display(batch_index)
 
             # Save the processed image after super-resolution
@@ -130,7 +137,7 @@ def test(
                 cv2.imwrite(os.path.join(save_dir_path, image_name), sr_image)
 
             # Preload the next batch of data
-            batch_data = data_prefetcher.next()
+            batch_data = test_data_prefetcher.next()
 
             # Add 1 to the number of data batches
             batch_index += 1
@@ -164,7 +171,7 @@ def main() -> None:
     )
 
     # Load model weights
-    g_model = load_pretrained_state_dict(g_model, config["MODEL"]["COMPILED"], config["MODEL_PATH"])
+    g_model = load_pretrained_state_dict(g_model, config["MODEL"]["G"]["COMPILED"], config["MODEL_WEIGHTS_PATH"])
 
     # Create a directory for saving test results
     save_dir_path = os.path.join(config["SAVE_DIR_PATH"], config["EXP_NAME"])

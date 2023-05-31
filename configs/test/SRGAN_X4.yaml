@@ -7,16 +7,17 @@ SCALE: 4
 # run device model
 DEVICE_ID: 0
 # Model weights path
-MODEL_PATH: "./results/pretrained_models/SRGAN_x4-ImageNet.pth.tar"
+MODEL_WEIGHTS_PATH: "./results/pretrained_models/SRGAN_x4-ImageNet.pth.tar"
 
 # Model define
 MODEL:
-  NAME: srresnet_x4
-  IN_CHANNELS: 3
-  OUT_CHANNELS: 3
-  CHANNELS: 64
-  NUM_RCB: 16
-  COMPILED: False
+  G:
+    NAME: srresnet_x4
+    IN_CHANNELS: 3
+    OUT_CHANNELS: 3
+    CHANNELS: 64
+    NUM_RCB: 16
+    COMPILED: False
 
 TEST:
   DATASET:
@@ -36,4 +37,3 @@ TEST:
 
   SAVE_IMAGE: False
   SAVE_DIR_PATH: None
-  PRINT_FREQ: 1
