@@ -11,19 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import collections.abc
 import math
 import os
-import warnings
-from itertools import repeat
 from typing import Any, cast, Dict, List, Union
 
 import torch
 from torch import nn, Tensor
 from torch.nn import functional as F_torch
-from torch.nn.init import trunc_normal_
-from torch.nn.utils import spectral_norm
-from torch.utils import checkpoint
 from torchvision import models, transforms
 from torchvision.models.feature_extraction import create_feature_extractor
 
