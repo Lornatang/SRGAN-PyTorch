@@ -172,9 +172,9 @@ class SRResNet(nn.Module):
 class DiscriminatorForVGG(nn.Module):
     def __init__(
             self,
-            in_channels: int = 3,
-            out_channels: int = 1,
-            channels: int = 64,
+            in_channels: int,
+            out_channels: int,
+            channels: int,
     ) -> None:
         super(DiscriminatorForVGG, self).__init__()
         self.features = nn.Sequential(
@@ -348,7 +348,7 @@ def srresnet_x4(**kwargs: Any) -> SRResNet:
     return model
 
 
-def discriminator_for_vgg() -> DiscriminatorForVGG:
-    model = DiscriminatorForVGG()
+def discriminator_for_vgg(**kwargs) -> DiscriminatorForVGG:
+    model = DiscriminatorForVGG(**kwargs)
 
     return model
