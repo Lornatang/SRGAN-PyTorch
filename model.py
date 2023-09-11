@@ -23,7 +23,7 @@ from torchvision.models.feature_extraction import create_feature_extractor
 
 __all__ = [
     "DiscriminatorForVGG", "SRResNet",
-    "discriminator_for_vgg", "srresnet_x2", "srresnet_x3", "srresnet_x4", "srresnet_x8",
+    "discriminator_for_vgg", "srresnet_x2", "srresnet_x4", "srresnet_x8",
 ]
 
 feature_extractor_net_cfgs: Dict[str, List[Union[str, int]]] = {
@@ -136,8 +136,8 @@ class SRResNet(nn.Module):
         if upscale == 2 or upscale == 4 or upscale == 8:
             for _ in range(int(math.log(upscale, 2))):
                 upsampling.append(_UpsampleBlock(channels, 2))
-        elif upscale == 3:
-            upsampling.append(_UpsampleBlock(channels, 3))
+        else:
+            raise NotImplementedError(f"Upscale factor `{upscale}` is not support.")
         self.upsampling = nn.Sequential(*upsampling)
 
         # reconstruction block
@@ -332,12 +332,6 @@ class ContentLoss(nn.Module):
 
 def srresnet_x2(**kwargs: Any) -> SRResNet:
     model = SRResNet(upscale=2, **kwargs)
-
-    return model
-
-
-def srresnet_x3(**kwargs: Any) -> SRResNet:
-    model = SRResNet(upscale=3, **kwargs)
 
     return model
 
