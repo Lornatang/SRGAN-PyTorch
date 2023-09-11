@@ -1,0 +1,77 @@
+# experiment name
+EXP_NAME: SRResNet_x3-ImageNet
+# random number seed
+SEED: 0
+# super resolution magnification factor
+SCALE: 3
+# run device model
+DEVICE_ID: 0
+
+# Model define
+MODEL:
+  EMA:
+    ENABLE: True
+    DECAY: 0.999
+    COMPILED: True
+  G:
+    NAME: srresnet_x3
+    IN_CHANNELS: 3
+    OUT_CHANNELS: 3
+    CHANNELS: 64
+    NUM_RCB: 16
+    COMPILED: True
+
+TRAIN:
+  DATASET:
+    TRAIN_GT_IMAGES_DIR: "./data/SRGAN_ImageNet/SRGAN_ImageNet_train_GT"
+
+    GT_IMAGE_SIZE: 96
+
+  # Model file address, used for pre-training and recovery training
+  CHECKPOINT:
+    PRETRAINED_G_MODEL: "./results/pretrained_models/SRResNet_x4-ImageNet.pth.tar"
+    RESUMED_G_MODEL: ""
+
+  # training hyperparameters
+  HYP:
+    IMGS_PER_BATCH: 16
+    SHUFFLE: True
+    NUM_WORKERS: 4
+    PIN_MEMORY: True
+    PERSISTENT_WORKERS: True
+
+    EPOCHS: 90
+
+  OPTIM:
+    NAME: Adam
+    LR: 0.0001
+    BETAS: [0.9, 0.999]
+    EPS: 0.0001
+    WEIGHT_DECAY: 0.0
+
+  # Loss function
+  LOSSES:
+    PIXEL_LOSS:
+      NAME: MSELoss
+      WEIGHT: [1.0]
+
+  PRINT_FREQ: 100
+
+TEST:
+  DATASET:
+    PAIRED_TEST_GT_IMAGES_DIR: "./data/Set5/X3/GT"
+    PAIRED_TEST_LR_IMAGES_DIR: "./data/Set5/X3/LR"
+
+  # Test hyperparameters
+  HYP:
+    IMGS_PER_BATCH: 1
+    SHUFFLE: False
+    NUM_WORKERS: 1
+    PIN_MEMORY: True
+    PERSISTENT_WORKERS: True
+
+  # Only test Y channel
+  ONLY_TEST_Y_CHANNEL: True
+
+  SAVE_IMAGE: False
+  SAVE_DIR_PATH: None
