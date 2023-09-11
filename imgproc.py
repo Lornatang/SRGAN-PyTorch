@@ -577,8 +577,8 @@ def random_vertically_flip(image: np.ndarray, p: float = 0.5) -> np.ndarray:
 
 
 def center_crop_torch(
-        gt_images: ndarray | Tensor | list[ndarray] | list[Tensor],
-        lr_images: ndarray | Tensor | list[ndarray] | list[Tensor],
+        gt_images,
+        lr_images,
         gt_patch_size: int,
         upscale_factor: int,
 ) -> [ndarray, ndarray] or [Tensor, Tensor] or [list[ndarray], list[ndarray]] or [list[Tensor], list[Tensor]]:
@@ -653,8 +653,8 @@ def center_crop_torch(
 
 
 def random_crop_torch(
-        gt_images: ndarray | Tensor | list[ndarray] | list[Tensor],
-        lr_images: ndarray | Tensor | list[ndarray] | list[Tensor],
+        gt_images,
+        lr_images,
         gt_patch_size: int,
         upscale_factor: int,
 ) -> [ndarray, ndarray] or [Tensor, Tensor] or [list[ndarray], list[ndarray]] or [list[Tensor], list[Tensor]]:
@@ -730,8 +730,8 @@ def random_crop_torch(
 
 
 def random_rotate_torch(
-        gt_images: ndarray | Tensor | list[ndarray] | list[Tensor],
-        lr_images: ndarray | Tensor | list[ndarray] | list[Tensor],
+        gt_images,
+        lr_images,
         upscale_factor: int,
         angles: list,
         gt_center: tuple = None,
@@ -805,8 +805,8 @@ def random_rotate_torch(
 
 
 def random_horizontally_flip_torch(
-        gt_images: ndarray | Tensor | list[ndarray] | list[Tensor],
-        lr_images: ndarray | Tensor | list[ndarray] | list[Tensor],
+        gt_images,
+        lr_images,
         p: float = 0.5
 ) -> [ndarray, ndarray] or [Tensor, Tensor] or [list[ndarray], list[ndarray]] or [list[Tensor], list[Tensor]]:
     """Randomly flip the image up and down
@@ -850,8 +850,8 @@ def random_horizontally_flip_torch(
 
 
 def random_vertically_flip_torch(
-        gt_images: ndarray | Tensor | list[ndarray] | list[Tensor],
-        lr_images: ndarray | Tensor | list[ndarray] | list[Tensor],
+        gt_images,
+        lr_images,
         p: float = 0.5
 ) -> [ndarray, ndarray] or [Tensor, Tensor] or [list[ndarray], list[ndarray]] or [list[Tensor], list[Tensor]]:
     """Randomly flip the image left and right

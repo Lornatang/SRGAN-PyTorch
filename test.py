@@ -43,7 +43,7 @@ def load_dataset(config: Any, device: torch.device) -> CUDAPrefetcher:
     return test_test_data_prefetcher
 
 
-def build_model(config: Any, device: torch.device) -> nn.Module | Any:
+def build_model(config: Any, device: torch.device):
     g_model = model.__dict__[config["MODEL"]["G"]["NAME"]](in_channels=config["MODEL"]["G"]["IN_CHANNELS"],
                                                            out_channels=config["MODEL"]["G"]["OUT_CHANNELS"],
                                                            channels=config["MODEL"]["G"]["CHANNELS"],
@@ -166,7 +166,7 @@ def main() -> None:
     g_model = build_model(config, device)
     psnr_model, ssim_model = build_iqa_model(
         config["SCALE"],
-        config["ONLY_TEST_Y_CHANNEL"],
+        config["TEST"]["ONLY_TEST_Y_CHANNEL"],
         device,
     )
 
@@ -174,8 +174,8 @@ def main() -> None:
     g_model = load_pretrained_state_dict(g_model, config["MODEL"]["G"]["COMPILED"], config["MODEL_WEIGHTS_PATH"])
 
     # Create a directory for saving test results
-    save_dir_path = os.path.join(config["SAVE_DIR_PATH"], config["EXP_NAME"])
-    if config["SAVE_IMAGE"]:
+    save_dir_path = os.path.join(config["TEST"]["SAVE_DIR_PATH"], config["EXP_NAME"])
+    if config["TEST"]["SAVE_IMAGE"]:
         make_directory(save_dir_path)
 
     test(g_model,

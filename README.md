@@ -2,7 +2,8 @@
 
 ## Overview
 
-This repository contains an op-for-op PyTorch reimplementation of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5).
+This repository contains an op-for-op PyTorch reimplementation
+of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802v5).
 
 ## Table of contents
 
@@ -24,32 +25,67 @@ This repository contains an op-for-op PyTorch reimplementation of [Photo-Realist
 
 ## Download weights
 
-- [Google Driver](https://drive.google.com/drive/folders/17ju2HN7Y6pyPK2CC_AqnAfTOe9_3hCQ8?usp=sharing)
-- [Baidu Driver](https://pan.baidu.com/s/1yNs4rqIb004-NKEdKBJtYg?pwd=llot)
+Download all available model weights.
+
+```shell
+# Download `SRGAN_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
+$ bash ./scripts/download_weights.sh SRGAN_x4-ImageNet
+# Download `SRResNet_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
+$ bash ./scripts/download_weights.sh SRResNet_x4-ImageNet
+# Download `DiscriminatorForVGG_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
+$ bash ./scripts/download_weights.sh DiscriminatorForVGG_x4-ImageNet
+```
 
 ## Download datasets
 
-Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc.
+These train images are randomly selected from the verification part of the ImageNet2012 classification dataset.
 
-- [Google Driver](https://drive.google.com/drive/folders/1A6lzGeQrFMxPqJehK9s37ce-tPDj20mD?usp=sharing)
-- [Baidu Driver](https://pan.baidu.com/s/1o-8Ty_7q6DiS3ykLU09IVg?pwd=llot)
+```shell
+$ bash ./scripts/download_datasets.sh SRGAN_ImageNet
+```
 
-Please refer to `README.md` in the `data` directory for the method of making a dataset.
+It is convenient to download some commonly used test data sets here.
+
+```shell
+$ bash ./scripts/download_datasets.sh Set5
+```
 
 ## How Test and Train
 
-Both training and testing only need to modify yaml file. 
+Both training and testing only need to modify yaml file.
+
+Set5 is used as the test benchmark in the project, and you can modify it by yourself.
+
+If you need to test the effect of the model, download the test dataset.
+
+```shell
+$ bash ./scripts/download_datasets.sh Set5
+```
 
 ### Test srgan_x4
 
-```bash
-python3 test.py --config_path ./configs/test/SRGAN_X4.yaml
+```shell
+$ python3 test.py --config_path ./configs/test/SRGAN_X4.yaml
+```
+
+### Test srresnet_x4
+
+```shell
+$ python3 test.py --config_path ./configs/test/SRRESNET_X4.yaml
 ```
 
 ### Train srresnet_x4
 
-```bash
-python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
+First, the dataset image is split into several small images to reduce IO and keep the batch image size uniform.
+
+```shell
+$ python3 ./scripts/split_images.py
+```
+
+Then, run the following commands to train the model
+
+```shell
+$ python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
 ```
 
 ### Resume train srresnet_x4
@@ -58,8 +94,8 @@ Modify the `./configs/train/SRRESNET_X4.yaml` file.
 
 - line 33: `RESUMED_G_MODEL` change to `./samples/SRResNet_x4-ImageNet/g_epoch_xxx.pth.tar`.
 
-```bash
-python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
+```shell
+$ python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
 ```
 
 ### Train srgan_x4
@@ -68,8 +104,8 @@ Modify the `./configs/train/SRGAN_X4.yaml` file.
 
 - line 38: `PRETRAINED_G_MODEL` change to `./results/SRResNet_x4-ImageNet/g_last.pth.tar`.
 
-```bash
-python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
+```shell
+$ python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
 ```
 
 ### Resume train srgan_x4
@@ -80,8 +116,8 @@ Modify the `./configs/train/SRGAN_X4.yaml` file.
 - line 40: `RESUMED_G_MODEL` change to `./samples/SRGAN_x4-ImageNet/g_epoch_xxx.pth.tar`.
 - line 41: `RESUMED_D_MODEL` change to `./samples/SRGAN_x4-ImageNet/d_epoch_xxx.pth.tar`.
 
-```bash
-python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
+```shell
+$ python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
 ```
 
 ## Result
@@ -92,8 +128,8 @@ In the following table, the psnr value in `()` indicates the result of the proje
 
 | Set5 | Scale |      SRResNet      |       SRGAN        |
 |:----:|:-----:|:------------------:|:------------------:|
-| PSNR |   4   |  32.05(**32.14**)  |  29.40(**30.64**)  |
-| SSIM |   4   | 0.9019(**0.8954**) | 0.8472(**0.8642**) |
+| PSNR |   4   |  32.05(**32.16**)  |  29.40(**30.67**)  |
+| SSIM |   4   | 0.9019(**0.8938**) | 0.8472(**0.8627**) |
 
 | Set14 | Scale |      SRResNet      |       SRGAN        |
 |:-----:|:-----:|:------------------:|:------------------:|
@@ -111,11 +147,11 @@ In the following table, the psnr value in `()` indicates the result of the proje
 python3 ./inference.py
 ```
 
-Input: 
+Input:
 
 <span align="center"><img width="240" height="360" src="figure/comic.png"/></span>
 
-Output: 
+Output:
 
 <span align="center"><img width="240" height="360" src="figure/sr_comic.png"/></span>
 

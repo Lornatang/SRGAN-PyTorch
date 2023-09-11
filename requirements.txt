@@ -1,8 +1,8 @@
-opencv-python>=4.6.0.66
-numpy>=1.23.5
-tqdm>=4.63.1
+opencv-python>=4.8.0.76
+numpy>=1.24.1
+tqdm>=4.66.1
 torch>=2.0.1+cu118
-PyYAML>=6.0
+PyYAML>=5.4.1
 typing>=3.7.4.3
 torchvision>=0.15.2+cu118
-natsort>=8.1.0
+natsort>=8.4.0

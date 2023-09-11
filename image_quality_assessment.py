@@ -16,7 +16,6 @@ import math
 import typing
 import warnings
 from itertools import repeat
-from typing import Any
 
 import numpy as np
 import torch
@@ -35,6 +34,7 @@ _D = typing.Optional[torch.dtype]
 
 def _to_tuple(dim: int):
     """Convert the input to a tuple
+
 
     Args:
         dim (int): the dimension of the input
@@ -588,7 +588,7 @@ def _ssim_torch(
         get_weight: bool = False,
         only_test_y_channel: bool = True,
         data_range: float = 255.0,
-) -> tuple[Any, Any] | tuple[Any, Tensor] | Any:
+):
     """PyTorch implements SSIM (Structural Similarity) function
 
     Args:
