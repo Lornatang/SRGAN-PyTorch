@@ -23,7 +23,7 @@ from torchvision.models.feature_extraction import create_feature_extractor
 
 __all__ = [
     "DiscriminatorForVGG", "SRResNet",
-    "discriminator_for_vgg", "srresnet_x2", "srresnet_x3", "srresnet_x4",
+    "discriminator_for_vgg", "srresnet_x2", "srresnet_x3", "srresnet_x4", "srresnet_x8",
 ]
 
 feature_extractor_net_cfgs: Dict[str, List[Union[str, int]]] = {
@@ -251,7 +251,7 @@ class _UpsampleBlock(nn.Module):
         super(_UpsampleBlock, self).__init__()
         self.upsample_block = nn.Sequential(
             nn.Conv2d(channels, channels * upscale_factor * upscale_factor, (3, 3), (1, 1), (1, 1)),
-            nn.PixelShuffle(2),
+            nn.PixelShuffle(upscale_factor),
             nn.PReLU(),
         )
 
@@ -344,6 +344,12 @@ def srresnet_x3(**kwargs: Any) -> SRResNet:
 
 def srresnet_x4(**kwargs: Any) -> SRResNet:
     model = SRResNet(upscale=4, **kwargs)
+
+    return model
+
+
+def srresnet_x8(**kwargs: Any) -> SRResNet:
+    model = SRResNet(upscale=8, **kwargs)
 
     return model
 
