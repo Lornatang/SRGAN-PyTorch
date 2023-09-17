@@ -52,8 +52,8 @@ class BaseImageDataset(Dataset):
         if os.listdir(gt_images_dir) == 0:
             raise RuntimeError("GT image folder is empty.")
         # check if the image magnification meets the model requirements
-        if upscale_factor not in [2, 3, 4, 8]:
-            raise RuntimeError("Upscale factor must be 2, 3, 4, or 8.")
+        if upscale_factor not in [2, 4, 8]:
+            raise RuntimeError("Upscale factor must be 2, 4, or 8.")
 
         # Read a batch of low-resolution images
         if lr_images_dir is None:
