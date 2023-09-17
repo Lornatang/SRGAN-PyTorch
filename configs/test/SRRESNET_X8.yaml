@@ -1,0 +1,38 @@
+# experiment name
+EXP_NAME: SRResNet_x8-ImageNet-Set5
+# random number seed
+SEED: 0
+# Super resolution magnification factor
+SCALE: 8
+# run device model
+DEVICE_ID: 0
+# Model weights path
+MODEL_WEIGHTS_PATH: "./results/pretrained_models/SRResNet_x8-ImageNet.pth.tar"
+
+# Model define
+MODEL:
+  G:
+    NAME: srresnet_x8
+    IN_CHANNELS: 3
+    OUT_CHANNELS: 3
+    CHANNELS: 64
+    NUM_RCB: 16
+    COMPILED: False
+
+TEST:
+  DATASET:
+    PAIRED_TEST_GT_IMAGES_DIR: "./data/Set5/X8/GT"
+    PAIRED_TEST_LR_IMAGES_DIR: "./data/Set5/X8/LR"
+
+  # Test hyperparameters
+  HYP:
+    IMGS_PER_BATCH: 1
+    SHUFFLE: False
+    NUM_WORKERS: 1
+    PIN_MEMORY: True
+    PERSISTENT_WORKERS: True
+
+  # Only test Y channel
+  ONLY_TEST_Y_CHANNEL: True
+
+  SAVE_IMAGE_DIR: ""
