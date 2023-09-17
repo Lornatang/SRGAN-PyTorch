@@ -16,6 +16,7 @@ elif [ "$FILE" == "Set5" ]; then
   wget -N $URL -O $ZIP_FILE
   unzip $ZIP_FILE -d ./data/Set5
   rm $ZIP_FILE
-  echo "Available datasets are imagenet"
+else
+  echo "Available arguments are SRGAN_ImageNet, Set5"
   exit 1
 fi
