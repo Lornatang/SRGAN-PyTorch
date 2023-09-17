@@ -15,14 +15,14 @@ import os
 import shutil
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import torch
 import torch.backends.mps
 from torch import distributed as dist
 from torch import nn
 from torch.nn import Module
-from torch.optim import Optimizer, lr_scheduler
+from torch.optim import Optimizer
 
 from image_quality_assessment import PSNR, SSIM
 

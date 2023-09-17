@@ -65,14 +65,13 @@ def test(
         device: torch.device,
         config: Any,
 ) -> [float, float]:
-    if config["TEST"]["SAVE_IMAGE"] and config["TEST"]["SAVE_DIR_PATH"] is None:
-        raise ValueError("Image save location cannot be empty!")
+    save_image = False
+    save_image_dir = ""
 
-    if config["TEST"]["SAVE_IMAGE"]:
-        save_dir_path = os.path.join(config["SAVE_DIR_PATH"], config["EXP_NAME"])
-        make_directory(save_dir_path)
-    else:
-        save_dir_path = None
+    if config["TEST"]["SAVE_IMAGE_DIR"]:
+        save_image = True
+        save_image_dir = os.path.join(config["SAVE_IMAGE_DIR"], config["EXP_NAME"])
+        make_directory(save_image_dir)
 
     # Calculate the number of iterations per epoch
     batches = len(test_data_prefetcher)
@@ -128,13 +127,13 @@ def test(
                 progress.display(batch_index)
 
             # Save the processed image after super-resolution
-            if config["TEST"]["SAVE_IMAGE"] and batch_data["image_name"] is None:
+            if batch_data["image_name"] == "":
                 raise ValueError("The image_name is None, please check the dataset.")
-            if config["TEST"]["SAVE_IMAGE"]:
+            if save_image:
                 image_name = os.path.basename(batch_data["image_name"][0])
                 sr_image = tensor_to_image(sr, False, False)
                 sr_image = cv2.cvtColor(sr_image, cv2.COLOR_RGB2BGR)
-                cv2.imwrite(os.path.join(save_dir_path, image_name), sr_image)
+                cv2.imwrite(os.path.join(save_image_dir, image_name), sr_image)
 
             # Preload the next batch of data
             batch_data = test_data_prefetcher.next()
@@ -153,7 +152,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path",
                         type=str,
-                        default="./configs/test/SRRESNET_X4.yaml",
+                        default="./configs/test/SRGAN_X4.yaml",
                         required=True,
                         help="Path to test config file.")
     args = parser.parse_args()
@@ -172,11 +171,6 @@ def main() -> None:
 
     # Load model weights
     g_model = load_pretrained_state_dict(g_model, config["MODEL"]["G"]["COMPILED"], config["MODEL_WEIGHTS_PATH"])
-
-    # Create a directory for saving test results
-    save_dir_path = os.path.join(config["TEST"]["SAVE_DIR_PATH"], config["EXP_NAME"])
-    if config["TEST"]["SAVE_IMAGE"]:
-        make_directory(save_dir_path)
 
     test(g_model,
          test_data_prefetcher,
