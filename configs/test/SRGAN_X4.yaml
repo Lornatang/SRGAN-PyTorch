@@ -21,8 +21,8 @@ MODEL:
 
 TEST:
   DATASET:
-    PAIRED_TEST_GT_IMAGES_DIR: "./data/Set5/X4/GT"
-    PAIRED_TEST_LR_IMAGES_DIR: "./data/Set5/X4/LR"
+    PAIRED_TEST_GT_IMAGES_DIR: "./data/Set5/GTmod12"
+    PAIRED_TEST_LR_IMAGES_DIR: "./data/Set5/LRbicx4"
 
   # Test hyperparameters
   HYP:
@@ -35,4 +35,4 @@ TEST:
   # Only test Y channel
   ONLY_TEST_Y_CHANNEL: True
 
-  SAVE_IMAGE_PATH: "None"
+  SAVE_IMAGE_DIR: ""

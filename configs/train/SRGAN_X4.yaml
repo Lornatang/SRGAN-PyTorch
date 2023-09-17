@@ -99,4 +99,4 @@ TEST:
   # Only test Y channel
   ONLY_TEST_Y_CHANNEL: True
 
-  SAVE_IMAGE_PATH: "None"
+  SAVE_IMAGE_DIR: ""
