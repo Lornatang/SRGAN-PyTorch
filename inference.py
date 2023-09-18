@@ -31,18 +31,6 @@ def main(args):
 
     # Initialize the model
     sr_model = build_model(args.model_arch_name, device)
-    print(f"Build `{args.model_arch_name}` model successfully.")
-
-    # Load model weights
-    sr_model = load_pretrained_state_dict(sr_model, args.compile_state, args.model_weights_path)
-    print(f"Load `{args.model_arch_name}` model weights `{os.path.abspath(args.model_weights_path)}` successfully.")
-
-    # Start the verification mode of the model.
-    sr_model.eval()
-
-    # Enable half-precision inference to reduce memory usage and inference time
-    if args.half:
-        sr_model.half()
 
     # Use the model to generate super-resolved images
     with torch.no_grad():
@@ -60,6 +48,18 @@ def main(args):
 def build_model(model_arch_name: str, device: torch.device) -> nn.Module:
     # Initialize the super-resolution model
     sr_model = model.__dict__[model_arch_name]()
+    print(f"Build `{args.model_arch_name}` model successfully.")
+
+    # Load model weights
+    sr_model = load_pretrained_state_dict(sr_model, args.compile_state, args.model_weights_path)
+    print(f"Load `{args.model_arch_name}` model weights `{os.path.abspath(args.model_weights_path)}` successfully.")
+
+    # Start the verification mode of the model.
+    sr_model.eval()
+
+    # Enable half-precision inference to reduce memory usage and inference time
+    if args.half:
+        sr_model.half()
 
     sr_model = sr_model.to(device)
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                         help="Whether to compile the model state.")
     parser.add_argument("--model_weights_path",
                         type=str,
-                        default="./results/pretrained_models/SRGAN_x4-ImageNet.pth.tar",
+                        default="./results/pretrained_models/SRGAN_x4-SRGAN_ImageNet.pth.tar",
                         help="Model weights file path.")
     parser.add_argument("--half",
                         action="store_true",

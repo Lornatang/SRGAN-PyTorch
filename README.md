@@ -28,12 +28,12 @@ of [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial
 Download all available model weights.
 
 ```shell
-# Download `SRGAN_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
-$ bash ./scripts/download_weights.sh SRGAN_x4-ImageNet
-# Download `SRResNet_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
-$ bash ./scripts/download_weights.sh SRResNet_x4-ImageNet
-# Download `DiscriminatorForVGG_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
-$ bash ./scripts/download_weights.sh DiscriminatorForVGG_x4-ImageNet
+# Download `SRGAN_x4-SRGAN_ImageNet.pth.tar` weights to `./results/pretrained_models`
+$ bash ./scripts/download_weights.sh SRGAN_x4-SRGAN_ImageNet
+# Download `SRResNet_x4-SRGAN_ImageNet.pth.tar` weights to `./results/pretrained_models`
+$ bash ./scripts/download_weights.sh SRResNet_x4-SRGAN_ImageNet
+# Download `DiscriminatorForVGG_x4-SRGAN_ImageNet.pth.tar` weights to `./results/pretrained_models`
+$ bash ./scripts/download_weights.sh DiscriminatorForVGG_x4-SRGAN_ImageNet
 ```
 
 ## Download datasets
@@ -65,13 +65,13 @@ $ bash ./scripts/download_datasets.sh Set5
 ### Test srgan_x4
 
 ```shell
-$ python3 test.py --config_path ./configs/test/SRGAN_X4.yaml
+$ python3 test.py --config_path ./configs/test/SRGAN_x4-SRGAN_ImageNet-Set5.yaml
 ```
 
 ### Test srresnet_x4
 
 ```shell
-$ python3 test.py --config_path ./configs/test/SRRESNET_X4.yaml
+$ python3 test.py --config_path ./configs/test/SRResNet_x4-SRGAN_ImageNet-Set5.yaml
 ```
 
 ### Train srresnet_x4
@@ -85,39 +85,35 @@ $ python3 ./scripts/split_images.py
 Then, run the following commands to train the model
 
 ```shell
-$ python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
+$ python3 train_net.py --config_path ./configs/train/SRResNet_x4-SRGAN_ImageNet.yaml
 ```
 
 ### Resume train srresnet_x4
 
-Modify the `./configs/train/SRRESNET_X4.yaml` file.
+Modify the `./configs/train/SRResNet_x4-SRGAN_ImageNet.yaml` file.
 
-- line 33: `RESUMED_G_MODEL` change to `./samples/SRResNet_x4-ImageNet/g_epoch_xxx.pth.tar`.
+- line 33: `RESUMED_G_MODEL` change to `./samples/SRResNet_x4-SRGAN_ImageNet/g_epoch_xxx.pth.tar`.
 
 ```shell
-$ python3 train_net.py --config_path ./configs/train/SRRESNET_X4.yaml
+$ python3 train_net.py --config_path ./configs/train/SRResNet_x4-SRGAN_ImageNet.yaml
 ```
 
 ### Train srgan_x4
 
-Modify the `./configs/train/SRGAN_X4.yaml` file.
-
-- line 38: `PRETRAINED_G_MODEL` change to `./results/SRResNet_x4-ImageNet/g_last.pth.tar`.
-
 ```shell
-$ python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
+$ python3 train_gan.py --config_path ./configs/train/SRGAN_x4-SRGAN_ImageNet.yaml
 ```
 
 ### Resume train srgan_x4
 
-Modify the `./configs/train/SRGAN_X4.yaml` file.
+Modify the `./configs/train/SRGAN_x4-SRGAN_ImageNet.yaml` file.
 
-- line 38: `PRETRAINED_G_MODEL` change to `./results/SRResNet_x4-ImageNet/g_last.pth.tar`.
-- line 40: `RESUMED_G_MODEL` change to `./samples/SRGAN_x4-ImageNet/g_epoch_xxx.pth.tar`.
-- line 41: `RESUMED_D_MODEL` change to `./samples/SRGAN_x4-ImageNet/d_epoch_xxx.pth.tar`.
+- line 38: `PRETRAINED_G_MODEL` change to `./results/SRResNet_x4-SRGAN_ImageNet/g_last.pth.tar`.
+- line 40: `RESUMED_G_MODEL` change to `./samples/SRGAN_x4-SRGAN_ImageNet/g_epoch_xxx.pth.tar`.
+- line 41: `RESUMED_D_MODEL` change to `./samples/SRGAN_x4-SRGAN_ImageNet/d_epoch_xxx.pth.tar`.
 
 ```shell
-$ python3 train_gan.py --config_path ./configs/train/SRGAN_X4.yaml
+$ python3 train_gan.py --config_path ./configs/train/SRGAN_x4-SRGAN_ImageNet.yaml
 ```
 
 ## Result
@@ -142,9 +138,9 @@ In the following table, the psnr value in `()` indicates the result of the proje
 |  SSIM  |   4   | 0.7620(**0.7367**) | 0.6688(**0.6867**) |
 
 ```bash
-# Download `SRGAN_x4-ImageNet.pth.tar` weights to `./results/pretrained_models`
-# More detail see `README.md<Download weights>`
-python3 ./inference.py
+# If you do not train the model yourself, you can download the model weights and test them.
+$ bash ./scripts/download_weights.sh SRGAN_x4-SRGAN_ImageNet
+$ python3 ./inference.py
 ```
 
 Input:
@@ -157,7 +153,7 @@ Output:
 
 ```text
 Build `srresnet_x4` model successfully.
-Load `srresnet_x4` model weights `SRGAN-PyTorch/results/pretrained_models/SRGAN_x4-ImageNet.pth.tar` successfully.
+Load `srresnet_x4` model weights `SRGAN-PyTorch/results/pretrained_models/SRGAN_x4-SRGAN_ImageNet.pth.tar` successfully.
 SR image save to `./figure/sr_comic.png`
 ```
 

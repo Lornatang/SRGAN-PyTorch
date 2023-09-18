@@ -152,7 +152,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path",
                         type=str,
-                        default="./configs/test/SRGAN_X4.yaml",
+                        default="./configs/test/SRGAN_x4-SRGAN_ImageNet-Set5.yaml",
                         required=True,
                         help="Path to test config file.")
     args = parser.parse_args()
