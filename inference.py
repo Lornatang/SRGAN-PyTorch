@@ -59,10 +59,7 @@ def main(args):
 
 def build_model(model_arch_name: str, device: torch.device) -> nn.Module:
     # Initialize the super-resolution model
-    sr_model = model.__dict__[model_arch_name](in_channels=3,
-                                               out_channels=3,
-                                               channels=64,
-                                               num_rcb=16)
+    sr_model = model.__dict__[model_arch_name]()
 
     sr_model = sr_model.to(device)
 

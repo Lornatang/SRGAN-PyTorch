@@ -106,11 +106,11 @@ class _FeatureExtractor(nn.Module):
 class SRResNet(nn.Module):
     def __init__(
             self,
-            in_channels: int,
-            out_channels: int,
-            channels: int,
-            num_rcb: int,
-            upscale: int,
+            in_channels: int = 3,
+            out_channels: int = 3,
+            channels: int = 64,
+            num_rcb: int = 16,
+            upscale: int = 4,
     ) -> None:
         super(SRResNet, self).__init__()
         # Low frequency information extraction layer
@@ -172,9 +172,9 @@ class SRResNet(nn.Module):
 class DiscriminatorForVGG(nn.Module):
     def __init__(
             self,
-            in_channels: int,
-            out_channels: int,
-            channels: int,
+            in_channels: int = 3,
+            out_channels: int = 1,
+            channels: int = 64,
     ) -> None:
         super(DiscriminatorForVGG, self).__init__()
         self.features = nn.Sequential(
