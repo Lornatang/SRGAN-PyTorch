@@ -23,7 +23,7 @@ MODEL:
 
 TRAIN:
   DATASET:
-    TRAIN_GT_IMAGES_DIR: "./data/SRGAN_ImageNet/SRGAN_ImageNet_train_GT"
+    TRAIN_GT_IMAGES_DIR: "./data/SRGAN_ImageNet_train_GT_sub"
 
     GT_IMAGE_SIZE: 96
 

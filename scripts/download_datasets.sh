@@ -4,9 +4,9 @@ if [ "$FILE" == "SRGAN_ImageNet" ]; then
   # Download the imagenet dataset and move validation images to labeled subfolders
   URL="https://huggingface.co/datasets/goodfellowliu/SRGAN_ImageNet/resolve/main/SRGAN_ImageNet.zip"
   ZIP_FILE=./data/SRGAN_ImageNet.zip
-  mkdir -p ./data/SRGAN_ImageNet
+  mkdir -p ./data
   wget -N $URL -O $ZIP_FILE
-  unzip $ZIP_FILE -d ./data/SRGAN_ImageNet
+  unzip $ZIP_FILE -d ./data
   rm $ZIP_FILE
 elif [ "$FILE" == "Set5" ]; then
   # Download the Set5 dataset

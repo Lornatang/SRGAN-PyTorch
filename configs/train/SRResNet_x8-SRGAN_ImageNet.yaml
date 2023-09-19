@@ -23,13 +23,13 @@ MODEL:
 
 TRAIN:
   DATASET:
-    TRAIN_GT_IMAGES_DIR: "./data/SRGAN_ImageNet/SRGAN_ImageNet_train_GT"
+    TRAIN_GT_IMAGES_DIR: "./data/SRGAN_ImageNet_train_GT_sub"
 
     GT_IMAGE_SIZE: 96
 
   # Model file address, used for pre-training and recovery training
   CHECKPOINT:
-    PRETRAINED_G_MODEL: "./results/pretrained_models/SRResNet_x4-ImageNet.pth.tar"
+    PRETRAINED_G_MODEL: ""
     RESUMED_G_MODEL: ""
 
   # training hyperparameters

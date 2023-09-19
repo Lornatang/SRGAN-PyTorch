@@ -22,14 +22,24 @@ from tqdm import tqdm
 
 def main():
     args = {
-        "inputs_dir": "./data/SRGAN_ImageNet/SRGAN_ImageNet",  # Path to input image directory.
-        "output_dir": "./data/SRGAN_ImageNet/SRGAN_ImageNet_train_GT",  # Path to generator image directory.
+        "inputs_dir": "./data/SRGAN_ImageNet",  # Path to input image directory.
+        "output_dir": "./data/SRGAN_ImageNet_train_GT_sub",  # Path to generator image directory.
         "crop_size": 128,  # Crop image size from raw image.
         "step": 64,  # Step size of sliding window.
         "thresh_size": 0,  # Threshold size. If the remaining image is less than the threshold, it will not be cropped.
         "num_workers": 10  # How many threads to open at the same time.
     }
     split_images(args)
+
+    # args = {
+    #     "inputs_dir": "./data/DIV2K_train_HR",  # Path to input image directory.
+    #     "output_dir": "./data/DIV2K_train_GT_sub",  # Path to generator image directory.
+    #     "crop_size": 128,  # Crop image size from raw image.
+    #     "step": 64,  # Step size of sliding window.
+    #     "thresh_size": 0,  # Threshold size. If the remaining image is less than the threshold, it will not be cropped.
+    #     "num_workers": 10  # How many threads to open at the same time.
+    # }
+    # split_images(args)
 
 
 def split_images(args: dict):
