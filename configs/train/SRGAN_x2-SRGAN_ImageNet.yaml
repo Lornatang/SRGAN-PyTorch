@@ -42,13 +42,13 @@ TRAIN:
 
   # training hyperparameters
   HYP:
+    EPOCHS: 18
+
     IMGS_PER_BATCH: 16
     SHUFFLE: True
     NUM_WORKERS: 4
     PIN_MEMORY: True
     PERSISTENT_WORKERS: True
-
-    EPOCHS: 18
 
   OPTIM:
     NAME: Adam
