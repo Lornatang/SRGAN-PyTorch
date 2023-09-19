@@ -1,5 +1,5 @@
 # experiment name
-EXP_NAME: SRGAN_x4-ImageNet
+EXP_NAME: SRGAN_x4-SRGAN_ImageNet
 # random number seed
 SEED: 0
 # super resolution magnification factor
@@ -35,7 +35,7 @@ TRAIN:
 
   # Model file address, used for pre-training and recovery training
   CHECKPOINT:
-    PRETRAINED_G_MODEL: "./results/SRResNet_x4-ImageNet/g_last.pth.tar"
+    PRETRAINED_G_MODEL: "./results/SRResNet_x4-SRGAN_ImageNet/g_last.pth.tar"
     PRETRAINED_D_MODEL: ""
     RESUMED_G_MODEL: ""
     RESUMED_D_MODEL: ""

@@ -1,5 +1,5 @@
 # experiment name
-EXP_NAME: SRResNet_x2-ImageNet
+EXP_NAME: SRResNet_x2-SRGAN_ImageNet
 # random number seed
 SEED: 0
 # super resolution magnification factor

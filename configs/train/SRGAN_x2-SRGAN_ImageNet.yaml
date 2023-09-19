@@ -35,7 +35,7 @@ TRAIN:
 
   # Model file address, used for pre-training and recovery training
   CHECKPOINT:
-    PRETRAINED_G_MODEL: "./results/SRResNet_x2-ImageNet/g_last.pth.tar"
+    PRETRAINED_G_MODEL: "./results/SRResNet_x2-SRGAN_ImageNet/g_last.pth.tar"
     PRETRAINED_D_MODEL: ""
     RESUMED_G_MODEL: ""
     RESUMED_D_MODEL: ""
