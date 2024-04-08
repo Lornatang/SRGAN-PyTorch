@@ -70,7 +70,7 @@ def test(
 
     if config["TEST"]["SAVE_IMAGE_DIR"]:
         save_image = True
-        save_image_dir = os.path.join(config["SAVE_IMAGE_DIR"], config["EXP_NAME"])
+        save_image_dir = os.path.join(config["TEST"]["SAVE_IMAGE_DIR"], config["EXP_NAME"])
         make_directory(save_image_dir)
 
     # Calculate the number of iterations per epoch
