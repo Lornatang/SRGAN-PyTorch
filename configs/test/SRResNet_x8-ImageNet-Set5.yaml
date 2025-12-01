@@ -1,4 +1,5 @@
-EXP_NAME: SRGAN_x8-SRGAN_ImageNet-Set5
+# experiment name
+EXP_NAME: SRResNet_x8-ImageNet-Set5
 # random number seed
 SEED: 0
 # Super resolution magnification factor
@@ -6,7 +7,7 @@ SCALE: 8
 # run device model
 DEVICE_ID: 0
 # Model weights path
-MODEL_WEIGHTS_PATH: "./results/pretrained_models/SRGAN_x8-SRGAN_ImageNet.pth.tar"
+MODEL_WEIGHTS_PATH: "./results/pretrained_models/SRResNet_x8-ImageNet.pth.tar"
 
 # Model define
 MODEL:

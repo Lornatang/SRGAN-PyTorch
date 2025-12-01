@@ -1,4 +1,4 @@
-# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright Larry. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -152,7 +152,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path",
                         type=str,
-                        default="./configs/test/SRGAN_x4-SRGAN_ImageNet-Set5.yaml",
+                        default="./configs/test/SRGAN_x4-ImageNet-Set5.yaml",
                         required=True,
                         help="Path to test config file.")
     args = parser.parse_args()

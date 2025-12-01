@@ -2,8 +2,8 @@ FILE=$1
 
 if [ "$FILE" == "ImageNet" ]; then
   # Download the imagenet dataset and move validation images to labeled subfolders
-  URL="https://huggingface.co/datasets/goodfellowliu/SRGAN_ImageNet/resolve/main/SRGAN_ImageNet.zip"
-  ZIP_FILE=./data/SRGAN_ImageNet.zip
+  URL="https://huggingface.co/datasets/goodfellowliu/ImageNet/resolve/main/ImageNet.zip"
+  ZIP_FILE=./data/ImageNet.zip
   mkdir -p ./data
   wget -N $URL -O $ZIP_FILE
   unzip $ZIP_FILE -d ./data

@@ -1,9 +1,9 @@
 # experiment name
-EXP_NAME: SRGAN_x2-ImageNet
+EXP_NAME: SRGAN_x8-ImageNet
 # random number seed
 SEED: 0
 # super resolution magnification factor
-SCALE: 2
+SCALE: 8
 # run device model
 DEVICE_ID: 0
 
@@ -14,7 +14,7 @@ MODEL:
     DECAY: 0.999
     COMPILED: True
   G:
-    NAME: srresnet_x2
+    NAME: srresnet_x8
     IN_CHANNELS: 3
     OUT_CHANNELS: 3
     CHANNELS: 64
@@ -29,13 +29,13 @@ MODEL:
 
 TRAIN:
   DATASET:
-    TRAIN_GT_IMAGES_DIR: "./data/SRGAN_ImageNet_train_GT_sub"
+    TRAIN_GT_IMAGES_DIR: "./data/ImageNet_train_GT_sub"
 
     GT_IMAGE_SIZE: 96
 
   # Model file address, used for pre-training and recovery training
   CHECKPOINT:
-    PRETRAINED_G_MODEL: "./results/SRResNet_x2-SRGAN_ImageNet/g_last.pth.tar"
+    PRETRAINED_G_MODEL: "./results/SRResNet_x8-ImageNet/g_last.pth.tar"
     PRETRAINED_D_MODEL: ""
     RESUMED_G_MODEL: ""
     RESUMED_D_MODEL: ""
@@ -85,8 +85,8 @@ TRAIN:
 
 TEST:
   DATASET:
-    PAIRED_TEST_GT_IMAGES_DIR: "./data/Set5/X2/GT"
-    PAIRED_TEST_LR_IMAGES_DIR: "./data/Set5/X2/LR"
+    PAIRED_TEST_GT_IMAGES_DIR: "./data/Set5/X8/GT"
+    PAIRED_TEST_LR_IMAGES_DIR: "./data/Set5/X8/LR"
 
   # Test hyperparameters
   HYP:

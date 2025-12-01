@@ -1,4 +1,4 @@
-# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright Larry. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -22,8 +22,8 @@ from tqdm import tqdm
 
 def main():
     args = {
-        "inputs_dir": "./data/SRGAN_ImageNet",  # Path to input image directory.
-        "output_dir": "./data/SRGAN_ImageNet_train_GT_sub",  # Path to generator image directory.
+        "inputs_dir": "./data/ImageNet",  # Path to input image directory.
+        "output_dir": "./data/ImageNet_train_GT_sub",  # Path to generator image directory.
         "crop_size": 128,  # Crop image size from raw image.
         "step": 64,  # Step size of sliding window.
         "thresh_size": 0,  # Threshold size. If the remaining image is less than the threshold, it will not be cropped.

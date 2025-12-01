@@ -40,7 +40,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path",
                         type=str,
-                        default="./configs/train/SRResNet_x4-SRGAN_ImageNet-Set5.yaml",
+                        default="./configs/train/SRResNet_x4-ImageNet-Set5.yaml",
                         help="Path to train config file.")
     args = parser.parse_args()
 
