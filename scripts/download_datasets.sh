@@ -1,6 +1,6 @@
 FILE=$1
 
-if [ "$FILE" == "SRGAN_ImageNet" ]; then
+if [ "$FILE" == "ImageNet" ]; then
   # Download the imagenet dataset and move validation images to labeled subfolders
   URL="https://huggingface.co/datasets/goodfellowliu/SRGAN_ImageNet/resolve/main/SRGAN_ImageNet.zip"
   ZIP_FILE=./data/SRGAN_ImageNet.zip
@@ -17,6 +17,6 @@ elif [ "$FILE" == "Set5" ]; then
   unzip $ZIP_FILE -d ./data/Set5
   rm $ZIP_FILE
 else
-  echo "Available arguments are SRGAN_ImageNet, Set5"
+  echo "Available arguments are ImageNet, Set5"
   exit 1
 fi
