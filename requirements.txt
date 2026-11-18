@@ -3,6 +3,5 @@ numpy
 tqdm
 torch
 PyYAML
-typing
 torchvision
 natsort
